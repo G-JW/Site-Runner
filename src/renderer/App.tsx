@@ -49,7 +49,7 @@ export function App() {
   const pageContent = (() => {
     if (page === 'sites') return <SitesPage sites={sites} profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'profiles') return <ProfilesPage profiles={profiles} onChange={refresh} onError={showError} />;
-    if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} />;
+    if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
     if (page === 'notifications') return <Placeholder title="Notification channels" text="NTFY and webhook channels will appear here after the automation pipeline is connected." />;
     if (page === 'settings') return <Placeholder title="Settings" text={`Local data is stored in ${info?.userDataPath ?? 'the Electron userData folder'}.`} />;
     return <OverviewPage sites={sites} profiles={profiles} latestRun={latestBatch} onNavigate={setPage} />;

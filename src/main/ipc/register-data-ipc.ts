@@ -4,7 +4,6 @@ import type { DataService } from '../services/data-service.js';
 import type { ProfileService } from '../profiles/profile-service.js';
 
 export function registerDataIpc(data: DataService, profiles: ProfileService): void {
-  ipcMain.handle('app:openPath', (_event, targetPath: string) => shell.openPath(targetPath));
   ipcMain.handle('sites:list', () => data.listSites());
   ipcMain.handle('sites:save', (_event, input: SiteInput) => data.saveSite(input));
   ipcMain.handle('sites:remove', (_event, id: string) => data.removeSite(id));
@@ -13,6 +12,11 @@ export function registerDataIpc(data: DataService, profiles: ProfileService): vo
   ipcMain.handle('profiles:remove', (_event, id: string) => profiles.remove(id));
   ipcMain.handle('profiles:open', (_event, id: string) => profiles.open(id));
   ipcMain.handle('runs:list', (_event, siteId?: string) => data.listRuns(siteId));
+  ipcMain.handle('runs:openScreenshot', (_event, runId: string) => {
+    const run = data.getRun(runId);
+    if (!run.screenshotPath) throw new Error('This run has no screenshot');
+    return shell.openPath(run.screenshotPath);
+  });
   ipcMain.handle('notifications:list', () => data.listChannels());
   ipcMain.handle('notifications:save', (_event, input: NotificationChannelInput) => data.saveChannel(input));
   ipcMain.handle('notifications:remove', (_event, id: string) => data.removeChannel(id));

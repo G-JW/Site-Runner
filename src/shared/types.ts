@@ -40,7 +40,7 @@ export interface NotificationMessage {
 }
 
 export interface SiteRunnerApi {
-  app: { info(): Promise<AppInfo>; openPath(path: string): Promise<string> };
+  app: { info(): Promise<AppInfo> };
   sites: { list(): Promise<Site[]>; save(input: SiteInput): Promise<Site>; remove(id: string): Promise<void> };
   profiles: {
     list(): Promise<BrowserProfile[]>; create(name: string): Promise<BrowserProfile>;
@@ -48,7 +48,8 @@ export interface SiteRunnerApi {
   };
   runs: {
     runSite(id: string): Promise<SiteRunResult>; runEnabledSites(): Promise<BatchResult>;
-    list(siteId?: string): Promise<RunRecord[]>; onLog(listener: (entry: RunLogEntry) => void): () => void;
+    list(siteId?: string): Promise<RunRecord[]>; openScreenshot(runId: string): Promise<string>;
+    onLog(listener: (entry: RunLogEntry) => void): () => void;
   };
   notifications: {
     list(): Promise<NotificationChannel[]>; save(input: NotificationChannelInput): Promise<NotificationChannel>;

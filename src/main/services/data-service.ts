@@ -106,6 +106,13 @@ export class DataService {
     return rows.map((row) => this.mapRun(row));
   }
 
+  getRun(id: string): RunRecord {
+    const row = this.db.prepare(`SELECT r.*, s.name AS site_name FROM run_records r
+      JOIN sites s ON s.id = r.site_id WHERE r.id = ?`).get(id) as Row | undefined;
+    if (!row) throw new Error('Run record not found');
+    return this.mapRun(row);
+  }
+
   getSettings(): AppSettings {
     const values = Object.fromEntries((this.db.prepare('SELECT key, value FROM settings').all() as Row[])
       .map((row) => [String(row.key), String(row.value)]));

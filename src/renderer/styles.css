@@ -96,4 +96,14 @@ input:disabled { background: #ecece8; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 20px 26px 24px; }
 .modal-actions .secondary { margin: 0; }
 .toast { position: fixed; z-index: 40; right: 26px; bottom: 24px; max-width: 440px; padding: 13px 17px; border-radius: 10px; background: #252e27; color: white; box-shadow: 0 10px 35px #0004; font-size: 13px; }
+.log-panel { margin-top: 16px; }
+.log-lines { max-height: 230px; overflow: auto; background: #171d18; color: #dfe6df; padding: 8px 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.log-lines > div { display: grid; grid-template-columns: 82px 50px 1fr; gap: 10px; padding: 5px 17px; }
+.log-lines time { color: #78847a; }
+.log-lines span { color: #9fbf76; text-transform: uppercase; }
+.log-lines .warn span { color: #e6bd67; }
+.log-lines .error span { color: #ef7b70; }
+.log-lines p { margin: 0; white-space: pre-wrap; }
+.run-details { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.run-details button { white-space: nowrap; font-size: 11px; }
 @media (max-width: 1100px) { main { padding: 42px 36px; } }

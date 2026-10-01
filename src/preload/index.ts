@@ -4,7 +4,6 @@ import type { SiteRunnerApi } from '../shared/types.js';
 const api: SiteRunnerApi = {
   app: {
     info: () => ipcRenderer.invoke('app:info') as ReturnType<SiteRunnerApi['app']['info']>,
-    openPath: (path) => ipcRenderer.invoke('app:openPath', path) as ReturnType<SiteRunnerApi['app']['openPath']>,
   },
   sites: {
     list: () => ipcRenderer.invoke('sites:list') as ReturnType<SiteRunnerApi['sites']['list']>,
@@ -21,6 +20,7 @@ const api: SiteRunnerApi = {
     runSite: (id) => ipcRenderer.invoke('runs:runSite', id) as ReturnType<SiteRunnerApi['runs']['runSite']>,
     runEnabledSites: () => ipcRenderer.invoke('runs:runEnabledSites') as ReturnType<SiteRunnerApi['runs']['runEnabledSites']>,
     list: (siteId) => ipcRenderer.invoke('runs:list', siteId) as ReturnType<SiteRunnerApi['runs']['list']>,
+    openScreenshot: (runId) => ipcRenderer.invoke('runs:openScreenshot', runId) as ReturnType<SiteRunnerApi['runs']['openScreenshot']>,
     onLog: (listener) => {
       const handler = (_event: Electron.IpcRendererEvent, entry: Parameters<typeof listener>[0]) => listener(entry);
       ipcRenderer.on('runs:log', handler);
