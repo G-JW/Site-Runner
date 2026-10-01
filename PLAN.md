@@ -969,14 +969,14 @@ playwright
 
 ### Tasks
 
-- [ ] 创建项目基础文件。
-- [ ] 创建 `site_runner.py`。
-- [ ] 创建 `requirements.txt`。
-- [ ] 创建 `.gitignore`。
-- [ ] 接入 Playwright。
-- [ ] 启动 Chromium。
-- [ ] 访问一个测试网站。
-- [ ] 正确退出浏览器。
+- [x] 创建项目基础文件。
+- [x] 创建 `site_runner.py`。
+- [x] 创建 `requirements.txt`。
+- [x] 创建 `.gitignore`。
+- [x] 接入 Playwright。
+- [x] 启动 Chromium。
+- [x] 访问一个测试网站。
+- [x] 正确退出浏览器。
 
 ### Verification
 
@@ -1000,11 +1000,11 @@ chore: initialize site runner
 
 ### Tasks
 
-- [ ] 创建 `.runtime/browser-profile/`。
-- [ ] 使用 `launch_persistent_context()`。
-- [ ] 实现 `login` CLI。
-- [ ] 允许用户手动登录。
-- [ ] 浏览器关闭后保留登录状态。
+- [x] 创建 `.runtime/browser-profile/`。
+- [x] 使用 `launch_persistent_context()`。
+- [x] 实现 `login` CLI。
+- [x] 允许用户手动登录。
+- [x] 浏览器关闭后保留登录状态。
 
 ### Verification
 
@@ -1034,13 +1034,13 @@ feat: add persistent browser login
 
 ### Tasks
 
-- [ ] 创建 `SITES`。
-- [ ] 创建网站 Handler。
-- [ ] 创建 `HANDLERS` mapping。
-- [ ] 实现无 handler 网站。
-- [ ] 实现 `run_site()`。
-- [ ] 实现指定 Site 运行。
-- [ ] 实现批量串行运行。
+- [x] 创建 `SITES`。
+- [x] 创建网站 Handler。
+- [x] 创建 `HANDLERS` mapping。
+- [x] 实现无 handler 网站。
+- [x] 实现 `run_site()`。
+- [x] 实现指定 Site 运行。
+- [x] 实现批量串行运行。
 
 ### Verification
 
@@ -1068,13 +1068,13 @@ feat: add configurable site automation
 
 ### Tasks
 
-- [ ] 为每个网站捕获异常。
-- [ ] 单网站失败后继续执行。
-- [ ] 设置默认 Timeout。
-- [ ] 保存失败 Screenshot。
-- [ ] 输出运行日志。
-- [ ] 输出最终汇总。
-- [ ] 确保 Context 正确关闭。
+- [x] 为每个网站捕获异常。
+- [x] 单网站失败后继续执行。
+- [x] 设置默认 Timeout。
+- [x] 保存失败 Screenshot。
+- [x] 输出运行日志。
+- [x] 输出最终汇总。
+- [x] 确保 Context 正确关闭。
 
 ### Verification
 
@@ -1112,16 +1112,16 @@ feat: add error handling and run summary
 
 必须验证：
 
-- [ ] Playwright 可以启动。
-- [ ] Profile 可以保存登录状态。
-- [ ] 单网站可以执行。
-- [ ] 多网站可以串行执行。
-- [ ] 点击操作可以执行。
-- [ ] 无 Handler 网站可以执行。
-- [ ] 不存在的 selector 会进入失败处理。
-- [ ] 一个网站失败不会阻断其他网站。
-- [ ] Failure Screenshot 可以生成。
-- [ ] 浏览器资源最终正确释放。
+- [x] Playwright 可以启动。
+- [x] Profile 可以保存登录状态。
+- [x] 单网站可以执行。
+- [x] 多网站可以串行执行。
+- [x] 点击操作可以执行。
+- [x] 无 Handler 网站可以执行。
+- [x] 不存在的 selector 会进入失败处理。
+- [x] 一个网站失败不会阻断其他网站。
+- [x] Failure Screenshot 可以生成。
+- [x] 浏览器资源最终正确释放。
 
 当前不追求：
 
@@ -1136,29 +1136,29 @@ feat: add error handling and run summary
 
 第一阶段 Site Runner 原型完成必须满足：
 
-- [ ] 项目名称为 `Site Runner`。
-- [ ] 核心程序只有一个 `site_runner.py`。
-- [ ] `site_runner.py` 可以直接运行。
-- [ ] 使用 Python Playwright。
-- [ ] 使用 Chromium。
-- [ ] 浏览器运行时默认可见。
-- [ ] 支持 persistent browser profile。
-- [ ] 支持第一次手动登录。
-- [ ] 后续运行可以复用登录状态。
-- [ ] 不在代码中保存账号密码。
-- [ ] 支持配置多个网站。
-- [ ] 每个网站可以拥有自己的 Python Handler。
-- [ ] 只需要访问 URL 的网站无需 Handler。
-- [ ] 支持运行单个网站。
-- [ ] 支持批量运行所有启用网站。
-- [ ] 批量执行默认串行。
-- [ ] 某个网站失败不会终止全部任务。
-- [ ] 有基础运行日志。
-- [ ] 最后输出成功 / 失败汇总。
-- [ ] 失败时尽可能保存 Screenshot。
-- [ ] Profile 和 Screenshot 不进入 Git。
-- [ ] `requirements.txt` 保持最小依赖。
-- [ ] 不引入 GUI、数据库或不必要框架。
+- [x] 项目名称为 `Site Runner`。
+- [x] 核心程序只有一个 `site_runner.py`。
+- [x] `site_runner.py` 可以直接运行。
+- [x] 使用 Python Playwright。
+- [x] 使用 Chromium。
+- [x] 浏览器运行时默认可见。
+- [x] 支持 persistent browser profile。
+- [x] 支持第一次手动登录。
+- [x] 后续运行可以复用登录状态。
+- [x] 不在代码中保存账号密码。
+- [x] 支持配置多个网站。
+- [x] 每个网站可以拥有自己的 Python Handler。
+- [x] 只需要访问 URL 的网站无需 Handler。
+- [x] 支持运行单个网站。
+- [x] 支持批量运行所有启用网站。
+- [x] 批量执行默认串行。
+- [x] 某个网站失败不会终止全部任务。
+- [x] 有基础运行日志。
+- [x] 最后输出成功 / 失败汇总。
+- [x] 失败时尽可能保存 Screenshot。
+- [x] Profile 和 Screenshot 不进入 Git。
+- [x] `requirements.txt` 保持最小依赖。
+- [x] 不引入 GUI、数据库或不必要框架。
 
 ---
 
@@ -1232,3 +1232,53 @@ AI / Playwright MCP
 - 按阶段进行 Git commit。
 - 完成后逐项检查 Acceptance Criteria。
 - 最终总结实际完成情况、测试结果、Git 状态以及仍然存在的限制。
+
+# 31. Implementation & Verification Record
+
+Implemented on 2026-10-01 in four Git stages. Core implementation remains in
+`site_runner.py`; the only third-party requirement is `playwright`.
+
+Actual headed Chromium smoke tests passed:
+
+- Default batch and explicit single-site execution; `list` and unknown-site CLI.
+- Public Example URL visit without a handler and an offline check-in button demo.
+- Persistent test Cookie and LocalStorage survive closing/reopening the profile.
+- Login mode waits for the browser and exits when that browser is closed.
+- A success / B missing-selector failure / C success, in serial order.
+- Failure produces a valid PNG; screenshot directory failure does not stop C.
+- Unknown handlers and HTTP 503 are reported as failures.
+- Disabled sites are skipped in batch and can be run explicitly.
+- Closed-context errors are isolated; page/context/browser cleanup is verified.
+- Success/failure exit codes, empty batch, Python syntax and Git whitespace checks.
+
+Tests use a separate ignored smoke profile and Playwright-routed HTML without a
+web server or mock browser. No private accounts or credentials were used.
+Real account login and real website check-in selectors still require the user's
+sites; persistence was verified using synthetic session data, not a real account.
+The bundled demo confirms an actual click and success indicator, not a real
+website check-in. Update SITES, write site functions and register HANDLERS to add
+real sites. A visit-only site reports navigation success, not login/check-in status.
+
+Local setup and commands (from the repository directory):
+
+```bash
+source .venv/bin/activate
+python site_runner.py list
+python site_runner.py login
+python site_runner.py
+python site_runner.py run checkin_demo
+```
+
+For a fresh checkout:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+Runtime data stays next to the script under `.runtime/` and is ignored by Git.
+Close the login browser after finishing. Run one process at a time because all
+sites share the same persistent profile. Exit codes: 0 success, 1 run/browser
+failure or unknown site, 2 invalid CLI arguments, 130 interrupted.

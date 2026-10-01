@@ -10,7 +10,10 @@ Runtime files are relative to this script, regardless of the working directory.
 """
 
 import argparse
+from datetime import datetime
+import logging
 from pathlib import Path
+import re
 from urllib.parse import quote
 
 from playwright.sync_api import Error, expect, sync_playwright
@@ -18,7 +21,9 @@ from playwright.sync_api import Error, expect, sync_playwright
 
 BASE_DIR = Path(__file__).resolve().parent
 PROFILE_DIR = BASE_DIR / ".runtime" / "browser-profile"
+SCREENSHOT_DIR = BASE_DIR / ".runtime" / "screenshots"
 DEFAULT_TIMEOUT = 30_000
+LOGGER = logging.getLogger("site_runner")
 
 # The click demo works offline and does not use any account or credentials.
 DEMO_HTML = """<!doctype html><html lang="zh-CN"><meta charset="utf-8">
@@ -43,6 +48,10 @@ SITES = {
         "handler": "example",
     },
 }
+
+
+def setup_logging():
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
 def open_context(playwright):
@@ -80,6 +89,19 @@ def close_context(context):
             raise
 
 
+def save_failure_screenshot(page, site_id):
+    """Best effort: a closed page or failed screenshot must not stop the batch."""
+    try:
+        SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", site_id) or "site"
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        path = SCREENSHOT_DIR / f"{safe_id}-{timestamp}.png"
+        page.screenshot(path=str(path), full_page=True, timeout=DEFAULT_TIMEOUT)
+        LOGGER.info("Failure screenshot: %s", path)
+    except Exception as error:
+        LOGGER.warning("Could not save screenshot for %s: %s", site_id, error)
+
+
 def checkin_example(page):
     """Example handler: replace the button and success locator for a real site.
 
@@ -95,9 +117,14 @@ HANDLERS = {"example": checkin_example}
 
 
 def run_site(context, site_id, site):
-    page = context.new_page()
+    name = site.get("name", site_id)
+    result = {"site": name, "success": False, "message": ""}
+    page = None
+    LOGGER.info("Running %s", name)
     try:
-        print(f"Running {site['name']}")
+        page = context.new_page()
+        url = site["url"]
+        LOGGER.info("Opening %s", "local demo page" if url.startswith("data:") else url)
         response = page.goto(site["url"], wait_until="domcontentloaded")
         if response is not None and response.status >= 400:
             raise RuntimeError(f"HTTP {response.status}")
@@ -106,17 +133,42 @@ def run_site(context, site_id, site):
             if handler_name not in HANDLERS:
                 raise ValueError(f"Unknown handler: {handler_name}")
             HANDLERS[handler_name](page)
-        return {
-            "site": site["name"], "success": True,
+        result.update({
+            "success": True,
             "message": "check-in completed" if handler_name else "visit completed",
-        }
+        })
+    except Exception as error:
+        result["message"] = str(error) or type(error).__name__
+        LOGGER.error("%s failed: %s", name, result["message"])
+        if page is not None:
+            save_failure_screenshot(page, site_id)
     finally:
-        page.close()
+        if page is not None:
+            try:
+                page.close()
+            except Exception as error:
+                LOGGER.warning("Could not close page for %s: %s", name, error)
+    if result["success"]:
+        LOGGER.info("%s completed (%s)", name, result["message"])
+    return result
 
 
 def run_all(context):
     return [run_site(context, site_id, site)
             for site_id, site in SITES.items() if site.get("enabled") is True]
+
+
+def print_summary(results):
+    success = sum(result["success"] for result in results)
+    print("\n" + "=" * 32)
+    print("Site Runner Result")
+    print("=" * 32)
+    for result in results:
+        mark = "✓" if result["success"] else "✗"
+        print(f"{mark} {result['site']}")
+    print("-" * 32)
+    print(f"Success: {success}\nFailed: {len(results) - success}\nTotal: {len(results)}")
+    print("=" * 32)
 
 
 def list_sites():
@@ -143,24 +195,43 @@ def parse_args(argv=None):
 
 def main(argv=None):
     args = parse_args(argv)
+    setup_logging()
     if args.command == "list":
         list_sites()
         return 0
     if args.command == "run" and args.site_id is not None and args.site_id not in SITES:
         print(f"Unknown site: {args.site_id}")
         return 1
-    with sync_playwright() as playwright:
-        context = open_context(playwright)
-        try:
-            if args.command == "login":
-                login_mode(context)
-            else:
-                results = ([run_site(context, args.site_id, SITES[args.site_id])]
-                           if args.site_id is not None else run_all(context))
-                for result in results:
-                    print(f"{result['site']}: {result['message']}")
-        finally:
-            close_context(context)
+    if args.command == "run" and args.site_id is None:
+        if not any(site.get("enabled") is True for site in SITES.values()):
+            LOGGER.info("No enabled sites")
+            print_summary([])
+            return 0
+    LOGGER.info("Starting Site Runner")
+    results = None
+    try:
+        with sync_playwright() as playwright:
+            context = open_context(playwright)
+            try:
+                if args.command == "login":
+                    login_mode(context)
+                else:
+                    results = ([run_site(context, args.site_id, SITES[args.site_id])]
+                               if args.site_id is not None else run_all(context))
+            finally:
+                close_context(context)
+    except KeyboardInterrupt:
+        LOGGER.info("Interrupted; browser closed")
+        return 130
+    except Exception as error:
+        LOGGER.error("Browser error: %s", error)
+        LOGGER.info("For missing Chromium, run: python -m playwright install chromium")
+        return 1
+    finally:
+        if results is not None:
+            print_summary(results)
+    if results is not None and any(not result["success"] for result in results):
+        return 1
     return 0
 
 
