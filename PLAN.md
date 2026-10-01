@@ -1543,12 +1543,12 @@ site-runner
 
 ### Tasks
 
-- [ ] 检查当前仓库结构。
-- [ ] 检查 Git branch、remote 和 working tree。
-- [ ] 阅读当前 `PLAN.md`、Python 原型和已有实现记录。
-- [ ] 运行现有 Python smoke test。
-- [ ] 确认 Persistent Profile、Batch、Failure Screenshot 等原型能力仍可复现。
-- [ ] 记录哪些代码或 fixture 可以迁移复用。
+- [x] 检查当前仓库结构。
+- [x] 检查 Git branch、remote 和 working tree。
+- [x] 阅读当前 `PLAN.md`、Python 原型和已有实现记录。
+- [x] 运行现有 Python smoke test。
+- [x] 确认 Persistent Profile、Batch、Failure Screenshot 等原型能力仍可复现。
+- [x] 记录哪些代码或 fixture 可以迁移复用。
 
 ### Verification
 
@@ -1564,15 +1564,15 @@ site-runner
 
 ### Tasks
 
-- [ ] 初始化或接入 Electron + React + TypeScript + Vite。
-- [ ] 建立 Main / Preload / Renderer 边界。
-- [ ] 开启 `contextIsolation`。
-- [ ] 关闭 Renderer `nodeIntegration`。
-- [ ] 建立最小应用 Shell。
-- [ ] 配置 Electron `userData` 路径工具。
-- [ ] 配置 lint、formatter、typecheck。
-- [ ] 配置基础 build。
-- [ ] 更新 `.gitignore`。
+- [x] 初始化或接入 Electron + React + TypeScript + Vite。
+- [x] 建立 Main / Preload / Renderer 边界。
+- [x] 开启 `contextIsolation`。
+- [x] 关闭 Renderer `nodeIntegration`。
+- [x] 建立最小应用 Shell。
+- [x] 配置 Electron `userData` 路径工具。
+- [x] 配置 lint、formatter、typecheck。
+- [x] 配置基础 build。
+- [x] 更新 `.gitignore`。
 
 ### Verification
 
@@ -1597,15 +1597,15 @@ chore: initialize site runner desktop app
 
 ### Tasks
 
-- [ ] 引入 SQLite。
-- [ ] 建立轻量 migration。
-- [ ] 创建 Site model。
-- [ ] 创建 BrowserProfile model。
-- [ ] 创建 RunRecord model。
-- [ ] 创建 Settings model。
-- [ ] 创建 NotificationChannel model。
-- [ ] 建立 Main Process services。
-- [ ] 建立类型化 Preload IPC API。
+- [x] 引入 SQLite。
+- [x] 建立轻量 migration。
+- [x] 创建 Site model。
+- [x] 创建 BrowserProfile model。
+- [x] 创建 RunRecord model。
+- [x] 创建 Settings model。
+- [x] 创建 NotificationChannel model。
+- [x] 建立 Main Process services。
+- [x] 建立类型化 Preload IPC API。
 
 ### Verification
 
@@ -1632,18 +1632,18 @@ feat: add local data models and persistence
 
 ### Tasks
 
-- [ ] Site List。
-- [ ] Add Site。
-- [ ] Edit Site。
-- [ ] Delete Site。
-- [ ] Enable / Disable。
-- [ ] URL。
-- [ ] Profile。
-- [ ] Timeout。
-- [ ] Schedule。
-- [ ] Monaco Editor。
-- [ ] AutomationContext 类型提示。
-- [ ] 允许无 Script 保存。
+- [x] Site List。
+- [x] Add Site。
+- [x] Edit Site。
+- [x] Delete Site。
+- [x] Enable / Disable。
+- [x] URL。
+- [x] Profile。
+- [x] Timeout。
+- [x] Schedule。
+- [x] Monaco Editor。
+- [x] AutomationContext 类型提示。
+- [x] 允许无 Script 保存。
 
 ### Verification
 
@@ -1661,14 +1661,14 @@ feat: add site management and script editor
 
 ### Tasks
 
-- [ ] 创建 Browser Profile。
-- [ ] 删除未被引用 Profile。
-- [ ] Site 选择 Profile。
-- [ ] 使用 `userData/profiles/<id>`。
-- [ ] 实现 `Open Browser`。
-- [ ] 使用 Playwright Chromium Persistent Context。
-- [ ] 验证手动登录。
-- [ ] 验证重新打开后登录状态保留。
+- [x] 创建 Browser Profile。
+- [x] 删除未被引用 Profile。
+- [x] Site 选择 Profile。
+- [x] 使用 `userData/profiles/<id>`。
+- [x] 实现 `Open Browser`。
+- [x] 使用 Playwright Chromium Persistent Context。
+- [x] 验证手动登录。
+- [x] 验证重新打开后登录状态保留。
 
 ### Verification
 
@@ -1693,19 +1693,19 @@ feat: add persistent browser profiles
 
 ### Tasks
 
-- [ ] 实现 `runSite()`。
-- [ ] 实现 Browser / Context 生命周期。
-- [ ] 自动访问 Site URL。
-- [ ] 支持无 Script Site。
-- [ ] 实现 AutomationContext。
-- [ ] 实现 Script Runner。
-- [ ] Site Script 与 Renderer 隔离。
-- [ ] 实现 Timeout。
-- [ ] 实现 Site run lock。
-- [ ] 捕获异常。
-- [ ] 失败截图。
-- [ ] 保存 RunRecord。
-- [ ] 保证资源释放。
+- [x] 实现 `runSite()`。
+- [x] 实现 Browser / Context 生命周期。
+- [x] 自动访问 Site URL。
+- [x] 支持无 Script Site。
+- [x] 实现 AutomationContext。
+- [x] 实现 Script Runner。
+- [x] Site Script 与 Renderer 隔离。
+- [x] 实现 Timeout。
+- [x] 实现 Site run lock。
+- [x] 捕获异常。
+- [x] 失败截图。
+- [x] 保存 RunRecord。
+- [x] 保证资源释放。
 
 ### Verification
 
@@ -1731,15 +1731,15 @@ feat: add playwright automation runner
 
 ### Tasks
 
-- [ ] Site 页面提供 Run / Test。
-- [ ] 显示 Running 状态。
-- [ ] 实时日志。
-- [ ] 显示开始 / 结束时间。
-- [ ] 显示 Success / Failed。
-- [ ] Run History 页面。
-- [ ] 按 Site 筛选。
-- [ ] 展示 Error。
-- [ ] 打开 Screenshot。
+- [x] Site 页面提供 Run / Test。
+- [x] 显示 Running 状态。
+- [x] 实时日志。
+- [x] 显示开始 / 结束时间。
+- [x] 显示 Success / Failed。
+- [x] Run History 页面。
+- [x] 按 Site 筛选。
+- [x] 展示 Error。
+- [x] 打开 Screenshot。
 
 ### Verification
 
@@ -1764,15 +1764,15 @@ feat: add manual runs and execution history
 
 ### Tasks
 
-- [ ] 接入 `node-cron`。
-- [ ] 启动时注册 schedules。
-- [ ] 修改 schedule 后刷新任务。
-- [ ] 禁止同 Site 并发。
-- [ ] 实现 `runEnabledSites()`。
-- [ ] Batch 串行。
-- [ ] 单 Site 失败后继续。
-- [ ] 生成 BatchResult。
-- [ ] GUI 提供 Run All Enabled。
+- [x] 接入 `node-cron`。
+- [x] 启动时注册 schedules。
+- [x] 修改 schedule 后刷新任务。
+- [x] 禁止同 Site 并发。
+- [x] 实现 `runEnabledSites()`。
+- [x] Batch 串行。
+- [x] 单 Site 失败后继续。
+- [x] 生成 BatchResult。
+- [x] GUI 提供 Run All Enabled。
 
 ### Verification
 
@@ -1803,19 +1803,19 @@ feat: add scheduling and batch execution
 
 ### Tasks
 
-- [ ] 实现 `NotificationMessage`。
-- [ ] 实现 `NotificationChannel`。
-- [ ] 实现 Notification Service。
-- [ ] 实现 Provider Registry。
-- [ ] 实现 NTFY Provider。
-- [ ] 实现 Generic Webhook Provider。
-- [ ] 支持 `normal / alert / all` Routing。
-- [ ] Batch 完成后最多生成一次逻辑汇总通知。
-- [ ] 一个逻辑通知可发送给多个已启用 Channel。
-- [ ] 单 Provider 失败不影响其他 Provider。
-- [ ] Notification failure 不改变 BatchResult。
-- [ ] GUI 支持添加 / 编辑 / 删除 / 启用通知 Channel。
-- [ ] GUI 支持 Test Notification。
+- [x] 实现 `NotificationMessage`。
+- [x] 实现 `NotificationChannel`。
+- [x] 实现 Notification Service。
+- [x] 实现 Provider Registry。
+- [x] 实现 NTFY Provider。
+- [x] 实现 Generic Webhook Provider。
+- [x] 支持 `normal / alert / all` Routing。
+- [x] Batch 完成后最多生成一次逻辑汇总通知。
+- [x] 一个逻辑通知可发送给多个已启用 Channel。
+- [x] 单 Provider 失败不影响其他 Provider。
+- [x] Notification failure 不改变 BatchResult。
+- [x] GUI 支持添加 / 编辑 / 删除 / 启用通知 Channel。
+- [x] GUI 支持 Test Notification。
 
 ### Verification
 
@@ -1848,20 +1848,20 @@ feat: add extensible notification providers
 
 ### Tasks
 
-- [ ] 核心 Service 增加必要测试。
-- [ ] Run lock 测试。
-- [ ] Batch failure isolation 测试。
-- [ ] SQLite CRUD 测试。
-- [ ] Notification routing 测试。
-- [ ] Provider payload 测试。
-- [ ] Path generation 测试。
-- [ ] lint。
-- [ ] typecheck。
-- [ ] test。
-- [ ] build。
-- [ ] packaging。
-- [ ] 跨平台路径处理。
-- [ ] 运行数据统一迁移到 `userData`。
+- [x] 核心 Service 增加必要测试。
+- [x] Run lock 测试。
+- [x] Batch failure isolation 测试。
+- [x] SQLite CRUD 测试。
+- [x] Notification routing 测试。
+- [x] Provider payload 测试。
+- [x] Path generation 测试。
+- [x] lint。
+- [x] typecheck。
+- [x] test。
+- [x] build。
+- [x] packaging。
+- [x] 跨平台路径处理。
+- [x] 运行数据统一迁移到 `userData`。
 
 ### Verification
 
@@ -1891,6 +1891,8 @@ chore: prepare desktop packaging
 ---
 
 ## Phase 10 — Documentation
+
+状态：已完成。
 
 ### Tasks
 
@@ -2075,57 +2077,57 @@ Site Runner 当前定位仍然是本地桌面软件。
 
 MVP 完成时必须满足：
 
-- [ ] 产品名称为 `Site Runner`。
+- [x] 产品名称为 `Site Runner`。
 - [ ] GitHub Repository 使用或继续使用 `site-runner`。
-- [ ] 能作为 Electron 桌面应用启动。
-- [ ] 使用 React + TypeScript。
-- [ ] 使用 Playwright。
-- [ ] MVP 使用 Chromium。
-- [ ] Renderer 与 Node.js / Playwright 保持安全边界。
-- [ ] 可以创建、编辑、删除、启用和禁用 Site。
-- [ ] Site 可以保存独立 Script。
-- [ ] Monaco Editor 可编辑 Script。
-- [ ] 无 Script 的 Site 可仅访问 URL。
-- [ ] 可以创建多个 Browser Profile。
-- [ ] Profile 可以手动打开。
-- [ ] 手动登录状态能够持久保存。
-- [ ] 多个 Site 可以引用同一 Profile。
-- [ ] 不要求保存网站账号密码。
-- [ ] 可以手动 Run 单个 Site。
-- [ ] 可以执行真实 Playwright 操作。
-- [ ] Site Script 支持 Timeout。
-- [ ] 同一个 Site 不并发运行。
-- [ ] Script 失败不导致应用崩溃。
-- [ ] 单 Site 失败不阻断 Batch。
-- [ ] 失败时记录 Error。
-- [ ] 失败时尽可能保存 Screenshot。
-- [ ] 每次执行产生 RunRecord。
-- [ ] GUI 可以查看 Run History。
-- [ ] 可以配置 cron Schedule。
-- [ ] 可以 Run All Enabled。
-- [ ] Batch 正确统计 Success / Failed。
-- [ ] Batch 默认串行。
-- [ ] 通知系统不与 NTFY 写死绑定。
-- [ ] Notification Service 使用统一 Provider 接口。
-- [ ] MVP 至少支持 NTFY Provider。
-- [ ] MVP 至少支持 Generic Webhook Provider。
-- [ ] 可以配置多个 Notification Channel。
-- [ ] 可以按 normal / alert / all 路由通知。
-- [ ] 全部成功时产生 normal 级别汇总。
-- [ ] 任一失败时产生 alert 级别汇总。
-- [ ] 一次 Batch 只产生一个逻辑汇总消息。
-- [ ] 一个逻辑消息可以发送至多个 Channel。
-- [ ] 单个 Provider 失败不阻断其他 Provider。
-- [ ] 通知失败不修改 Automation / Batch 原始结果。
-- [ ] 未配置 Notification Channel 时程序正常运行。
-- [ ] Profile、Cookie、Token、数据库、Screenshot 不进入 Git。
-- [ ] lint 通过。
-- [ ] typecheck 通过。
-- [ ] 核心 test 通过。
-- [ ] production build 通过。
-- [ ] 开发平台桌面包可启动。
+- [x] 能作为 Electron 桌面应用启动。
+- [x] 使用 React + TypeScript。
+- [x] 使用 Playwright。
+- [x] MVP 使用 Chromium。
+- [x] Renderer 与 Node.js / Playwright 保持安全边界。
+- [x] 可以创建、编辑、删除、启用和禁用 Site。
+- [x] Site 可以保存独立 Script。
+- [x] Monaco Editor 可编辑 Script。
+- [x] 无 Script 的 Site 可仅访问 URL。
+- [x] 可以创建多个 Browser Profile。
+- [x] Profile 可以手动打开。
+- [x] 手动登录状态能够持久保存。
+- [x] 多个 Site 可以引用同一 Profile。
+- [x] 不要求保存网站账号密码。
+- [x] 可以手动 Run 单个 Site。
+- [x] 可以执行真实 Playwright 操作。
+- [x] Site Script 支持 Timeout。
+- [x] 同一个 Site 不并发运行。
+- [x] Script 失败不导致应用崩溃。
+- [x] 单 Site 失败不阻断 Batch。
+- [x] 失败时记录 Error。
+- [x] 失败时尽可能保存 Screenshot。
+- [x] 每次执行产生 RunRecord。
+- [x] GUI 可以查看 Run History。
+- [x] 可以配置 cron Schedule。
+- [x] 可以 Run All Enabled。
+- [x] Batch 正确统计 Success / Failed。
+- [x] Batch 默认串行。
+- [x] 通知系统不与 NTFY 写死绑定。
+- [x] Notification Service 使用统一 Provider 接口。
+- [x] MVP 至少支持 NTFY Provider。
+- [x] MVP 至少支持 Generic Webhook Provider。
+- [x] 可以配置多个 Notification Channel。
+- [x] 可以按 normal / alert / all 路由通知。
+- [x] 全部成功时产生 normal 级别汇总。
+- [x] 任一失败时产生 alert 级别汇总。
+- [x] 一次 Batch 只产生一个逻辑汇总消息。
+- [x] 一个逻辑消息可以发送至多个 Channel。
+- [x] 单个 Provider 失败不阻断其他 Provider。
+- [x] 通知失败不修改 Automation / Batch 原始结果。
+- [x] 未配置 Notification Channel 时程序正常运行。
+- [x] Profile、Cookie、Token、数据库、Screenshot 不进入 Git。
+- [x] lint 通过。
+- [x] typecheck 通过。
+- [x] 核心 test 通过。
+- [x] production build 通过。
+- [x] 开发平台桌面包可启动。
 - [ ] GitHub 与本地主要开发状态同步。
-- [ ] README 与实际实现一致。
+- [x] README 与实际实现一致。
 
 ---
 
