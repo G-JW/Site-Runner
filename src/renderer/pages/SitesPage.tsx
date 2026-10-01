@@ -12,8 +12,12 @@ export function SitesPage({ sites, profiles, onChange, onError }: { sites: Site[
   const [editing, setEditing] = useState<Site | 'new' | null>(null);
   const [running, setRunning] = useState<Set<string>>(new Set());
   const [logs, setLogs] = useState<RunLogEntry[]>([]);
+  const [defaultTimeoutMs, setDefaultTimeoutMs] = useState(30_000);
   const profileNames = useMemo(() => Object.fromEntries(profiles.map((item) => [item.id, item.name])), [profiles]);
   useEffect(() => window.siteRunner.runs.onLog((entry) => setLogs((current) => [...current.slice(-199), entry])), []);
+  useEffect(() => {
+    queueMicrotask(() => void window.siteRunner.settings.get().then((settings) => setDefaultTimeoutMs(settings.defaultTimeoutMs)).catch(onError));
+  }, [onError]);
   async function toggle(site: Site) {
     try { await window.siteRunner.sites.save({ ...site, enabled: !site.enabled }); await onChange(); } catch (error) { onError(error); }
   }
@@ -32,12 +36,12 @@ export function SitesPage({ sites, profiles, onChange, onError }: { sites: Site[
     <section className="panel table-panel sites-table"><div className="table-head"><span>Site</span><span>Profile</span><span>Schedule</span><span>Last run</span><span>Actions</span></div>
       {sites.length === 0 ? <div className="table-empty">No sites configured yet.</div> : sites.map((site) => <div className="table-row" key={site.id}><div className="site-cell"><button className={`toggle ${site.enabled ? 'on' : ''}`} aria-label={`Toggle ${site.name}`} onClick={() => void toggle(site)}><span /></button><div><strong>{site.name}</strong><small>{site.url}</small></div></div><span>{profileNames[site.browserProfileId] ?? 'Unknown'}</span><span>{site.schedule.enabled ? site.schedule.cron : 'Off'}</span><span><i className={`result-dot ${site.lastRun?.status ?? 'idle'}`} />{running.has(site.id) ? 'Running…' : (site.lastRun?.status ?? 'Not run')}</span><div className="row-actions"><button disabled={running.has(site.id)} onClick={() => void run(site)}>Run</button><button onClick={() => setEditing(site)}>Edit</button><button className="danger-ghost" onClick={() => void remove(site)}>Delete</button></div></div>)}</section>
     {logs.length > 0 && <section className="panel log-panel"><div className="panel-heading"><div><span className="eyebrow">LIVE OUTPUT</span><h2>Run log</h2></div><button className="text-button" onClick={() => setLogs([])}>Clear</button></div><div className="log-lines">{logs.map((entry, index) => <div className={entry.level} key={`${entry.timestamp}-${index}`}><time>{new Date(entry.timestamp).toLocaleTimeString()}</time><span>{entry.level}</span><p>{entry.message}</p></div>)}</div></section>}
-    {editing && <SiteEditor site={editing === 'new' ? null : editing} profiles={profiles} onClose={() => setEditing(null)} onSaved={async (saved, runAfter) => { setEditing(null); await onChange(); if (runAfter) await run(saved); }} onError={onError} />}
+    {editing && <SiteEditor site={editing === 'new' ? null : editing} profiles={profiles} defaultTimeoutMs={defaultTimeoutMs} onClose={() => setEditing(null)} onSaved={async (saved, runAfter) => { setEditing(null); await onChange(); if (runAfter) await run(saved); }} onError={onError} />}
   </>;
 }
 
-function SiteEditor({ site, profiles, onClose, onSaved, onError }: { site: Site | null; profiles: BrowserProfile[]; onClose(): void; onSaved(site: Site, runAfter: boolean): Promise<void>; onError(error: unknown): void }) {
-  const [form, setForm] = useState<SiteInput>(site ? { ...site } : { name: '', url: 'https://', enabled: true, script: null, browserProfileId: profiles[0]?.id ?? '', timeoutMs: 30_000, schedule: { enabled: false, cron: '0 9 * * *' } });
+function SiteEditor({ site, profiles, defaultTimeoutMs, onClose, onSaved, onError }: { site: Site | null; profiles: BrowserProfile[]; defaultTimeoutMs: number; onClose(): void; onSaved(site: Site, runAfter: boolean): Promise<void>; onError(error: unknown): void }) {
+  const [form, setForm] = useState<SiteInput>(site ? { ...site } : { name: '', url: 'https://', enabled: true, script: null, browserProfileId: profiles[0]?.id ?? '', timeoutMs: defaultTimeoutMs, schedule: { enabled: false, cron: '0 9 * * *' } });
   const [saving, setSaving] = useState(false);
   const [editor, setEditor] = useState<Parameters<OnMount>[0] | null>(null);
   const configure: BeforeMount = (monaco) => {
