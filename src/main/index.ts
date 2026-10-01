@@ -5,6 +5,7 @@ import { getAppPaths } from './paths.js';
 import { AppDatabase } from './database/database.js';
 import { registerDataIpc } from './ipc/register-data-ipc.js';
 import { DataService } from './services/data-service.js';
+import { ProfileService } from './profiles/profile-service.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,8 +39,9 @@ app.whenReady().then(() => {
   const paths = getAppPaths();
   const database = new AppDatabase(paths.database);
   const data = new DataService(database.connection);
-  if (data.listProfiles().length === 0) data.createProfile('Default');
-  registerDataIpc(data);
+  const profiles = new ProfileService(data, paths.profiles);
+  if (data.listProfiles().length === 0) profiles.create('Default');
+  registerDataIpc(data, profiles);
   ipcMain.handle('app:info', () => ({
     name: 'Site Runner',
     version: app.getVersion(),
@@ -55,7 +57,10 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
-  app.once('before-quit', () => database.close());
+  app.once('before-quit', () => {
+    void profiles.closeAll();
+    database.close();
+  });
 });
 
 app.on('window-all-closed', () => {
