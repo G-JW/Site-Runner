@@ -38,7 +38,7 @@ function createWindow(): BrowserWindow {
     title: 'Site Runner',
     backgroundColor: '#f4f3ef',
     webPreferences: {
-      preload: path.join(currentDir, '../preload/index.js'),
+      preload: path.join(currentDir, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -108,8 +108,24 @@ app.whenReady().then(async () => {
 
   const window = createWindow();
   if (process.argv.includes('--smoke-test')) {
-    window.webContents.once('did-finish-load', () => app.quit());
-    setTimeout(() => app.quit(), 10_000).unref();
+    window.webContents.once('did-finish-load', () => {
+      void window.webContents.executeJavaScript(`new Promise((resolve) => setTimeout(() => resolve({
+        shell: Boolean(document.querySelector('.app-shell')),
+        api: typeof window.siteRunner?.sites?.list === 'function',
+        text: document.body.innerText.slice(0, 200)
+      }), 250))`).then((result: { shell: boolean; api: boolean; text: string }) => {
+        console.log(`RENDERER_SMOKE ${JSON.stringify(result)}`);
+        app.exit(result.shell && result.api ? 0 : 1);
+      }).catch((error: unknown) => {
+        console.error('RENDERER_SMOKE failed', error);
+        app.exit(1);
+      });
+    });
+    window.webContents.once('did-fail-load', (_event, code, description) => {
+      console.error(`RENDERER_SMOKE load failed: ${code} ${description}`);
+      app.exit(1);
+    });
+    setTimeout(() => app.exit(1), 10_000).unref();
   }
 
   app.on('activate', () => {
