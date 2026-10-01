@@ -10,6 +10,7 @@ import { AutomationRunner } from './automation/runner.js';
 import { broadcastRunLog, registerRunIpc } from './ipc/register-run-ipc.js';
 import { BatchRunner } from './automation/batch-runner.js';
 import { SchedulerService } from './scheduler/scheduler-service.js';
+import { NotificationService } from './notifications/service.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -45,10 +46,11 @@ app.whenReady().then(() => {
   const data = new DataService(database.connection);
   const profiles = new ProfileService(data, paths.profiles);
   const runner = new AutomationRunner(data, profiles, paths.screenshots, broadcastRunLog);
-  const batch = new BatchRunner(data, runner);
+  const notifications = new NotificationService(data);
+  const batch = new BatchRunner(data, runner, (result) => notifications.notifyBatch(result).then(() => undefined));
   const scheduler = new SchedulerService(data, runner);
   if (data.listProfiles().length === 0) profiles.create('Default');
-  registerDataIpc(data, profiles, scheduler);
+  registerDataIpc(data, profiles, scheduler, notifications);
   registerRunIpc(runner, batch);
   scheduler.start();
   ipcMain.handle('app:info', () => ({

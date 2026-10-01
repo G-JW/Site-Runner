@@ -78,6 +78,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .callout { margin: -18px 0 18px; padding: 11px 14px; border-radius: 10px; background: #fff2cc; color: #6f5b23; font-size: 13px; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: #101510a6; backdrop-filter: blur(5px); }
 .editor-modal { width: min(900px, 100%); max-height: calc(100vh - 40px); overflow: auto; background: #f8f8f5; border-radius: 17px; box-shadow: 0 25px 80px #0005; }
+.channel-modal { width: min(650px, 100%); max-height: calc(100vh - 40px); overflow: auto; background: #f8f8f5; border-radius: 17px; box-shadow: 0 25px 80px #0005; }
 .modal-head { display: flex; justify-content: space-between; align-items: start; padding: 24px 26px 18px; }
 .modal-head h2 { font: 700 22px 'Manrope'; margin: 4px 0 0; }
 .close { border: 0; background: #e8e9e4; width: 32px; height: 32px; border-radius: 9px; font-size: 23px; line-height: 1; cursor: pointer; }

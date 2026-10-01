@@ -4,6 +4,7 @@ import { OverviewPage } from './pages/OverviewPage';
 import { ProfilesPage } from './pages/ProfilesPage';
 import { RunHistoryPage } from './pages/RunHistoryPage';
 import { SitesPage } from './pages/SitesPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 
 export type PageName = 'overview' | 'sites' | 'profiles' | 'history' | 'notifications' | 'settings';
 
@@ -46,12 +47,12 @@ export function App() {
   }, [notice]);
 
   const latestBatch = useMemo(() => runs[0] ?? null, [runs]);
-  const showError = (error: unknown) => setNotice(error instanceof Error ? error.message : String(error));
+  const showError = useCallback((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)), []);
   const pageContent = (() => {
     if (page === 'sites') return <SitesPage sites={sites} profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'profiles') return <ProfilesPage profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
-    if (page === 'notifications') return <Placeholder title="Notification channels" text="NTFY and webhook channels will appear here after the automation pipeline is connected." />;
+    if (page === 'notifications') return <NotificationsPage onError={showError} />;
     if (page === 'settings') return <Placeholder title="Settings" text={`Local data is stored in ${info?.userDataPath ?? 'the Electron userData folder'}.`} />;
     return <OverviewPage sites={sites} profiles={profiles} latestRun={latestBatch} batchRunning={batchRunning} onNavigate={setPage} onRunAll={async () => {
       setBatchRunning(true);

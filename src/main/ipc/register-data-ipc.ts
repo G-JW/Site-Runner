@@ -3,8 +3,9 @@ import type { NotificationChannelInput, SiteInput } from '../../shared/types.js'
 import type { DataService } from '../services/data-service.js';
 import type { ProfileService } from '../profiles/profile-service.js';
 import type { SchedulerService } from '../scheduler/scheduler-service.js';
+import type { NotificationService } from '../notifications/service.js';
 
-export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService): void {
+export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService, notifications: NotificationService): void {
   ipcMain.handle('sites:list', () => data.listSites());
   ipcMain.handle('sites:save', (_event, input: SiteInput) => {
     const site = data.saveSite(input); scheduler.refresh(site); return site;
@@ -23,6 +24,7 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   ipcMain.handle('notifications:list', () => data.listChannels());
   ipcMain.handle('notifications:save', (_event, input: NotificationChannelInput) => data.saveChannel(input));
   ipcMain.handle('notifications:remove', (_event, id: string) => data.removeChannel(id));
+  ipcMain.handle('notifications:test', (_event, id: string) => notifications.testChannel(id));
   ipcMain.handle('settings:get', () => data.getSettings());
   ipcMain.handle('settings:update', (_event, patch) => data.updateSettings(patch));
 }
