@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import type { AppSettings, BrowserProfile, NotificationChannel, NotificationChannelInput, RunRecord, Site, SiteInput } from '../../shared/types.js';
+import cron from 'node-cron';
 
 type Row = Record<string, unknown>;
 const now = () => new Date().toISOString();
@@ -17,6 +18,7 @@ export function validateSite(input: SiteInput): SiteInput {
   if (!Number.isInteger(input.timeoutMs) || input.timeoutMs < 1_000 || input.timeoutMs > 300_000) {
     throw new Error('Timeout must be between 1000 and 300000 milliseconds');
   }
+  if (input.schedule.enabled && !cron.validate(input.schedule.cron)) throw new Error('Invalid cron expression');
   return {
     ...input, name: requiredText(input.name, 'Name'), url,
     browserProfileId: requiredText(input.browserProfileId, 'Browser profile'),

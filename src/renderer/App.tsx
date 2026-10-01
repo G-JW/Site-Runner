@@ -23,6 +23,7 @@ export function App() {
   const [profiles, setProfiles] = useState<BrowserProfile[]>([]);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [batchRunning, setBatchRunning] = useState(false);
 
   const refresh = useCallback(async () => {
     const [nextSites, nextProfiles, nextRuns] = await Promise.all([
@@ -52,7 +53,14 @@ export function App() {
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
     if (page === 'notifications') return <Placeholder title="Notification channels" text="NTFY and webhook channels will appear here after the automation pipeline is connected." />;
     if (page === 'settings') return <Placeholder title="Settings" text={`Local data is stored in ${info?.userDataPath ?? 'the Electron userData folder'}.`} />;
-    return <OverviewPage sites={sites} profiles={profiles} latestRun={latestBatch} onNavigate={setPage} />;
+    return <OverviewPage sites={sites} profiles={profiles} latestRun={latestBatch} batchRunning={batchRunning} onNavigate={setPage} onRunAll={async () => {
+      setBatchRunning(true);
+      try {
+        const result = await window.siteRunner.runs.runEnabledSites();
+        setNotice(`Batch completed: ${result.success} succeeded, ${result.failed} failed`);
+        await refresh();
+      } catch (error) { showError(error); } finally { setBatchRunning(false); }
+    }} />;
   })();
 
   return (

@@ -2,13 +2,14 @@ import type { BrowserProfile, RunRecord, Site } from '../../shared/types';
 import type { PageName } from '../App';
 import { PageHeader } from '../App';
 
-export function OverviewPage({ sites, profiles, latestRun, onNavigate }: {
-  sites: Site[]; profiles: BrowserProfile[]; latestRun: RunRecord | null; onNavigate(page: PageName): void;
+export function OverviewPage({ sites, profiles, latestRun, batchRunning, onNavigate, onRunAll }: {
+  sites: Site[]; profiles: BrowserProfile[]; latestRun: RunRecord | null; batchRunning: boolean;
+  onNavigate(page: PageName): void; onRunAll(): Promise<void>;
 }) {
   const active = sites.filter((site) => site.enabled).length;
   return <>
     <PageHeader eyebrow="AUTOMATION CONTROL" title="Good evening." description="Your local routines, profiles and results in one place."
-      actions={<button className="primary" disabled={active === 0}>Run all enabled</button>} />
+      actions={<button className="primary" disabled={active === 0 || batchRunning} onClick={() => void onRunAll()}>{batchRunning ? 'Running batch…' : 'Run all enabled'}</button>} />
     <section className="metric-grid">
       <article><span>Active sites</span><strong>{active}</strong><small>{sites.length} configured</small></article>
       <article><span>Profiles</span><strong>{profiles.length}</strong><small>Local and private</small></article>

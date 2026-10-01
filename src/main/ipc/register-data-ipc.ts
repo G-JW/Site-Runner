@@ -2,11 +2,14 @@ import { ipcMain, shell } from 'electron';
 import type { NotificationChannelInput, SiteInput } from '../../shared/types.js';
 import type { DataService } from '../services/data-service.js';
 import type { ProfileService } from '../profiles/profile-service.js';
+import type { SchedulerService } from '../scheduler/scheduler-service.js';
 
-export function registerDataIpc(data: DataService, profiles: ProfileService): void {
+export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService): void {
   ipcMain.handle('sites:list', () => data.listSites());
-  ipcMain.handle('sites:save', (_event, input: SiteInput) => data.saveSite(input));
-  ipcMain.handle('sites:remove', (_event, id: string) => data.removeSite(id));
+  ipcMain.handle('sites:save', (_event, input: SiteInput) => {
+    const site = data.saveSite(input); scheduler.refresh(site); return site;
+  });
+  ipcMain.handle('sites:remove', (_event, id: string) => { scheduler.remove(id); data.removeSite(id); });
   ipcMain.handle('profiles:list', () => data.listProfiles());
   ipcMain.handle('profiles:create', (_event, name: string) => profiles.create(name));
   ipcMain.handle('profiles:remove', (_event, id: string) => profiles.remove(id));
