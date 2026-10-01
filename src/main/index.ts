@@ -6,6 +6,8 @@ import { AppDatabase } from './database/database.js';
 import { registerDataIpc } from './ipc/register-data-ipc.js';
 import { DataService } from './services/data-service.js';
 import { ProfileService } from './profiles/profile-service.js';
+import { AutomationRunner } from './automation/runner.js';
+import { broadcastRunLog, registerRunIpc } from './ipc/register-run-ipc.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,8 +42,10 @@ app.whenReady().then(() => {
   const database = new AppDatabase(paths.database);
   const data = new DataService(database.connection);
   const profiles = new ProfileService(data, paths.profiles);
+  const runner = new AutomationRunner(data, profiles, paths.screenshots, broadcastRunLog);
   if (data.listProfiles().length === 0) profiles.create('Default');
   registerDataIpc(data, profiles);
+  registerRunIpc(runner);
   ipcMain.handle('app:info', () => ({
     name: 'Site Runner',
     version: app.getVersion(),
