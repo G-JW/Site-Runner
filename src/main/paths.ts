@@ -9,8 +9,7 @@ export interface AppPaths {
   logs: string;
 }
 
-export function getAppPaths(): AppPaths {
-  const userData = app.getPath('userData');
+export function buildAppPaths(userData: string): AppPaths {
   return {
     userData,
     database: path.join(userData, 'site-runner.sqlite3'),
@@ -18,4 +17,8 @@ export function getAppPaths(): AppPaths {
     screenshots: path.join(userData, 'screenshots'),
     logs: path.join(userData, 'logs'),
   };
+}
+
+export function getAppPaths(): AppPaths {
+  return buildAppPaths(app.getPath('userData'));
 }

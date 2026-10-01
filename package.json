@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Local-first browser automation desktop app",
+  "author": "Site Runner Contributors",
   "main": "dist/main/main/index.js",
   "type": "module",
   "scripts": {
@@ -16,8 +17,9 @@
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
     "build": "pnpm build:main && pnpm build:renderer",
-    "package": "pnpm build && electron-builder --dir",
-    "package:dist": "pnpm build && electron-builder"
+    "prepare:browsers": "cross-env PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers playwright install chromium",
+    "package": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir --publish never",
+    "package:dist": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never"
   },
   "dependencies": {
     "@monaco-editor/react": "latest",
@@ -53,6 +55,7 @@
   "build": {
     "appId": "com.siterunner.desktop",
     "productName": "Site Runner",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release"
     },
@@ -62,8 +65,11 @@
       "package.json"
     ],
     "asarUnpack": [
-      "node_modules/playwright/**/*",
-      "node_modules/playwright-core/**/*"
+      "node_modules/esbuild/**/*",
+      "node_modules/@esbuild/**/*"
+    ],
+    "extraResources": [
+      { "from": ".playwright-browsers", "to": "playwright-browsers" }
     ],
     "mac": {
       "category": "public.app-category.productivity",

@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { chromium, type BrowserContext, type Page } from 'playwright';
+import type { BrowserContext, Page } from 'playwright';
 import type { RunLogEntry } from '../../shared/types.js';
 import { runTrustedScript } from './script-runner.js';
 import type { AutomationExecutionResult, AutomationRequest } from './types.js';
@@ -15,6 +15,7 @@ export async function executeAutomation(request: AutomationRequest, emit: (entry
   });
   try {
     log('info', `Opening ${request.url}`);
+    const { chromium } = await import('playwright');
     context = await chromium.launchPersistentContext(request.profilePath, { headless: request.headless });
     context.setDefaultTimeout(request.timeoutMs);
     context.setDefaultNavigationTimeout(request.timeoutMs);

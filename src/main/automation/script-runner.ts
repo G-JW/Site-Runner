@@ -1,4 +1,3 @@
-import { transform } from 'esbuild';
 import type { Page } from 'playwright';
 
 export interface AutomationLogger {
@@ -14,6 +13,7 @@ export interface AutomationContext {
 }
 
 export async function runTrustedScript(source: string, context: AutomationContext): Promise<void> {
+  const { transform } = await import('esbuild');
   const transformed = await transform(source, { loader: 'ts', format: 'cjs', target: 'node20' });
   const scriptModule: { exports: unknown } = { exports: {} };
   const evaluate = new Function('module', 'exports', transformed.code) as (module: { exports: unknown }, exports: unknown) => void;

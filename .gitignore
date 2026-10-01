@@ -5,15 +5,17 @@ venv/
 .runtime/
 
 node_modules/
+.pnpm-store/
+.playwright-browsers/
 dist/
 out/
 release/
 coverage/
 playwright-report/
 test-results/
-data/
-profiles/
-screenshots/
+/data/
+/profiles/
+/screenshots/
 *.db
 *.sqlite
 *.sqlite3

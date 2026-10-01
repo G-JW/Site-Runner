@@ -5,6 +5,7 @@ import { ProfilesPage } from './pages/ProfilesPage';
 import { RunHistoryPage } from './pages/RunHistoryPage';
 import { SitesPage } from './pages/SitesPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 export type PageName = 'overview' | 'sites' | 'profiles' | 'history' | 'notifications' | 'settings';
 
@@ -53,7 +54,7 @@ export function App() {
     if (page === 'profiles') return <ProfilesPage profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
     if (page === 'notifications') return <NotificationsPage onError={showError} />;
-    if (page === 'settings') return <Placeholder title="Settings" text={`Local data is stored in ${info?.userDataPath ?? 'the Electron userData folder'}.`} />;
+    if (page === 'settings') return <SettingsPage info={info} onError={showError} />;
     return <OverviewPage sites={sites} profiles={profiles} latestRun={latestBatch} batchRunning={batchRunning} onNavigate={setPage} onRunAll={async () => {
       setBatchRunning(true);
       try {
@@ -79,10 +80,6 @@ export function App() {
       {notice && <div className="toast" role="alert">{notice}</div>}
     </div>
   );
-}
-
-function Placeholder({ title, text }: { title: string; text: string }) {
-  return <><PageHeader eyebrow="SITE RUNNER" title={title} description={text} /><section className="panel empty-state compact"><div className="empty-icon">◇</div><h2>Coming into focus</h2><p>This section is part of the current desktop migration.</p></section></>;
 }
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description: string; actions?: React.ReactNode }) {
