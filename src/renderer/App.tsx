@@ -6,19 +6,21 @@ import { RunHistoryPage } from './pages/RunHistoryPage';
 import { SitesPage } from './pages/SitesPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { useI18n } from './i18n';
 
 export type PageName = 'overview' | 'sites' | 'profiles' | 'history' | 'notifications' | 'settings';
 
-const navigation: { id: PageName; label: string; icon: string }[] = [
-  { id: 'overview', label: 'Overview', icon: '⌂' },
-  { id: 'sites', label: 'Sites', icon: '◎' },
-  { id: 'profiles', label: 'Profiles', icon: '◫' },
-  { id: 'history', label: 'Run history', icon: '↻' },
-  { id: 'notifications', label: 'Notifications', icon: '◇' },
-  { id: 'settings', label: 'Settings', icon: '⚙' },
-];
+const navigation = [
+  { id: 'overview', label: 'nav.overview', icon: '⌂' },
+  { id: 'sites', label: 'nav.sites', icon: '◎' },
+  { id: 'profiles', label: 'nav.profiles', icon: '◫' },
+  { id: 'history', label: 'nav.history', icon: '↻' },
+  { id: 'notifications', label: 'nav.notifications', icon: '◇' },
+  { id: 'settings', label: 'nav.settings', icon: '⚙' },
+] as const;
 
 export function App() {
+  const { t } = useI18n();
   const [page, setPage] = useState<PageName>('overview');
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
@@ -59,7 +61,7 @@ export function App() {
       setBatchRunning(true);
       try {
         const result = await window.siteRunner.runs.runEnabledSites();
-        setNotice(`Batch completed: ${result.success} succeeded, ${result.failed} failed`);
+        setNotice(t('batch.completed', { success: result.success, failed: result.failed }));
         await refresh();
       } catch (error) { showError(error); } finally { setBatchRunning(false); }
     }} />;
@@ -70,11 +72,11 @@ export function App() {
       <aside className="sidebar">
         <div className="brand"><span className="brand-mark">S</span><span>Site Runner</span></div>
         <nav>{navigation.map((item) => (
-          <button className={page === item.id ? 'active' : ''} key={item.id} onClick={() => setPage(item.id)}>
-            <span className="nav-icon">{item.icon}</span>{item.label}
+          <button data-testid={`nav-${item.id}`} className={page === item.id ? 'active' : ''} key={item.id} onClick={() => setPage(item.id)}>
+            <span className="nav-icon">{item.icon}</span>{t(item.label)}
           </button>
         ))}</nav>
-        <div className="sidebar-foot"><span className="status-dot" /> Local desktop · v{info?.version ?? '—'}</div>
+        <div className="sidebar-foot"><span className="status-dot" /> {t('app.local')} · v{info?.version ?? '—'}</div>
       </aside>
       <main>{pageContent}</main>
       {notice && <div className="toast" role="alert">{notice}</div>}

@@ -33,7 +33,7 @@ describe('DataService', () => {
   });
 
   it('persists settings and notification channels', () => {
-    expect(data.updateSettings({ browserHeadless: true }).browserHeadless).toBe(true);
+    expect(data.updateSettings({ browserHeadless: true, language: 'zh-CN' })).toMatchObject({ browserHeadless: true, language: 'zh-CN' });
     const channel = data.saveChannel({ name: 'Alert', providerType: 'webhook', enabled: true,
       eventPolicy: 'alert', config: { url: 'https://example.com/hook' } });
     expect(data.listChannels()[0]).toMatchObject({ id: channel.id, eventPolicy: 'alert' });

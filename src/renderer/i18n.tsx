@@ -1,0 +1,167 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { AppLanguage } from '../shared/types';
+
+const en = {
+  'nav.overview': 'Overview', 'nav.sites': 'Sites', 'nav.profiles': 'Profiles', 'nav.history': 'Run history',
+  'nav.notifications': 'Notifications', 'nav.settings': 'Settings', 'app.local': 'Local desktop',
+  'common.cancel': 'Cancel', 'common.delete': 'Delete', 'common.edit': 'Edit', 'common.save': 'Save',
+  'common.test': 'Test', 'common.enabled': 'Enabled', 'common.disabled': 'Disabled', 'common.close': 'Close',
+  'common.confirmDelete': 'Confirm deletion', 'common.success': 'Success', 'common.failed': 'Failed',
+  'common.notRun': 'Not run', 'common.running': 'Running…', 'common.loading': 'Loading…', 'common.unknown': 'Unknown',
+  'overview.eyebrow': 'AUTOMATION CONTROL', 'overview.title': 'Good evening.',
+  'overview.description': 'Your local routines, profiles and results in one place.', 'overview.runAll': 'Run all enabled',
+  'overview.runningBatch': 'Running batch…', 'overview.activeSites': 'Active sites',
+  'overview.configured': '{count} configured', 'overview.profiles': 'Profiles', 'overview.private': 'Local and private',
+  'overview.lastRun': 'Last run', 'overview.noRuns': 'No runs yet', 'overview.firstTitle': 'Build your first routine',
+  'overview.firstDescription': 'Create a browser profile, sign in once, then add a site automation.',
+  'overview.createProfile': 'Create profile', 'overview.addSite': 'Add site', 'overview.currentSetup': 'CURRENT SETUP',
+  'overview.yourSites': 'Your sites', 'overview.manageSites': 'Manage sites →',
+  'sites.eyebrow': 'AUTOMATION LIBRARY', 'sites.title': 'Sites',
+  'sites.description': 'Manage destinations, schedules and trusted local Playwright scripts.', 'sites.add': 'Add site',
+  'sites.needProfile': 'Create a browser profile before adding your first site.', 'sites.site': 'Site',
+  'sites.profile': 'Profile', 'sites.schedule': 'Schedule', 'sites.lastRun': 'Last run', 'sites.actions': 'Actions',
+  'sites.empty': 'No sites configured yet.', 'sites.off': 'Off', 'sites.run': 'Run', 'sites.liveOutput': 'LIVE OUTPUT',
+  'sites.runLog': 'Run log', 'sites.clear': 'Clear', 'sites.starting': 'Starting {name}',
+  'sites.deleteQuestion': 'Delete site “{name}” and its run history?', 'sites.deleteDescription': 'This removes the site and all locally stored run records. This action cannot be undone.',
+  'editor.edit': 'EDIT SITE', 'editor.new': 'NEW SITE', 'editor.create': 'Create an automation',
+  'editor.name': 'Name', 'editor.url': 'URL', 'editor.profile': 'Browser profile', 'editor.timeout': 'Timeout (ms)',
+  'editor.enabled': 'Enabled', 'editor.schedule': 'Schedule', 'editor.cron': 'Cron expression',
+  'editor.script': 'Automation script', 'editor.scriptHint': 'Optional · trusted local TypeScript',
+  'editor.template': 'Use template', 'editor.format': 'Format', 'editor.saveRun': 'Save & run',
+  'editor.saving': 'Saving…', 'editor.saveSite': 'Save site',
+  'profiles.eyebrow': 'BROWSER STATE', 'profiles.title': 'Profiles',
+  'profiles.description': 'Separate local Chromium sessions for different accounts and sites.',
+  'profiles.new': 'New profile', 'profiles.open': 'Open browser', 'profiles.created': 'Created {date}',
+  'profiles.createTitle': 'Create browser profile', 'profiles.createDescription': 'Choose a name for this local browser session.',
+  'profiles.name': 'Profile name', 'profiles.create': 'Create profile', 'profiles.creating': 'Creating…',
+  'profiles.deleteQuestion': 'Delete profile “{name}”?', 'profiles.deleteDescription': 'The local browser state for this profile will be removed. Profiles used by a site cannot be deleted.',
+  'history.eyebrow': 'EXECUTION RECORDS', 'history.title': 'Run history',
+  'history.description': 'Every manual, scheduled and batch run is recorded locally.',
+  'history.filter': 'Filter by site', 'history.allSites': 'All sites', 'history.status': 'Status',
+  'history.site': 'Site', 'history.trigger': 'Trigger', 'history.finished': 'Finished', 'history.details': 'Details',
+  'history.trigger.manual': 'Manual', 'history.trigger.schedule': 'Schedule', 'history.trigger.batch': 'Batch',
+  'history.empty': 'No runs yet. Your first test run will show up here.', 'history.openScreenshot': 'Open screenshot',
+  'notifications.eyebrow': 'DELIVERY ROUTES', 'notifications.title': 'Notifications',
+  'notifications.description': 'Send one batch summary to the channels that match its severity.',
+  'notifications.add': 'Add channel', 'notifications.emptyTitle': 'No channels configured',
+  'notifications.emptyDescription': 'Automation continues normally without notifications.',
+  'notifications.events': '{policy} events', 'notifications.sent': 'Test notification sent.',
+  'notifications.deleteQuestion': 'Delete channel “{name}”?', 'notifications.deleteDescription': 'This notification route will be removed from this device.',
+  'channel.eyebrow': 'NOTIFICATION CHANNEL', 'channel.edit': 'Edit channel', 'channel.add': 'Add a delivery route',
+  'channel.name': 'Name', 'channel.provider': 'Provider', 'channel.webhook': 'Generic webhook',
+  'channel.policy': 'Event policy', 'channel.all': 'All results', 'channel.normal': 'Normal only',
+  'channel.alert': 'Alerts only', 'channel.server': 'Server URL', 'channel.topic': 'Topic',
+  'channel.token': 'Access token (optional)', 'channel.url': 'Webhook URL', 'channel.method': 'Method',
+  'channel.headers': 'Headers (JSON)', 'channel.save': 'Save channel',
+  'settings.eyebrow': 'LOCAL PREFERENCES', 'settings.title': 'Settings',
+  'settings.description': 'Defaults apply to this device and stay in the Electron userData folder.',
+  'settings.language': 'Language', 'settings.languageDescription': 'Change the display language immediately.',
+  'settings.english': 'English', 'settings.chinese': '简体中文', 'settings.timeout': 'Default timeout',
+  'settings.timeoutDescription': 'Used when creating new site configurations.', 'settings.headless': 'Headless browser',
+  'settings.headlessDescription': 'Keep disabled while building and debugging automations.',
+  'settings.batchNotifications': 'Batch notifications',
+  'settings.batchNotificationsDescription': 'Route final summaries to matching enabled channels.',
+  'settings.scheduledNotifications': 'Scheduled run notifications',
+  'settings.scheduledNotificationsDescription': 'Reserved for optional per-site schedule delivery.',
+  'settings.localData': 'Local data', 'batch.completed': 'Batch completed: {success} succeeded, {failed} failed',
+} as const;
+
+type TranslationKey = keyof typeof en;
+
+const zh: Record<TranslationKey, string> = {
+  'nav.overview': '概览', 'nav.sites': '站点', 'nav.profiles': '浏览器配置', 'nav.history': '运行记录',
+  'nav.notifications': '通知', 'nav.settings': '设置', 'app.local': '本地桌面应用',
+  'common.cancel': '取消', 'common.delete': '删除', 'common.edit': '编辑', 'common.save': '保存',
+  'common.test': '测试', 'common.enabled': '已启用', 'common.disabled': '已停用', 'common.close': '关闭',
+  'common.confirmDelete': '确认删除', 'common.success': '成功', 'common.failed': '失败',
+  'common.notRun': '尚未运行', 'common.running': '运行中…', 'common.loading': '加载中…', 'common.unknown': '未知',
+  'overview.eyebrow': '自动化控制', 'overview.title': '晚上好。',
+  'overview.description': '集中管理本地自动化、浏览器配置和运行结果。', 'overview.runAll': '运行所有已启用站点',
+  'overview.runningBatch': '正在批量运行…', 'overview.activeSites': '启用站点',
+  'overview.configured': '共配置 {count} 个', 'overview.profiles': '浏览器配置', 'overview.private': '仅保存在本地',
+  'overview.lastRun': '最近运行', 'overview.noRuns': '暂无运行记录', 'overview.firstTitle': '创建第一个自动化任务',
+  'overview.firstDescription': '先创建浏览器配置并完成一次登录，然后添加站点自动化。',
+  'overview.createProfile': '创建浏览器配置', 'overview.addSite': '添加站点', 'overview.currentSetup': '当前配置',
+  'overview.yourSites': '你的站点', 'overview.manageSites': '管理站点 →',
+  'sites.eyebrow': '自动化任务库', 'sites.title': '站点',
+  'sites.description': '管理目标网站、定时任务和本地可信 Playwright 脚本。', 'sites.add': '添加站点',
+  'sites.needProfile': '请先创建浏览器配置，再添加站点。', 'sites.site': '站点',
+  'sites.profile': '浏览器配置', 'sites.schedule': '定时任务', 'sites.lastRun': '最近运行', 'sites.actions': '操作',
+  'sites.empty': '尚未配置站点。', 'sites.off': '关闭', 'sites.run': '运行', 'sites.liveOutput': '实时输出',
+  'sites.runLog': '运行日志', 'sites.clear': '清空', 'sites.starting': '正在启动 {name}',
+  'sites.deleteQuestion': '删除站点“{name}”及其运行记录？', 'sites.deleteDescription': '这会删除该站点及其保存在本地的全部运行记录，此操作无法撤销。',
+  'editor.edit': '编辑站点', 'editor.new': '新建站点', 'editor.create': '创建自动化任务',
+  'editor.name': '名称', 'editor.url': '网址', 'editor.profile': '浏览器配置', 'editor.timeout': '超时（毫秒）',
+  'editor.enabled': '启用', 'editor.schedule': '启用定时任务', 'editor.cron': 'Cron 表达式',
+  'editor.script': '自动化脚本', 'editor.scriptHint': '可选 · 本地可信 TypeScript',
+  'editor.template': '使用模板', 'editor.format': '格式化', 'editor.saveRun': '保存并运行',
+  'editor.saving': '正在保存…', 'editor.saveSite': '保存站点',
+  'profiles.eyebrow': '浏览器状态', 'profiles.title': '浏览器配置',
+  'profiles.description': '为不同账号和站点使用独立的本地 Chromium 会话。',
+  'profiles.new': '新建配置', 'profiles.open': '打开浏览器', 'profiles.created': '创建于 {date}',
+  'profiles.createTitle': '创建浏览器配置', 'profiles.createDescription': '为这个本地浏览器会话设置名称。',
+  'profiles.name': '配置名称', 'profiles.create': '创建配置', 'profiles.creating': '正在创建…',
+  'profiles.deleteQuestion': '删除浏览器配置“{name}”？', 'profiles.deleteDescription': '将删除该配置的本地浏览器状态。正在被站点使用的配置不能删除。',
+  'history.eyebrow': '执行记录', 'history.title': '运行记录',
+  'history.description': '手动、定时和批量运行都会记录在本地。',
+  'history.filter': '按站点筛选', 'history.allSites': '全部站点', 'history.status': '状态',
+  'history.site': '站点', 'history.trigger': '触发方式', 'history.finished': '完成时间', 'history.details': '详情',
+  'history.trigger.manual': '手动', 'history.trigger.schedule': '定时', 'history.trigger.batch': '批量',
+  'history.empty': '暂无运行记录，首次测试后会显示在这里。', 'history.openScreenshot': '打开截图',
+  'notifications.eyebrow': '通知渠道', 'notifications.title': '通知',
+  'notifications.description': '根据结果级别，将一条批量汇总发送到匹配的渠道。',
+  'notifications.add': '添加渠道', 'notifications.emptyTitle': '尚未配置通知渠道',
+  'notifications.emptyDescription': '没有通知渠道时，自动化仍会正常运行。',
+  'notifications.events': '{policy} 事件', 'notifications.sent': '测试通知已发送。',
+  'notifications.deleteQuestion': '删除通知渠道“{name}”？', 'notifications.deleteDescription': '将从此设备删除该通知路由。',
+  'channel.eyebrow': '通知渠道', 'channel.edit': '编辑通知渠道', 'channel.add': '添加通知路由',
+  'channel.name': '名称', 'channel.provider': 'Provider', 'channel.webhook': '通用 Webhook',
+  'channel.policy': '事件规则', 'channel.all': '全部结果', 'channel.normal': '仅正常',
+  'channel.alert': '仅告警', 'channel.server': '服务器 URL', 'channel.topic': '主题',
+  'channel.token': '访问令牌（可选）', 'channel.url': 'Webhook URL', 'channel.method': '请求方法',
+  'channel.headers': '请求头（JSON）', 'channel.save': '保存渠道',
+  'settings.eyebrow': '本地偏好设置', 'settings.title': '设置',
+  'settings.description': '默认设置仅应用于此设备，并保存在 Electron userData 目录。',
+  'settings.language': '语言', 'settings.languageDescription': '立即切换界面显示语言。',
+  'settings.english': 'English', 'settings.chinese': '简体中文', 'settings.timeout': '默认超时',
+  'settings.timeoutDescription': '新建站点时使用此超时时间。', 'settings.headless': '无头浏览器',
+  'settings.headlessDescription': '开发和调试自动化时建议保持关闭。',
+  'settings.batchNotifications': '批量运行通知',
+  'settings.batchNotificationsDescription': '将最终汇总发送到匹配且已启用的渠道。',
+  'settings.scheduledNotifications': '定时运行通知',
+  'settings.scheduledNotificationsDescription': '为未来的单站点定时通知预留。',
+  'settings.localData': '本地数据', 'batch.completed': '批量运行完成：成功 {success} 个，失败 {failed} 个',
+};
+
+interface I18nValue {
+  language: AppLanguage;
+  setLanguage(language: AppLanguage): void;
+  t(key: TranslationKey, values?: Record<string, string | number>): string;
+}
+
+const I18nContext = createContext<I18nValue | null>(null);
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<AppLanguage>('en');
+  useEffect(() => {
+    queueMicrotask(() => void window.siteRunner.settings.get().then((settings) => setLanguageState(settings.language)).catch(() => undefined));
+  }, []);
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
+  const value = useMemo<I18nValue>(() => ({
+    language,
+    setLanguage: setLanguageState,
+    t(key, values) {
+      let text: string = (language === 'zh-CN' ? zh : en)[key];
+      for (const [name, replacement] of Object.entries(values ?? {})) text = text.replaceAll(`{${name}}`, String(replacement));
+      return text;
+    },
+  }), [language]);
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function useI18n(): I18nValue {
+  const value = useContext(I18nContext);
+  if (!value) throw new Error('I18nProvider is missing');
+  return value;
+}

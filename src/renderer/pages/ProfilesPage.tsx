@@ -1,17 +1,35 @@
+import { useState } from 'react';
 import type { BrowserProfile } from '../../shared/types';
 import { PageHeader } from '../App';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useI18n } from '../i18n';
 
 export function ProfilesPage({ profiles, onChange, onError }: { profiles: BrowserProfile[]; onChange(): Promise<void>; onError(error: unknown): void }) {
-  async function create() {
-    const name = window.prompt('Profile name');
-    if (!name) return;
-    try { await window.siteRunner.profiles.create(name); await onChange(); } catch (error) { onError(error); }
+  const { language, t } = useI18n();
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<BrowserProfile | null>(null);
+
+  async function create(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await window.siteRunner.profiles.create(name);
+      setCreating(false); setName(''); await onChange();
+    } catch (error) { onError(error); } finally { setSaving(false); }
   }
-  async function remove(profile: BrowserProfile) {
-    if (!window.confirm(`Delete profile “${profile.name}”?`)) return;
-    try { await window.siteRunner.profiles.remove(profile.id); await onChange(); } catch (error) { onError(error); }
+
+  async function remove() {
+    if (!pendingDelete) return;
+    setSaving(true);
+    try { await window.siteRunner.profiles.remove(pendingDelete.id); setPendingDelete(null); await onChange(); }
+    catch (error) { onError(error); } finally { setSaving(false); }
   }
-  return <><PageHeader eyebrow="BROWSER STATE" title="Profiles" description="Separate local Chromium sessions for different accounts and sites." actions={<button className="primary" onClick={create}>New profile</button>} />
-    <section className="card-grid">{profiles.map((profile) => <article className="panel profile-card" key={profile.id}><span className="profile-glyph">◫</span><div><h2>{profile.name}</h2><p>Created {new Date(profile.createdAt).toLocaleDateString()}</p></div><div className="card-actions"><button className="secondary" onClick={() => void window.siteRunner.profiles.open(profile.id).catch(onError)}>Open browser</button><button className="danger-ghost" onClick={() => void remove(profile)}>Delete</button></div></article>)}</section>
+
+  return <><PageHeader eyebrow={t('profiles.eyebrow')} title={t('profiles.title')} description={t('profiles.description')} actions={<button data-testid="new-profile" className="primary" onClick={() => setCreating(true)}>{t('profiles.new')}</button>} />
+    <section className="card-grid">{profiles.map((profile) => <article className="panel profile-card" key={profile.id}><span className="profile-glyph">◫</span><div><h2>{profile.name}</h2><p>{t('profiles.created', { date: new Date(profile.createdAt).toLocaleDateString(language) })}</p></div><div className="card-actions"><button className="secondary" onClick={() => void window.siteRunner.profiles.open(profile.id).catch(onError)}>{t('profiles.open')}</button><button className="danger-ghost" onClick={() => setPendingDelete(profile)}>{t('common.delete')}</button></div></article>)}</section>
+    {creating && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setCreating(false); }}><form data-testid="profile-dialog" className="small-modal" onSubmit={(event) => void create(event)}><div className="modal-head"><div><span className="eyebrow">{t('profiles.eyebrow')}</span><h2>{t('profiles.createTitle')}</h2><p>{t('profiles.createDescription')}</p></div><button type="button" aria-label={t('common.close')} className="close" disabled={saving} onClick={() => setCreating(false)}>×</button></div><div className="single-field"><label>{t('profiles.name')}<input autoFocus required value={name} onChange={(event) => setName(event.target.value)} /></label></div><div className="modal-actions"><button type="button" className="secondary" disabled={saving} onClick={() => setCreating(false)}>{t('common.cancel')}</button><button className="primary" disabled={saving || name.trim() === ''}>{saving ? t('profiles.creating') : t('profiles.create')}</button></div></form></div>}
+    {pendingDelete && <ConfirmDialog title={t('profiles.deleteQuestion', { name: pendingDelete.name })} description={t('profiles.deleteDescription')} busy={saving} onCancel={() => setPendingDelete(null)} onConfirm={() => void remove()} />}
   </>;
 }

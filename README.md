@@ -14,6 +14,7 @@ Site Runner 是一个本地优先的桌面浏览器自动化工具，用于管�
 - 失败时记录错误、最后页面 URL，并尽可能保存 PNG 截图。
 - 批量任务完成后，按 `normal`、`alert` 或 `all` 规则发送一条汇总通知。
 - 支持 NTFY 和通用 JSON Webhook；一个 Provider 失败不会中断其他 Provider。
+- 支持 English 和简体中文界面，并在本地保存语言选择。
 
 ## 环境要求
 
@@ -117,7 +118,7 @@ Generic Webhook 支持 `POST`、`PUT` 或 `PATCH`，以及 JSON 格式的自定�
 
 ## 设置
 
-**Settings** 页面提供默认 Timeout、Headless Browser、Batch Notifications 和 Scheduled Run Notifications 配置，并显示当前本地数据目录。默认 Timeout 用于新建网站；Headless 设置用于后续自动化运行。Scheduled Run Notifications 开关目前是预留设置，单个定时任务尚不发送通知。
+**Settings** 页面可以在 English 和简体中文之间切换，并提供默认 Timeout、Headless Browser、Batch Notifications 和 Scheduled Run Notifications 配置。语言选择会立即生效并保存在本地。默认 Timeout 用于新建网站；Headless 设置用于后续自动化运行。Scheduled Run Notifications 开关目前是预留设置，单个定时任务尚不发送通知。
 
 ## 本地数据
 

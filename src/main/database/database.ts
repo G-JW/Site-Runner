@@ -44,7 +44,7 @@ export class AppDatabase {
       );
       INSERT INTO settings(key, value) VALUES
         ('defaultTimeoutMs', '30000'), ('browserHeadless', 'false'),
-        ('notificationEnabled', 'true'), ('notifyScheduledRuns', 'false');
+        ('notificationEnabled', 'true'), ('notifyScheduledRuns', 'false'), ('language', 'en');
       PRAGMA user_version = 1;
       COMMIT;
     `);

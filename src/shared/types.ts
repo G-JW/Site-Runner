@@ -3,6 +3,7 @@ export type RunTrigger = 'manual' | 'schedule' | 'batch';
 export type NotificationLevel = 'normal' | 'alert';
 export type NotificationPolicy = 'all' | 'normal' | 'alert';
 export type ProviderType = 'ntfy' | 'webhook';
+export type AppLanguage = 'en' | 'zh-CN';
 
 export interface AppInfo { name: string; version: string; userDataPath: string }
 export interface SiteSchedule { enabled: boolean; cron: string }
@@ -28,6 +29,7 @@ export interface BatchResult {
 }
 export interface AppSettings {
   defaultTimeoutMs: number; browserHeadless: boolean; notificationEnabled: boolean; notifyScheduledRuns: boolean;
+  language: AppLanguage;
 }
 export interface NotificationChannel {
   id: string; name: string; providerType: ProviderType; enabled: boolean; eventPolicy: NotificationPolicy;

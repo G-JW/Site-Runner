@@ -123,6 +123,7 @@ export class DataService {
       browserHeadless: values.browserHeadless === 'true',
       notificationEnabled: values.notificationEnabled !== 'false',
       notifyScheduledRuns: values.notifyScheduledRuns === 'true',
+      language: values.language === 'zh-CN' ? 'zh-CN' : 'en',
     };
   }
 
@@ -131,6 +132,7 @@ export class DataService {
     if (!Number.isInteger(current.defaultTimeoutMs) || current.defaultTimeoutMs < 1_000 || current.defaultTimeoutMs > 300_000) {
       throw new Error('Default timeout must be between 1000 and 300000 milliseconds');
     }
+    if (current.language !== 'en' && current.language !== 'zh-CN') throw new Error('Unsupported language');
     const statement = this.db.prepare('INSERT OR REPLACE INTO settings(key, value) VALUES (?, ?)');
     for (const [key, value] of Object.entries(current)) statement.run(key, String(value));
     return current;

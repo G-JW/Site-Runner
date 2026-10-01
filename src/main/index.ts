@@ -108,14 +108,46 @@ app.whenReady().then(async () => {
 
   const window = createWindow();
   if (process.argv.includes('--smoke-test')) {
+    const rendererErrors: string[] = [];
+    window.webContents.on('console-message', (details) => {
+      if (details.level === 'error') rendererErrors.push(details.message);
+    });
     window.webContents.once('did-finish-load', () => {
-      void window.webContents.executeJavaScript(`new Promise((resolve) => setTimeout(() => resolve({
-        shell: Boolean(document.querySelector('.app-shell')),
-        api: typeof window.siteRunner?.sites?.list === 'function',
-        text: document.body.innerText.slice(0, 200)
-      }), 250))`).then((result: { shell: boolean; api: boolean; text: string }) => {
-        console.log(`RENDERER_SMOKE ${JSON.stringify(result)}`);
-        app.exit(result.shell && result.api ? 0 : 1);
+      void window.webContents.executeJavaScript(`(async () => {
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        await wait(250);
+        document.querySelector('[data-testid="nav-sites"]')?.click();
+        await wait(100);
+        document.querySelector('[data-testid="add-site"]')?.click();
+        await wait(1_000);
+        const siteDialog = Boolean(document.querySelector('[data-testid="site-dialog"]'));
+        document.querySelector('[data-testid="site-dialog"] .close')?.click();
+        document.querySelector('[data-testid="nav-profiles"]')?.click();
+        await wait(100);
+        document.querySelector('[data-testid="new-profile"]')?.click();
+        await wait(100);
+        const profileDialog = Boolean(document.querySelector('[data-testid="profile-dialog"]'));
+        document.querySelector('[data-testid="profile-dialog"] .close')?.click();
+        document.querySelector('[data-testid="nav-settings"]')?.click();
+        await wait(100);
+        const languageSelect = document.querySelector('[data-testid="language-select"]');
+        if (languageSelect) {
+          languageSelect.value = 'zh-CN';
+          languageSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        await wait(300);
+        return {
+          shell: Boolean(document.querySelector('.app-shell')),
+          api: typeof window.siteRunner?.sites?.list === 'function',
+          siteDialog,
+          profileDialog,
+          chinese: document.documentElement.lang === 'zh-CN' && document.body.innerText.includes('简体中文'),
+          text: document.body.innerText.slice(0, 200)
+        };
+      })()`).then((result: { shell: boolean; api: boolean; siteDialog: boolean; profileDialog: boolean; chinese: boolean; text: string }) => {
+        const report = { ...result, rendererErrors };
+        console.log(`RENDERER_SMOKE ${JSON.stringify(report)}`);
+        app.exit(result.shell && result.api && result.siteDialog && result.profileDialog && result.chinese && rendererErrors.length === 0 ? 0 : 1);
       }).catch((error: unknown) => {
         console.error('RENDERER_SMOKE failed', error);
         app.exit(1);
