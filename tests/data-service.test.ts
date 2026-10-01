@@ -1,0 +1,43 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { AppDatabase } from '../src/main/database/database.js';
+import { DataService } from '../src/main/services/data-service.js';
+
+describe('DataService', () => {
+  let database: AppDatabase;
+  let data: DataService;
+  beforeEach(() => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'site-runner-data-'));
+    database = new AppDatabase(path.join(directory, 'test.sqlite3'));
+    data = new DataService(database.connection);
+  });
+  afterEach(() => database.close());
+
+  it('persists, edits and deletes a complete site', () => {
+    const profile = data.createProfile('Default');
+    const site = data.saveSite({ name: 'Example', url: 'https://example.com', enabled: true, script: null,
+      browserProfileId: profile.id, timeoutMs: 30_000, schedule: { enabled: false, cron: '0 9 * * *' } });
+    expect(data.saveSite({ ...site, name: 'Edited' }).name).toBe('Edited');
+    expect(data.listSites()).toHaveLength(1);
+    data.removeSite(site.id);
+    expect(data.listSites()).toEqual([]);
+  });
+
+  it('protects profiles referenced by sites', () => {
+    const profile = data.createProfile('Shared');
+    data.saveSite({ name: 'Example', url: 'https://example.com', enabled: true, script: null,
+      browserProfileId: profile.id, timeoutMs: 30_000, schedule: { enabled: false, cron: '0 9 * * *' } });
+    expect(() => data.removeProfile(profile.id)).toThrow(/used/);
+  });
+
+  it('persists settings and notification channels', () => {
+    expect(data.updateSettings({ browserHeadless: true }).browserHeadless).toBe(true);
+    const channel = data.saveChannel({ name: 'Alert', providerType: 'webhook', enabled: true,
+      eventPolicy: 'alert', config: { url: 'https://example.com/hook' } });
+    expect(data.listChannels()[0]).toMatchObject({ id: channel.id, eventPolicy: 'alert' });
+    data.removeChannel(channel.id);
+    expect(data.listChannels()).toEqual([]);
+  });
+});
