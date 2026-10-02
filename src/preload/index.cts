@@ -10,6 +10,12 @@ const api: SiteRunnerApi = {
     save: (input) => ipcRenderer.invoke('sites:save', input) as ReturnType<SiteRunnerApi['sites']['save']>,
     remove: (id) => ipcRenderer.invoke('sites:remove', id) as ReturnType<SiteRunnerApi['sites']['remove']>,
   },
+  templates: {
+    list: () => ipcRenderer.invoke('templates:list') as ReturnType<SiteRunnerApi['templates']['list']>,
+    save: (input) => ipcRenderer.invoke('templates:save', input) as ReturnType<SiteRunnerApi['templates']['save']>,
+    remove: (id) => ipcRenderer.invoke('templates:remove', id) as ReturnType<SiteRunnerApi['templates']['remove']>,
+    restoreDefaults: () => ipcRenderer.invoke('templates:restoreDefaults') as ReturnType<SiteRunnerApi['templates']['restoreDefaults']>,
+  },
   profiles: {
     list: () => ipcRenderer.invoke('profiles:list') as ReturnType<SiteRunnerApi['profiles']['list']>,
     create: (name) => ipcRenderer.invoke('profiles:create', name) as ReturnType<SiteRunnerApi['profiles']['create']>,

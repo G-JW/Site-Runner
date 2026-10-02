@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { expect, it } from 'vitest';
-import { scriptTemplates } from '../src/renderer/script-templates';
+import { defaultScriptTemplates as scriptTemplates } from '../src/shared/script-templates.js';
 import { runTrustedScript } from '../src/main/automation/script-runner';
 
 it('runs all actionable templates against controlled pages and rejects missing success', async () => {

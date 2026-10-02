@@ -6,6 +6,11 @@ export type ProviderType = 'ntfy' | 'webhook';
 export type AppLanguage = 'en' | 'zh-CN';
 
 export interface AppInfo { name: string; version: string; userDataPath: string }
+export interface ScriptTemplate {
+  id: string; name: Record<AppLanguage, string>; description: Record<AppLanguage, string>;
+  instructions: Record<AppLanguage, string>; script: string | null;
+}
+export type ScriptTemplateInput = Omit<ScriptTemplate, 'id'> & { id?: string };
 export interface SiteSchedule { enabled: boolean; cron: string }
 export interface Site {
   id: string; name: string; url: string; enabled: boolean; script: string | null;
@@ -44,6 +49,10 @@ export interface NotificationMessage {
 export interface SiteRunnerApi {
   app: { info(): Promise<AppInfo> };
   sites: { list(): Promise<Site[]>; save(input: SiteInput): Promise<Site>; remove(id: string): Promise<void> };
+  templates: {
+    list(): Promise<ScriptTemplate[]>; save(input: ScriptTemplateInput): Promise<ScriptTemplate>;
+    remove(id: string): Promise<void>; restoreDefaults(): Promise<ScriptTemplate[]>;
+  };
   profiles: {
     list(): Promise<BrowserProfile[]>; create(name: string): Promise<BrowserProfile>;
     remove(id: string): Promise<void>; open(id: string): Promise<void>;

@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import type { AppSettings, BrowserProfile, NotificationChannel, NotificationChannelInput, RunRecord, Site, SiteInput } from '../../shared/types.js';
 import cron from 'node-cron';
+import type { ScriptTemplate, ScriptTemplateInput } from '../../shared/types.js';
+import { defaultScriptTemplates } from '../../shared/script-templates.js';
 
 type Row = Record<string, unknown>;
 const now = () => new Date().toISOString();
@@ -29,6 +31,51 @@ export function validateSite(input: SiteInput): SiteInput {
 
 export class DataService {
   constructor(private readonly db: DatabaseSync) {}
+
+  listTemplates(): ScriptTemplate[] {
+    const row = this.db.prepare("SELECT value FROM settings WHERE key = 'scriptTemplates'").get() as Row | undefined;
+    if (!row) return this.restoreDefaultTemplates();
+    return JSON.parse(String(row.value)) as ScriptTemplate[];
+  }
+
+  saveTemplate(input: ScriptTemplateInput): ScriptTemplate {
+    const templates = this.listTemplates();
+    const template: ScriptTemplate = {
+      id: input.id ?? randomUUID(), name: { en: requiredText(input.name?.en, 'English name'), 'zh-CN': requiredText(input.name?.['zh-CN'], 'Chinese name') },
+      description: { en: '', 'zh-CN': '' }, instructions: { en: '', 'zh-CN': '' }, script: null,
+    };
+    for (const field of ['description', 'instructions'] as const) {
+      for (const language of ['en', 'zh-CN'] as const) {
+        const value = input[field]?.[language];
+        if (typeof value !== 'string') throw new Error(`Invalid template ${field}`);
+        template[field][language] = value.trim();
+      }
+    }
+    if (input.script !== null && typeof input.script !== 'string') throw new Error('Invalid template script');
+    template.script = input.script?.trim() || null;
+    if (input.id) {
+      const index = templates.findIndex((item) => item.id === input.id);
+      if (index === -1) throw new Error('Template not found');
+      templates[index] = template;
+    } else templates.push(template);
+    this.writeTemplates(templates);
+    return template;
+  }
+
+  removeTemplate(id: string): void {
+    const templates = this.listTemplates();
+    if (!templates.some((item) => item.id === id)) throw new Error('Template not found');
+    this.writeTemplates(templates.filter((item) => item.id !== id));
+  }
+
+  restoreDefaultTemplates(): ScriptTemplate[] {
+    this.writeTemplates(defaultScriptTemplates);
+    return this.listTemplates();
+  }
+
+  private writeTemplates(templates: ScriptTemplate[]): void {
+    this.db.prepare("INSERT OR REPLACE INTO settings(key, value) VALUES ('scriptTemplates', ?)").run(JSON.stringify(templates));
+  }
 
   listSites(): Site[] {
     const rows = this.db.prepare(`SELECT s.*, r.id AS run_id, r.started_at AS run_started_at,

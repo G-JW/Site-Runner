@@ -1,14 +1,6 @@
-import type { AppLanguage } from '../shared/types';
+import type { ScriptTemplate } from './types.js';
 
-export interface ScriptTemplate {
-  id: string;
-  name: Record<AppLanguage, string>;
-  description: Record<AppLanguage, string>;
-  instructions: Record<AppLanguage, string>;
-  script: string | null;
-}
-
-export const scriptTemplates: ScriptTemplate[] = [
+export const defaultScriptTemplates: ScriptTemplate[] = [
   {
     id: 'visit',
     name: { en: 'Open the webpage', 'zh-CN': '只打开网页' },

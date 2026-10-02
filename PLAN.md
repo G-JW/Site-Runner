@@ -1963,6 +1963,22 @@ docs: add site runner usage guide
 
 ---
 
+## Phase 13 — Editable Template Library（用户追加需求）
+
+状态：已完成。
+
+- [x] 支持自定义模板新增、编辑、删除；默认六个模板也可以编辑或删除。
+- [x] 模板名称、简介、使用说明和脚本通过类型化 IPC 保存在本地 SQLite 中，无需修改现有数据库结构。
+- [x] 首次使用初始化默认六个；修改、删除及空模板库在重启后保留。
+- [x] “恢复出厂模板”经确认后清除自定义及模板修改，仅恢复原始六个；不修改站点脚本和其他应用数据。
+- [x] 站点编辑器同步使用当前模板库；空库时禁用模板选择，页面仍可新增和恢复。
+- [x] 新增、编辑、删除、恢复及确认提示支持英文和简体中文。
+- [x] 25 项测试、lint、typecheck、build 和 macOS arm64 打包通过。
+- [x] 打包界面实测自定义模板 CRUD、默认模板删除、取消删除/恢复、恢复为六个、清空后操作、站点选择同步及已复制脚本不变；Renderer 无错误。
+- [x] 原有站点/Profile 弹窗、模板应用和中英文切换回归通过；持久化重启和恢复不影响站点、配置、Profile、通知渠道的测试通过。
+
+---
+
 ## 23. Testing
 
 不追求无意义覆盖率。
@@ -2191,7 +2207,7 @@ Playwright Codegen / Operation Recorder
 AI generated Site Script
 AI failure diagnosis
 Playwright MCP
-Site templates
+Shared site templates (local editable library implemented in Phases 11 and 13)
 Community Script repository
 Script versioning
 Script update

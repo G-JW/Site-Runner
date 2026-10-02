@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AppInfo, BrowserProfile, RunRecord, Site } from '../shared/types';
+import type { AppInfo, BrowserProfile, RunRecord, Site, ScriptTemplate } from '../shared/types';
 import { OverviewPage } from './pages/OverviewPage';
 import { ProfilesPage } from './pages/ProfilesPage';
 import { RunHistoryPage } from './pages/RunHistoryPage';
@@ -8,7 +8,6 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useI18n } from './i18n';
 import { TemplatesPage } from './pages/TemplatesPage';
-import type { ScriptTemplate } from './script-templates';
 
 export type PageName = 'overview' | 'sites' | 'templates' | 'profiles' | 'history' | 'notifications' | 'settings';
 
@@ -32,12 +31,14 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [siteTemplate, setSiteTemplate] = useState<ScriptTemplate | null>(null);
+  const [templates, setTemplates] = useState<ScriptTemplate[]>([]);
 
   const refresh = useCallback(async () => {
-    const [nextSites, nextProfiles, nextRuns] = await Promise.all([
-      window.siteRunner.sites.list(), window.siteRunner.profiles.list(), window.siteRunner.runs.list(),
+    const [nextSites, nextProfiles, nextRuns, nextTemplates] = await Promise.all([
+      window.siteRunner.sites.list(), window.siteRunner.profiles.list(), window.siteRunner.runs.list(), window.siteRunner.templates.list(),
     ]);
     setSites(nextSites); setProfiles(nextProfiles); setRuns(nextRuns);
+    setTemplates(nextTemplates);
   }, []);
 
   useEffect(() => {
@@ -56,8 +57,8 @@ export function App() {
   const latestBatch = useMemo(() => runs[0] ?? null, [runs]);
   const showError = useCallback((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)), []);
   const pageContent = (() => {
-    if (page === 'sites') return <SitesPage sites={sites} profiles={profiles} initialTemplate={siteTemplate} onTemplateConsumed={() => setSiteTemplate(null)} onChange={refresh} onError={showError} />;
-    if (page === 'templates') return <TemplatesPage canCreate={profiles.length > 0} onUse={(template) => { setSiteTemplate(template); setPage('sites'); }} />;
+    if (page === 'sites') return <SitesPage sites={sites} profiles={profiles} templates={templates} initialTemplate={siteTemplate} onTemplateConsumed={() => setSiteTemplate(null)} onChange={refresh} onError={showError} />;
+    if (page === 'templates') return <TemplatesPage templates={templates} onChange={refresh} onError={showError} canCreate={profiles.length > 0} onUse={(template) => { setSiteTemplate(template); setPage('sites'); }} />;
     if (page === 'profiles') return <ProfilesPage profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
     if (page === 'notifications') return <NotificationsPage onError={showError} />;
