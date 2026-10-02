@@ -143,4 +143,10 @@ input:disabled { background: #ecece8; }
 .form-grid textarea { width: 100%; padding: 10px 12px; border: 1px solid #d6d9d1; border-radius: 7px; background: white; color: #30362f; font: inherit; resize: vertical; }
 .form-grid .template-script-input { background: #171d18; color: #dfe6df; font: 13px/1.6 ui-monospace, monospace; white-space: pre; }
 .template-language-hint { margin: 0; color: #71766f; font-size: 12px; }
+.rules-content { padding: 0 26px; }
+.rules-content > p { color: #71766f; line-height: 1.6; }
+.rule-preview { padding: 12px 0; border-bottom: 1px solid #dfe1da; }
+.rule-preview small { display: block; margin: 5px 0; color: #71766f; overflow-wrap: anywhere; }
+.rule-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #171d18; color: #dfe6df; padding: 14px; border-radius: 8px; }
+.header-actions { flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 1100px) { main { padding: 42px 36px; } }

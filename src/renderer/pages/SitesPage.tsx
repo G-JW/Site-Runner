@@ -1,9 +1,10 @@
 import Editor, { type BeforeMount, type OnMount } from '@monaco-editor/react';
 import { typescriptDefaults } from 'monaco-editor/languages/features/typescript/register.js';
 import { useEffect, useMemo, useState } from 'react';
-import type { BrowserProfile, RunLogEntry, Site, SiteInput, ScriptTemplate } from '../../shared/types';
+import type { BrowserProfile, RunLogEntry, Site, SiteInput, ScriptTemplate, SiteRule } from '../../shared/types';
 import { PageHeader } from '../App';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { SiteRulesDialog } from '../components/SiteRulesDialog';
 import { useI18n } from '../i18n';
 
 export function SitesPage({ sites, profiles, templates, initialTemplate, onTemplateConsumed, onChange, onError }: { sites: Site[]; profiles: BrowserProfile[]; templates: ScriptTemplate[]; initialTemplate: ScriptTemplate | null; onTemplateConsumed(): void; onChange(): Promise<void>; onError(error: unknown): void }) {
@@ -15,6 +16,14 @@ export function SitesPage({ sites, profiles, templates, initialTemplate, onTempl
   const [defaultTimeoutMs, setDefaultTimeoutMs] = useState(30_000);
   const [pendingDelete, setPendingDelete] = useState<Site | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importRules, setImportRules] = useState<SiteRule[] | null>(null);
+  const [loadingImport, setLoadingImport] = useState(false);
+  async function loadImport() {
+    setLoadingImport(true);
+    try { const rules = await window.siteRunner.sites.previewImport(); if (rules) setImportRules(rules); }
+    catch (error) { onError(error); } finally { setLoadingImport(false); }
+  }
   const profileNames = useMemo(() => Object.fromEntries(profiles.map((item) => [item.id, item.name])), [profiles]);
   useEffect(() => window.siteRunner.runs.onLog((entry) => setLogs((current) => [...current.slice(-199), entry])), []);
   useEffect(() => {
@@ -35,12 +44,13 @@ export function SitesPage({ sites, profiles, templates, initialTemplate, onTempl
     try { await window.siteRunner.runs.runSite(site.id); await onChange(); } catch (error) { onError(error); }
     finally { setRunning((current) => { const next = new Set(current); next.delete(site.id); return next; }); }
   }
-  return <><PageHeader eyebrow={t('sites.eyebrow')} title={t('sites.title')} description={t('sites.description')} actions={<button data-testid="add-site" className="primary" disabled={profiles.length === 0} onClick={() => setEditing('new')}>{t('sites.add')}</button>} />
+  return <><PageHeader eyebrow={t('sites.eyebrow')} title={t('sites.title')} description={t('sites.description')} actions={<><button data-testid="export-rules" className="secondary" disabled={sites.length === 0} onClick={() => setExporting(true)}>{t('rules.export')}</button><button data-testid="import-rules" className="secondary" disabled={loadingImport || profiles.length === 0} onClick={() => void loadImport()}>{t('rules.import')}</button><button data-testid="add-site" className="primary" disabled={profiles.length === 0} onClick={() => setEditing('new')}>{t('sites.add')}</button></>} />
     {profiles.length === 0 && <div className="callout">{t('sites.needProfile')}</div>}
     <section className="panel table-panel sites-table"><div className="table-head"><span>{t('sites.site')}</span><span>{t('sites.profile')}</span><span>{t('sites.schedule')}</span><span>{t('sites.lastRun')}</span><span>{t('sites.actions')}</span></div>
       {sites.length === 0 ? <div className="table-empty">{t('sites.empty')}</div> : sites.map((site) => <div className="table-row" key={site.id}><div className="site-cell"><button className={`toggle ${site.enabled ? 'on' : ''}`} aria-label={`${site.enabled ? t('common.enabled') : t('common.disabled')} ${site.name}`} onClick={() => void toggle(site)}><span /></button><div><strong>{site.name}</strong><small>{site.url}</small></div></div><span>{profileNames[site.browserProfileId] ?? t('common.unknown')}</span><span>{site.schedule.enabled ? site.schedule.cron : t('sites.off')}</span><span><i className={`result-dot ${site.lastRun?.status ?? 'idle'}`} />{running.has(site.id) ? t('common.running') : (site.lastRun ? t(`common.${site.lastRun.status}`) : t('common.notRun'))}</span><div className="row-actions"><button disabled={running.has(site.id)} onClick={() => void run(site)}>{t('sites.run')}</button><button onClick={() => setEditing(site)}>{t('common.edit')}</button><button className="danger-ghost" onClick={() => setPendingDelete(site)}>{t('common.delete')}</button></div></div>)}</section>
     {logs.length > 0 && <section className="panel log-panel"><div className="panel-heading"><div><span className="eyebrow">{t('sites.liveOutput')}</span><h2>{t('sites.runLog')}</h2></div><button className="text-button" onClick={() => setLogs([])}>{t('sites.clear')}</button></div><div className="log-lines">{logs.map((entry, index) => <div className={entry.level} key={`${entry.timestamp}-${index}`}><time>{new Date(entry.timestamp).toLocaleTimeString()}</time><span>{entry.level}</span><p>{entry.message}</p></div>)}</div></section>}
     {editing && <SiteEditor templates={templates} site={editing === 'new' ? null : editing} profiles={profiles} defaultTimeoutMs={defaultTimeoutMs} initialScript={initialTemplate ? draftScript : null} onClose={() => { setEditing(null); onTemplateConsumed(); }} onSaved={async (saved, runAfter) => { setEditing(null); onTemplateConsumed(); await onChange(); if (runAfter) await run(saved); }} onError={onError} />}
+    {(exporting || importRules) && <SiteRulesDialog sites={sites} profiles={profiles} rules={importRules} onClose={() => { setExporting(false); setImportRules(null); }} onChange={onChange} onError={onError} />}
     {pendingDelete && <ConfirmDialog title={t('sites.deleteQuestion', { name: pendingDelete.name })} description={t('sites.deleteDescription')} busy={deleting} onCancel={() => setPendingDelete(null)} onConfirm={() => void remove()} />}
   </>;
 }

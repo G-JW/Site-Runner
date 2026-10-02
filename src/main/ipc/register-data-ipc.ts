@@ -1,4 +1,7 @@
-import { ipcMain, shell } from 'electron';
+import { dialog, ipcMain, shell } from 'electron';
+import { readFile, writeFile } from 'node:fs/promises';
+import { exportSiteRules, parseSiteRules } from '../site-rules.js';
+import { getAppPaths } from '../paths.js';
 import type { NotificationChannelInput, SiteInput, ScriptTemplateInput } from '../../shared/types.js';
 import type { DataService } from '../services/data-service.js';
 import type { ProfileService } from '../profiles/profile-service.js';
@@ -6,7 +9,27 @@ import type { SchedulerService } from '../scheduler/scheduler-service.js';
 import type { NotificationService } from '../notifications/service.js';
 
 export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService, notifications: NotificationService): void {
+  ipcMain.handle('app:openDataFolder', () => shell.openPath(getAppPaths().userData).then((error) => { if (error) throw new Error(error); }));
   ipcMain.handle('sites:list', () => data.listSites());
+  ipcMain.handle('sites:exportRules', async (_event, ids: string[]) => {
+    if (!Array.isArray(ids) || ids.length === 0) throw new Error('Select sites to export');
+    const file = exportSiteRules([...new Set(ids)].map((id) => data.getSite(id)));
+    const { canceled, filePath } = await dialog.showSaveDialog({ defaultPath: 'site-runner-sites.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (canceled || !filePath) return false;
+    await writeFile(filePath, JSON.stringify(file, null, 2), { mode: 0o600 });
+    return true;
+  });
+  ipcMain.handle('sites:previewImport', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (canceled || !filePaths[0]) return null;
+    const content = await readFile(filePaths[0]);
+    if (content.length > 10 * 1024 * 1024) throw new Error('Rules file exceeds 10 MB');
+    return parseSiteRules(JSON.parse(content.toString('utf8')));
+  });
+  ipcMain.handle('sites:importRules', (_event, rules: unknown, profileId: string) => {
+    const validated = parseSiteRules({ format: 'site-runner-sites', version: 1, sites: rules });
+    return data.importSiteRules(validated.map((rule) => ({ ...rule, browserProfileId: profileId })));
+  });
   ipcMain.handle('templates:list', () => data.listTemplates());
   ipcMain.handle('templates:save', (_event, input: ScriptTemplateInput) => data.saveTemplate(input));
   ipcMain.handle('templates:remove', (_event, id: string) => data.removeTemplate(id));

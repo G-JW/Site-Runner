@@ -18,6 +18,7 @@ export interface Site {
   createdAt: string; updatedAt: string; lastRun: RunRecord | null;
 }
 export type SiteInput = Pick<Site, 'name' | 'url' | 'enabled' | 'script' | 'browserProfileId' | 'timeoutMs' | 'schedule'> & { id?: string };
+export type SiteRule = Omit<SiteInput, 'id' | 'browserProfileId'>;
 export interface BrowserProfile { id: string; name: string; createdAt: string }
 export interface RunRecord {
   id: string; siteId: string; siteName: string; startedAt: string; finishedAt: string;
@@ -47,8 +48,12 @@ export interface NotificationMessage {
 }
 
 export interface SiteRunnerApi {
-  app: { info(): Promise<AppInfo> };
-  sites: { list(): Promise<Site[]>; save(input: SiteInput): Promise<Site>; remove(id: string): Promise<void> };
+  app: { info(): Promise<AppInfo>; openDataFolder(): Promise<void> };
+  sites: {
+    list(): Promise<Site[]>; save(input: SiteInput): Promise<Site>; remove(id: string): Promise<void>;
+    exportRules(ids: string[]): Promise<boolean>; previewImport(): Promise<SiteRule[] | null>;
+    importRules(rules: SiteRule[], profileId: string): Promise<Site[]>;
+  };
   templates: {
     list(): Promise<ScriptTemplate[]>; save(input: ScriptTemplateInput): Promise<ScriptTemplate>;
     remove(id: string): Promise<void>; restoreDefaults(): Promise<ScriptTemplate[]>;

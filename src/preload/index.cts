@@ -4,11 +4,15 @@ import type { SiteRunnerApi } from '../shared/types.js';
 const api: SiteRunnerApi = {
   app: {
     info: () => ipcRenderer.invoke('app:info') as ReturnType<SiteRunnerApi['app']['info']>,
+    openDataFolder: () => ipcRenderer.invoke('app:openDataFolder') as ReturnType<SiteRunnerApi['app']['openDataFolder']>,
   },
   sites: {
     list: () => ipcRenderer.invoke('sites:list') as ReturnType<SiteRunnerApi['sites']['list']>,
     save: (input) => ipcRenderer.invoke('sites:save', input) as ReturnType<SiteRunnerApi['sites']['save']>,
     remove: (id) => ipcRenderer.invoke('sites:remove', id) as ReturnType<SiteRunnerApi['sites']['remove']>,
+    exportRules: (ids) => ipcRenderer.invoke('sites:exportRules', ids) as ReturnType<SiteRunnerApi['sites']['exportRules']>,
+    previewImport: () => ipcRenderer.invoke('sites:previewImport') as ReturnType<SiteRunnerApi['sites']['previewImport']>,
+    importRules: (rules, profileId) => ipcRenderer.invoke('sites:importRules', rules, profileId) as ReturnType<SiteRunnerApi['sites']['importRules']>,
   },
   templates: {
     list: () => ipcRenderer.invoke('templates:list') as ReturnType<SiteRunnerApi['templates']['list']>,

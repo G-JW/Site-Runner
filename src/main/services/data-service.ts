@@ -117,6 +117,24 @@ export class DataService {
     if (this.db.prepare('DELETE FROM sites WHERE id = ?').run(id).changes === 0) throw new Error('Site not found');
   }
 
+  importSiteRules(inputs: SiteInput[]): Site[] {
+    const validated = inputs.map(validateSite);
+    validated.forEach((input) => this.getProfile(input.browserProfileId));
+    const usedNames = new Set(this.listSites().map((site) => site.name));
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const sites = validated.map((input) => {
+        let name = input.name;
+        for (let index = 2; usedNames.has(name); index++) name = `${input.name} (${index})`;
+        usedNames.add(name);
+        return this.saveSite({ name, url: input.url, script: input.script, timeoutMs: input.timeoutMs, browserProfileId: input.browserProfileId,
+          enabled: false, schedule: { ...input.schedule, enabled: false } });
+      });
+      this.db.exec('COMMIT');
+      return sites;
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
   listProfiles(): BrowserProfile[] {
     return (this.db.prepare('SELECT * FROM browser_profiles ORDER BY created_at ASC').all() as Row[])
       .map((row) => ({ id: String(row.id), name: String(row.name), createdAt: String(row.created_at) }));
