@@ -122,6 +122,49 @@ app.whenReady().then(async () => {
         await wait(1_000);
         const siteDialog = Boolean(document.querySelector('[data-testid="site-dialog"]'));
         document.querySelector('[data-testid="site-dialog"] .close')?.click();
+        document.querySelector('[data-testid="nav-templates"]')?.click();
+        await wait(100);
+        document.querySelector('[data-testid="template-multi-step"]')?.click();
+        await wait(100);
+        const templatePreview = document.querySelector('[data-testid="template-code"]')?.textContent.includes("getByRole('dialog')");
+        document.querySelector('[data-testid="create-from-template"]')?.click();
+        await wait(300);
+        const setInput = (input, value) => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const fillSite = async (name) => {
+          const inputs = document.querySelectorAll('[data-testid="site-dialog"] .form-grid input');
+          setInput(inputs[0], name);
+          await wait(50);
+          setInput(inputs[1], 'https://example.com');
+          await wait(50);
+        };
+        await fillSite('Template smoke');
+        document.querySelector('[data-testid="site-dialog"] .modal-actions .primary')?.click();
+        await wait(200);
+        const templateSite = (await window.siteRunner.sites.list()).find((site) => site.name === 'Template smoke');
+        const templateCreated = templateSite?.script.includes("getByRole('dialog')");
+        document.querySelector('[data-testid="nav-templates"]')?.click();
+        await wait(100);
+        document.querySelector('[data-testid="template-verified-click"]')?.click();
+        await wait(50);
+        document.querySelector('[data-testid="create-from-template"]')?.click();
+        await wait(300);
+        document.querySelector('[data-testid="choose-template"]')?.click();
+        await wait(50);
+        document.querySelector('[data-testid="apply-template"]')?.click();
+        await wait(50);
+        const overwriteGuard = Boolean(document.querySelector('[data-testid="site-dialog"] [role="alert"]'));
+        document.querySelector('[data-testid="apply-template"]')?.click();
+        await wait(50);
+        await fillSite('Visit smoke');
+        document.querySelector('[data-testid="site-dialog"] .modal-actions .primary')?.click();
+        await wait(200);
+        const visitSite = (await window.siteRunner.sites.list()).find((site) => site.name === 'Visit smoke');
+        const templateCleared = visitSite?.script === null;
+        if (templateSite) await window.siteRunner.sites.remove(templateSite.id);
+        if (visitSite) await window.siteRunner.sites.remove(visitSite.id);
         document.querySelector('[data-testid="nav-profiles"]')?.click();
         await wait(100);
         document.querySelector('[data-testid="new-profile"]')?.click();
@@ -140,14 +183,18 @@ app.whenReady().then(async () => {
           shell: Boolean(document.querySelector('.app-shell')),
           api: typeof window.siteRunner?.sites?.list === 'function',
           siteDialog,
+          templatePreview,
+          templateCreated,
+          overwriteGuard,
+          templateCleared,
           profileDialog,
           chinese: document.documentElement.lang === 'zh-CN' && document.body.innerText.includes('简体中文'),
           text: document.body.innerText.slice(0, 200)
         };
-      })()`).then((result: { shell: boolean; api: boolean; siteDialog: boolean; profileDialog: boolean; chinese: boolean; text: string }) => {
+      })()`).then((result: { shell: boolean; api: boolean; siteDialog: boolean; templatePreview: boolean; templateCreated: boolean; overwriteGuard: boolean; templateCleared: boolean; profileDialog: boolean; chinese: boolean; text: string }) => {
         const report = { ...result, rendererErrors };
         console.log(`RENDERER_SMOKE ${JSON.stringify(report)}`);
-        app.exit(result.shell && result.api && result.siteDialog && result.profileDialog && result.chinese && rendererErrors.length === 0 ? 0 : 1);
+        app.exit(result.shell && result.api && result.siteDialog && result.templatePreview && result.templateCreated && result.overwriteGuard && result.templateCleared && result.profileDialog && result.chinese && rendererErrors.length === 0 ? 0 : 1);
       }).catch((error: unknown) => {
         console.error('RENDERER_SMOKE failed', error);
         app.exit(1);
@@ -157,7 +204,13 @@ app.whenReady().then(async () => {
       console.error(`RENDERER_SMOKE load failed: ${code} ${description}`);
       app.exit(1);
     });
-    setTimeout(() => app.exit(1), 10_000).unref();
+    setTimeout(() => {
+      console.error('RENDERER_SMOKE timed out', rendererErrors);
+      void window.webContents.executeJavaScript('document.body.innerText').then((body: string) => {
+        console.error(body.slice(0, 2_000));
+        app.exit(1);
+      }).catch(() => app.exit(1));
+    }, 20_000).unref();
   }
 
   app.on('activate', () => {

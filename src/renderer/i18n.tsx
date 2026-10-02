@@ -2,6 +2,11 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppLanguage } from '../shared/types';
 
 const en = {
+  'nav.templates': 'Script templates', 'templates.eyebrow': 'STARTING POINTS',
+  'templates.description': 'Choose a common workflow, review the example, and adapt it to your site.',
+  'templates.noScript': 'No script needed. Site Runner opens the configured URL.',
+  'templates.createSite': 'Create site from template', 'templates.choose': 'Choose template',
+  'templates.replace': 'Replace the current script with this template?', 'templates.apply': 'Apply template', 'templates.confirm': 'Confirm replacement',
   'nav.overview': 'Overview', 'nav.sites': 'Sites', 'nav.profiles': 'Profiles', 'nav.history': 'Run history',
   'nav.notifications': 'Notifications', 'nav.settings': 'Settings', 'app.local': 'Local desktop',
   'common.cancel': 'Cancel', 'common.delete': 'Delete', 'common.edit': 'Edit', 'common.save': 'Save',
@@ -69,6 +74,11 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  'nav.templates': '脚本模板', 'templates.eyebrow': '常见自动化流程',
+  'templates.description': '选择常见流程，查看示例，并按实际网站调整脚本。',
+  'templates.noScript': '无需脚本，Site Runner 会打开配置的站点网址。',
+  'templates.createSite': '使用此模板创建站点', 'templates.choose': '选择模板',
+  'templates.replace': '是否用此模板替换当前脚本？', 'templates.apply': '应用模板', 'templates.confirm': '确认替换',
   'nav.overview': '概览', 'nav.sites': '站点', 'nav.profiles': '浏览器配置', 'nav.history': '运行记录',
   'nav.notifications': '通知', 'nav.settings': '设置', 'app.local': '本地桌面应用',
   'common.cancel': '取消', 'common.delete': '删除', 'common.edit': '编辑', 'common.save': '保存',

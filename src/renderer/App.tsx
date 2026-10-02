@@ -7,12 +7,15 @@ import { SitesPage } from './pages/SitesPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useI18n } from './i18n';
+import { TemplatesPage } from './pages/TemplatesPage';
+import type { ScriptTemplate } from './script-templates';
 
-export type PageName = 'overview' | 'sites' | 'profiles' | 'history' | 'notifications' | 'settings';
+export type PageName = 'overview' | 'sites' | 'templates' | 'profiles' | 'history' | 'notifications' | 'settings';
 
 const navigation = [
   { id: 'overview', label: 'nav.overview', icon: '⌂' },
   { id: 'sites', label: 'nav.sites', icon: '◎' },
+  { id: 'templates', label: 'nav.templates', icon: '▤' },
   { id: 'profiles', label: 'nav.profiles', icon: '◫' },
   { id: 'history', label: 'nav.history', icon: '↻' },
   { id: 'notifications', label: 'nav.notifications', icon: '◇' },
@@ -28,6 +31,7 @@ export function App() {
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [siteTemplate, setSiteTemplate] = useState<ScriptTemplate | null>(null);
 
   const refresh = useCallback(async () => {
     const [nextSites, nextProfiles, nextRuns] = await Promise.all([
@@ -52,7 +56,8 @@ export function App() {
   const latestBatch = useMemo(() => runs[0] ?? null, [runs]);
   const showError = useCallback((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)), []);
   const pageContent = (() => {
-    if (page === 'sites') return <SitesPage sites={sites} profiles={profiles} onChange={refresh} onError={showError} />;
+    if (page === 'sites') return <SitesPage sites={sites} profiles={profiles} initialTemplate={siteTemplate} onTemplateConsumed={() => setSiteTemplate(null)} onChange={refresh} onError={showError} />;
+    if (page === 'templates') return <TemplatesPage canCreate={profiles.length > 0} onUse={(template) => { setSiteTemplate(template); setPage('sites'); }} />;
     if (page === 'profiles') return <ProfilesPage profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
     if (page === 'notifications') return <NotificationsPage onError={showError} />;
