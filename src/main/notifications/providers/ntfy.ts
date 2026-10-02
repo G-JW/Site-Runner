@@ -15,7 +15,7 @@ export function createNtfyProvider(config: Record<string, unknown>): Notificatio
         Tags: message.level === 'alert' ? 'warning' : 'white_check_mark',
       };
       if (value.token) headers.Authorization = `Bearer ${value.token}`;
-      const response = await fetch(endpoint, { method: 'POST', headers, body: message.body });
+      const response = await fetch(endpoint, { method: 'POST', headers, body: message.body, signal: AbortSignal.timeout(15_000) });
       if (!response.ok) throw new Error(`NTFY returned HTTP ${response.status}`);
     },
   };

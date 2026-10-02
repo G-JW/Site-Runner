@@ -11,6 +11,7 @@ Site Runner 是一个本地优先的桌面浏览器自动化工具，用于管�
 - 独立的脚本模板页面提供六种常见流程，并支持在站点编辑器中选择模板。
 - 手动运行单个网站，或串行运行所有已启用网站。
 - 使用 cron 表达式在应用运行期间执行本地定时任务。
+- 支持命令行一次性运行，由系统任务调度器唤起，完成后退出，无需常驻应用。
 - 实时显示运行日志，并保存最近 500 条运行记录。
 - 失败时记录错误、最后页面 URL，并尽可能保存 PNG 截图。
 - 批量任务完成后，按 `normal`、`alert` 或 `all` 规则发送一条汇总通知。
@@ -114,6 +115,63 @@ Site Runner 负责创建和关闭 Browser Context、打开网站 URL、应用 Ti
 
 保存后任务会立即重新注册。Schedule 只在 Site Runner 正在运行时生效；当前版本不是系统后台服务，也不会补跑应用关闭期间错过的任务。
 
+### 使用系统调度器，无需常驻应用
+
+命令行模式不创建桌面窗口，不加载 Monaco/React，也不启动应用内 Schedule。默认使用无头 Chromium；执行结束、保存运行记录并完成通知后，进程退出。仍需使用 Electron 和 Chromium 执行任务，但任务间无需保留进程。
+
+macOS 一行运行所有已启用站点（将应用路径替换为实际安装路径）：
+
+```bash
+"/Applications/Site Runner.app/Contents/MacOS/Site Runner" --run-all
+```
+
+可用参数：
+
+```bash
+"/Applications/Site Runner.app/Contents/MacOS/Site Runner" --list-sites
+"/Applications/Site Runner.app/Contents/MacOS/Site Runner" --run-site "站点名称或 ID"
+"/Applications/Site Runner.app/Contents/MacOS/Site Runner" --run-all --headed
+"/Applications/Site Runner.app/Contents/MacOS/Site Runner" --run-all --user-data "/absolute/path/to/data"
+"/Applications/Site Runner.app/Contents/MacOS/Site Runner" --help
+```
+
+默认复用 GUI 的数据目录、站点、脚本、登录 Profile 和通知配置；也支持 `SITE_RUNNER_USER_DATA` 环境变量，`--user-data` 优先级更高。`--run-site` 接受精确名称或 ID，重名时必须用 ID，显式指定的禁用站点也会执行。`--run-all` 串行执行全部启用站点，与各站点是否配置 cron 无关。
+
+CLI 会在结束时按 Batch Notifications 和渠道事件策略发送一次汇总，单站点命令也适用；空批次不发送通知。通知请求最多等待 15 秒。标准输出为 JSON 结果；失败信息也可在运行记录和本地日志中查看。退出码：`0` 成功，`1` 任务/通知/启动失败，`2` 参数或站点无效，`3` 同一数据目录已有运行实例。CLI 的 `--headed`/`--headless` 不会修改 GUI 的设置。
+
+同一个数据目录只能运行一个 Site Runner 实例，防止任务重叠和 Profile 冲突。使用系统定时时退出 GUI，并由登录该 Profile 的同一系统用户运行命令。
+
+**macOS launchd 示例（每天本地时间 09:00）**
+
+参考 [`examples/com.siterunner.daily.plist`](examples/com.siterunner.daily.plist)，先修改其中的绝对应用路径，再复制并加载：
+
+```bash
+mkdir -p ~/Library/LaunchAgents
+cp examples/com.siterunner.daily.plist ~/Library/LaunchAgents/com.siterunner.daily.plist
+launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.siterunner.daily.plist
+# 立即手动触发一次
+launchctl kickstart "gui/$(id -u)/com.siterunner.daily"
+# 停用
+launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.siterunner.daily.plist
+```
+
+plist 参数是独立字符串，含空格的路径无需额外引号；不要用 `open -a` 或启用 `KeepAlive`。日志位置在 plist 中配置。此示例为用户 LaunchAgent，需登录该用户；系统关机时不执行。定时机制参见 [Apple launchd 文档](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/ScheduledJobs.html)。
+
+**Windows 任务计划程序**
+
+在任务计划程序创建每日任务，选择运行 GUI 时使用的用户；操作为“启动程序”，程序路径填实际的 `Site Runner.exe`，参数填 `--run-all`。将重复任务策略设为“不启动新实例”。先通过 GUI 完成登录并保存配置。
+
+也可在 PowerShell 注册一个每天 09:00、用户登录后执行的任务（替换安装路径）：
+
+```powershell
+$action = New-ScheduledTaskAction -Execute 'C:\Apps\Site Runner\Site Runner.exe' -Argument '--run-all'
+$trigger = New-ScheduledTaskTrigger -Daily -At '09:00'
+$principal = New-ScheduledTaskPrincipal -UserId ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive
+Register-ScheduledTask -TaskName 'Site Runner Daily' -Action $action -Trigger $trigger -Principal $principal
+```
+
+系统调度能力参见 [Microsoft Task Scheduler 文档](https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page)。当前已实测 macOS arm64 命令行执行；Windows 示例尚未在 Windows 环境实测。
+
 ### 6. Notification Channels
 
 打开 **Notifications**，可以创建多个 Channel，并选择事件策略：
@@ -163,12 +221,12 @@ pnpm package
 
 `pnpm package` 会准备随应用分发的 Chromium，并在 `release/` 生成当前平台的未安装应用包。`pnpm package:dist` 使用 electron-builder 生成当前平台配置的分发目标。当前仓库已在 Apple Silicon macOS 上验证应用包启动和真实打包态 Playwright 自动化；Windows 与 Linux 配置需要分别在对应系统上验证。
 
-完整测试包含 SQLite CRUD、运行锁、批量失败隔离、通知路由和 Payload、路径生成、真实 Chromium 操作、失败截图和 Profile 状态持久化。测试页面均为本地可控内容，不包含真实账号、Cookie 或 Token。
+完整测试包含 SQLite CRUD、运行锁、批量失败隔离、通知路由和 Payload、路径生成、真实 Chromium 操作、失败截图、Profile 状态持久化、脚本模板和 CLI 参数及执行行为。测试页面均为本地可控内容，不包含真实账号、Cookie 或 Token。
 
 ## 已知限制
 
 - MVP 只支持 Chromium。
-- Schedule 需要应用保持运行。
+- 应用内 Schedule 需要应用保持运行；无需常驻时可使用 CLI 配合系统任务调度器。
 - 不自动处理 CAPTCHA 或网站反自动化策略。
 - 网站 DOM 更新后可能需要修改脚本。
 - 不提供操作录制、AI 脚本生成、社区脚本市场或云端同步。

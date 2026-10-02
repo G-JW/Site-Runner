@@ -14,6 +14,7 @@ export function createWebhookProvider(config: Record<string, unknown>): Notifica
         method: value.method?.toUpperCase() || 'POST',
         headers: { 'content-type': 'application/json', ...value.headers },
         body: JSON.stringify(message),
+        signal: AbortSignal.timeout(15_000),
       });
       if (!response.ok) throw new Error(`Webhook returned HTTP ${response.status}`);
     },

@@ -22,7 +22,7 @@ export class AutomationRunner {
 
   isRunning(siteId: string): boolean { return this.runningSites.has(siteId); }
 
-  async runSite(siteId: string, trigger: RunTrigger): Promise<SiteRunResult> {
+  async runSite(siteId: string, trigger: RunTrigger, headless?: boolean): Promise<SiteRunResult> {
     if (this.runningSites.has(siteId)) throw new Error('This site is already running');
     const site = this.data.getSite(siteId);
     this.runningSites.add(siteId);
@@ -38,7 +38,7 @@ export class AutomationRunner {
         result = await this.executor({
           siteId: site.id, siteName: site.name, url: site.url, script: site.script,
           timeoutMs: site.timeoutMs, profilePath: this.profiles.getProfilePath(site.browserProfileId),
-          screenshotPath, headless: settings.browserHeadless,
+          screenshotPath, headless: headless ?? settings.browserHeadless,
         }, this.emit);
       } catch (error) {
         const message = error instanceof Error ? (error.stack ?? error.message) : String(error);

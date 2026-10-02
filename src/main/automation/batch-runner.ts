@@ -10,11 +10,16 @@ export class BatchRunner {
   ) {}
 
   async runEnabledSites(): Promise<BatchResult> {
+    return this.runSites(this.data.listSites().filter((item) => item.enabled).map((item) => item.id));
+  }
+
+  async runSites(siteIds: string[], headless?: boolean): Promise<BatchResult> {
+    const sites = siteIds.map((id) => this.data.getSite(id));
     const startedAt = new Date().toISOString();
     const results: SiteRunResult[] = [];
-    for (const site of this.data.listSites().filter((item) => item.enabled)) {
+    for (const site of sites) {
       try {
-        results.push(await this.runner.runSite(site.id, 'batch'));
+        results.push(await this.runner.runSite(site.id, 'batch', headless));
       } catch (error) {
         results.push({
           siteId: site.id, siteName: site.name, status: 'failed', message: null,

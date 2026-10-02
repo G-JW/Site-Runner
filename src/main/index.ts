@@ -12,10 +12,35 @@ import { BatchRunner } from './automation/batch-runner.js';
 import { SchedulerService } from './scheduler/scheduler-service.js';
 import { NotificationService } from './notifications/service.js';
 import { createLogger } from './logging.js';
+import { cliHelp, executeCliCommand, parseCliCommand, type CliCommand } from './cli.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
-const userDataOverride = process.env.SITE_RUNNER_USER_DATA;
+let cliCommand: CliCommand | null = null;
+try {
+  cliCommand = parseCliCommand(process.argv.slice(app.isPackaged ? 1 : 2));
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  app.exit(2);
+}
+if (cliCommand?.action === 'help') {
+  console.log(cliHelp);
+  app.exit(0);
+}
+const userDataOverride = cliCommand?.userData ?? process.env.SITE_RUNNER_USER_DATA;
 if (userDataOverride) app.setPath('userData', path.resolve(userDataOverride));
+if (!app.requestSingleInstanceLock()) {
+  console.error('Another Site Runner instance is using this data directory. Close it before running this command.');
+  app.exit(3);
+}
+if (cliCommand) {
+  app.disableHardwareAcceleration();
+  if (process.platform === 'darwin') app.setActivationPolicy('prohibited');
+}
+app.on('second-instance', (_event, argv) => {
+  if (argv.some((arg) => arg === '--run-all' || arg === '--run-site' || arg === '--list-sites')) return;
+  const window = BrowserWindow.getAllWindows()[0];
+  if (window) { if (window.isMinimized()) window.restore(); window.focus(); }
+});
 if (app.isPackaged) {
   process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.resourcesPath, 'playwright-browsers');
   process.env.ESBUILD_BINARY_PATH = path.join(
@@ -66,6 +91,22 @@ app.whenReady().then(async () => {
     broadcastRunLog(entry);
   });
   const notifications = new NotificationService(data);
+  if (cliCommand) {
+    let exitCode = 1;
+    try {
+      const result = await executeCliCommand(cliCommand, data, runner, notifications);
+      console.log(JSON.stringify(result.output));
+      exitCode = result.exitCode;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      await profiles.closeAll();
+      database.close();
+      // Let macOS finish its ready event before exiting commands with no browser work.
+      setTimeout(() => app.exit(exitCode), 100);
+    }
+    return;
+  }
   const batch = new BatchRunner(data, runner, (result) => notifications.notifyBatch(result).then(() => undefined));
   const scheduler = new SchedulerService(data, runner);
   if (data.listProfiles().length === 0) profiles.create('Default');
@@ -217,6 +258,9 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
   logger.info({ userData: paths.userData }, 'Site Runner started');
+}).catch((error: unknown) => {
+  console.error('Site Runner startup failed', error instanceof Error ? error.message : String(error));
+  app.exit(1);
 });
 
 app.on('window-all-closed', () => {

@@ -1945,6 +1945,24 @@ docs: add site runner usage guide
 
 ---
 
+## Phase 12 — One-shot CLI & System Scheduling（用户追加需求）
+
+状态：已完成。
+
+- [x] 提供 `--run-all`、`--run-site <id-or-name>`、`--list-sites`、`--help`。
+- [x] 复用 GUI 数据和 Profile，支持 `--user-data`，默认无头执行，不修改 GUI 浏览器设置。
+- [x] CLI 不启动桌面窗口和应用内 cron，任务结束后保存历史、发送汇总并退出。
+- [x] 单站点和批量命令均遵守现有通知开关和渠道事件策略，空批次不通知，通知请求超时为 15 秒。
+- [x] 输出 JSON 结果和明确退出码；同一数据目录单实例保护，避免重叠运行。
+- [x] 文档提供 macOS LaunchAgent 和 Windows 任务计划程序示例；不自动注册用户系统任务。
+- [x] lint、typecheck、22 项测试、build、macOS arm64 打包通过。
+- [x] 打包 CLI 实测：帮助/列表自动退出、成功/失败任务、禁用站点显式运行、本地 Webhook 汇总与失败、退出码 0/1/2/3、重复启动保护、历史持久化和 GUI 设置不变。
+- [x] GUI 回归验证通过，Renderer 无错误；launchd 示例通过 `plutil -lint`。
+
+限制：Windows/Linux CLI 和 Windows 定时示例尚未在对应系统实测；系统关机时不执行任务。CLI 执行期间仍使用 Electron 和 Chromium，任务间不常驻。
+
+---
+
 ## 23. Testing
 
 不追求无意义覆盖率。
