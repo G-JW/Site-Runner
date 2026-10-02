@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { ScriptTemplate, ScriptTemplateInput } from '../../shared/types';
+import type { BrowserProfile, ScriptTemplate, ScriptTemplateInput } from '../../shared/types';
 import { PageHeader } from '../App';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useI18n } from '../i18n';
+import { RecorderPanel } from '../components/RecorderPanel';
 
-export function TemplatesPage({ templates, canCreate, onUse, onChange, onError }: {
-  templates: ScriptTemplate[]; canCreate: boolean; onUse(template: ScriptTemplate): void;
+export function TemplatesPage({ templates, profiles, canCreate, onUse, onChange, onError }: {
+  templates: ScriptTemplate[]; profiles: BrowserProfile[]; canCreate: boolean; onUse(template: ScriptTemplate): void;
   onChange(): Promise<void>; onError(error: unknown): void;
 }) {
   const { language, t } = useI18n();
@@ -14,6 +15,7 @@ export function TemplatesPage({ templates, canCreate, onUse, onChange, onError }
   const [editing, setEditing] = useState<ScriptTemplate | 'new' | null>(null);
   const [pending, setPending] = useState<ScriptTemplate | 'restore' | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recordedScript, setRecordedScript] = useState<string | null>(null);
   async function confirm() {
     if (!pending) return;
     setBusy(true);
@@ -26,24 +28,25 @@ export function TemplatesPage({ templates, canCreate, onUse, onChange, onError }
   }
   return <>
     <PageHeader eyebrow={t('templates.eyebrow')} title={t('nav.templates')} description={t('templates.description')} actions={<><button data-testid="restore-templates" className="secondary" onClick={() => setPending('restore')}>{t('templates.restore')}</button><button data-testid="add-template" className="primary" onClick={() => setEditing('new')}>{t('templates.add')}</button></>} />
+    <RecorderPanel profiles={profiles} onRecorded={(script) => { setRecordedScript(script); setEditing('new'); }} onError={onError} />
     {!canCreate && <div className="callout">{t('sites.needProfile')}</div>}
     {!selected ? <section className="panel table-empty">{t('templates.empty')}</section> : <section className="template-layout">
       <div className="template-list">{templates.map((item) => <button key={item.id} data-testid={`template-${item.id}`} aria-pressed={item.id === selected.id} className={`panel template-card ${item.id === selected.id ? 'selected' : ''}`} onClick={() => setSelectedId(item.id)}><strong>{item.name[language]}</strong><span>{item.description[language]}</span></button>)}</div>
       <article className="panel template-preview"><h2>{selected.name[language]}</h2><p>{selected.instructions[language]}</p><pre data-testid="template-code">{selected.script ?? t('templates.noScript')}</pre><div className="template-actions"><button data-testid="create-from-template" className="primary" disabled={!canCreate} onClick={() => onUse(selected)}>{t('templates.createSite')}</button><button data-testid="edit-template" className="secondary" onClick={() => setEditing(selected)}>{t('common.edit')}</button><button data-testid="delete-template" className="danger-ghost" onClick={() => setPending(selected)}>{t('common.delete')}</button></div></article>
     </section>}
-    {editing && <TemplateEditor template={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={async (saved) => { await onChange(); setSelectedId(saved.id); setEditing(null); }} onError={onError} />}
+    {editing && <TemplateEditor template={editing === 'new' ? null : editing} initialScript={recordedScript} onClose={() => { setEditing(null); setRecordedScript(null); }} onSaved={async (saved) => { await onChange(); setSelectedId(saved.id); setEditing(null); setRecordedScript(null); }} onError={onError} />}
     {pending && <ConfirmDialog title={pending === 'restore' ? t('templates.restore') : t('templates.deleteQuestion', { name: pending.name[language] })} description={pending === 'restore' ? t('templates.restoreDescription') : t('templates.deleteDescription')} busy={busy} {...(pending === 'restore' ? { confirmLabel: t('templates.restoreConfirm'), eyebrow: t('templates.restore') } : {})} onCancel={() => setPending(null)} onConfirm={() => void confirm()} />}
   </>;
 }
 
-function TemplateEditor({ template, onClose, onSaved, onError }: {
-  template: ScriptTemplate | null; onClose(): void; onSaved(template: ScriptTemplate): Promise<void>; onError(error: unknown): void;
+function TemplateEditor({ template, initialScript, onClose, onSaved, onError }: {
+  template: ScriptTemplate | null; initialScript: string | null; onClose(): void; onSaved(template: ScriptTemplate): Promise<void>; onError(error: unknown): void;
 }) {
   const { language, t } = useI18n();
   const [name, setName] = useState(template?.name[language] ?? '');
   const [description, setDescription] = useState(template?.description[language] ?? '');
   const [instructions, setInstructions] = useState(template?.instructions[language] ?? '');
-  const [script, setScript] = useState(template?.script ?? '');
+  const [script, setScript] = useState(template?.script ?? initialScript ?? '');
   const [saving, setSaving] = useState(false);
   async function save(event: { preventDefault(): void }) {
     event.preventDefault(); setSaving(true);

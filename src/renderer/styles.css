@@ -149,4 +149,11 @@ input:disabled { background: #ecece8; }
 .rule-preview small { display: block; margin: 5px 0; color: #71766f; overflow-wrap: anywhere; }
 .rule-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #171d18; color: #dfe6df; padding: 14px; border-radius: 8px; }
 .header-actions { flex-wrap: wrap; justify-content: flex-end; }
+.recorder-panel { padding: 22px 24px; margin-bottom: 22px; }
+.recorder-panel h2 { margin: 0 0 8px; }
+.recorder-panel p { color: #71766f; line-height: 1.6; margin: 8px 0; }
+.recorder-panel .recorder-note { font-size: 12px; }
+.recorder-inputs { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin: 16px 0; }
+.recorder-inputs label { display: grid; gap: 6px; font-size: 13px; }
+.recorder-panel .template-actions span { color: #71766f; font-size: 12px; }
 @media (max-width: 1100px) { main { padding: 42px 36px; } }

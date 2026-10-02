@@ -58,7 +58,7 @@ export function App() {
   const showError = useCallback((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)), []);
   const pageContent = (() => {
     if (page === 'sites') return <SitesPage sites={sites} profiles={profiles} templates={templates} initialTemplate={siteTemplate} onTemplateConsumed={() => setSiteTemplate(null)} onChange={refresh} onError={showError} />;
-    if (page === 'templates') return <TemplatesPage templates={templates} onChange={refresh} onError={showError} canCreate={profiles.length > 0} onUse={(template) => { setSiteTemplate(template); setPage('sites'); }} />;
+    if (page === 'templates') return <TemplatesPage templates={templates} profiles={profiles} onChange={refresh} onError={showError} canCreate={profiles.length > 0} onUse={(template) => { setSiteTemplate(template); setPage('sites'); }} />;
     if (page === 'profiles') return <ProfilesPage profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
     if (page === 'notifications') return <NotificationsPage onError={showError} />;

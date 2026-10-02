@@ -25,6 +25,7 @@ export class AutomationRunner {
   async runSite(siteId: string, trigger: RunTrigger, headless?: boolean): Promise<SiteRunResult> {
     if (this.runningSites.has(siteId)) throw new Error('This site is already running');
     const site = this.data.getSite(siteId);
+    this.profiles.assertNotRecording(site.browserProfileId);
     this.runningSites.add(siteId);
     const timestamp = new Date();
     const month = timestamp.toISOString().slice(0, 7);

@@ -1979,6 +1979,25 @@ docs: add site runner usage guide
 
 ---
 
+## Phase 14 — Portable Rules & Embedded Recorder（用户追加需求）
+
+状态：已完成。
+
+- [x] 明确配置为本地 SQLite；修正默认目录名称为 `site-runner`，设置页显示实际路径并支持打开目录。
+- [x] 站点页可选择部分规则导出版本化 JSON；排除登录状态、Profile ID、运行记录和通知配置。
+- [x] 导入先预览脚本和选择 Profile，只新增，重名自动加后缀；初始禁用、暂停定时，失败整体回滚。
+- [x] “恢复出厂模板”更名为“恢复默认模板”，英文为 Restore default templates。
+- [x] 脚本模板页可启动内置 Playwright Inspector；复用 Profile，结束后转换代码并预览、保存为模板。
+- [x] 保留录制操作和结果断言，运行器提供 `expect`；无需系统 Node 或外部录制命令。
+- [x] 录制占用 Profile，阻止同一 Profile 同时打开、删除或运行；支持取消、连续重录及应用退出清理。
+- [x] 32 项测试、lint、typecheck、build 与 macOS arm64 打包验证通过。
+- [x] 打包实测：录制真实按钮点击、读取并保存模板、创建站点回放成功；导出实际 JSON 并导入新增站点（文件选择使用受控路径）。
+- [x] 连续两次取消真实录制后 Profile 释放且任务可运行；原有 GUI 回归通过，Renderer 无错误。
+
+限制：Windows/Linux 录制集成尚未实测；录制会执行真实操作，代码中的输入内容需要用户检查。导出不会自动清除脚本或 URL 中手动写入的敏感文本。
+
+---
+
 ## 23. Testing
 
 不追求无意义覆盖率。
@@ -2107,7 +2126,7 @@ Site Runner 当前定位仍然是本地桌面软件。
 - AI 自动生成脚本。
 - AI 自动修复脚本。
 - Playwright MCP。
-- 操作录制 GUI。
+- 操作录制 GUI。（已按用户追加需求在 Phase 14 实现）
 - 浏览器 Extension。
 - 多用户。
 - RBAC。
@@ -2192,7 +2211,7 @@ MVP 接受：
 - Site Script 被视为用户本地可信代码。
 - 不提供恶意第三方脚本安全 Sandbox。
 - 不提供 AI Script Generation。
-- 不提供操作录制。
+- 原 MVP 不提供操作录制；用户追加需求已在 Phase 14 实现内置录制。
 - 不提供社区脚本市场。
 - Notification Provider 数量有限，但架构允许以后扩展。
 

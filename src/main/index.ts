@@ -13,6 +13,7 @@ import { SchedulerService } from './scheduler/scheduler-service.js';
 import { NotificationService } from './notifications/service.js';
 import { createLogger } from './logging.js';
 import { cliHelp, executeCliCommand, parseCliCommand, type CliCommand } from './cli.js';
+import { RecorderService } from './recording/recorder-service.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 let cliCommand: CliCommand | null = null;
@@ -109,6 +110,11 @@ app.whenReady().then(async () => {
   }
   const batch = new BatchRunner(data, runner, (result) => notifications.notifyBatch(result).then(() => undefined));
   const scheduler = new SchedulerService(data, runner);
+  const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runner.isRunning(site.id)));
+  ipcMain.handle('recorder:start', (_event, input) => recorder.start(input));
+  ipcMain.handle('recorder:status', () => recorder.getStatus());
+  ipcMain.handle('recorder:finish', () => recorder.finish());
+  ipcMain.handle('recorder:cancel', () => recorder.cancel());
   if (data.listProfiles().length === 0) profiles.create('Default');
   registerDataIpc(data, profiles, scheduler, notifications);
   registerRunIpc(runner, batch);
@@ -119,10 +125,12 @@ app.whenReady().then(async () => {
     userDataPath: getAppPaths().userData,
   }));
 
-  app.once('before-quit', () => {
+  app.once('before-quit', (event) => {
+    event.preventDefault();
     scheduler.stop();
-    void profiles.closeAll();
-    database.close();
+    void Promise.all([recorder.cancel(), profiles.closeAll()]).then(() => {
+      database.close(); app.exit(0);
+    }).catch((error: unknown) => { console.error('Cleanup failed', error); app.exit(1); });
   });
 
   if (process.argv.includes('--automation-smoke-test')) {

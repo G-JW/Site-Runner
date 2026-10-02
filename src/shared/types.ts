@@ -6,6 +6,8 @@ export type ProviderType = 'ntfy' | 'webhook';
 export type AppLanguage = 'en' | 'zh-CN';
 
 export interface AppInfo { name: string; version: string; userDataPath: string }
+export interface RecordingInput { url: string; profileId: string }
+export interface RecordingStatus { state: 'idle' | 'recording' | 'ready' | 'failed'; error: string | null }
 export interface ScriptTemplate {
   id: string; name: Record<AppLanguage, string>; description: Record<AppLanguage, string>;
   instructions: Record<AppLanguage, string>; script: string | null;
@@ -58,6 +60,7 @@ export interface SiteRunnerApi {
     list(): Promise<ScriptTemplate[]>; save(input: ScriptTemplateInput): Promise<ScriptTemplate>;
     remove(id: string): Promise<void>; restoreDefaults(): Promise<ScriptTemplate[]>;
   };
+  recorder: { start(input: RecordingInput): Promise<void>; status(): Promise<RecordingStatus>; finish(): Promise<string>; cancel(): Promise<void> };
   profiles: {
     list(): Promise<BrowserProfile[]>; create(name: string): Promise<BrowserProfile>;
     remove(id: string): Promise<void>; open(id: string): Promise<void>;

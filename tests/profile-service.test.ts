@@ -23,4 +23,15 @@ describe('ProfileService paths', () => {
     profiles.remove(profile.id);
     expect(existsSync(profilePath)).toBe(false);
   });
+
+  it('protects a profile during recording and releases it afterward', async () => {
+    const profile = profiles.create('Recorder');
+    const release = profiles.reserveForRecording(profile.id);
+    expect(() => profiles.reserveForRecording(profile.id)).toThrow(/recorder/);
+    expect(() => profiles.remove(profile.id)).toThrow(/recorder/);
+    await expect(profiles.open(profile.id)).rejects.toThrow(/recorder/);
+    release();
+    expect(() => profiles.assertNotRecording(profile.id)).not.toThrow();
+    profiles.remove(profile.id);
+  });
 });

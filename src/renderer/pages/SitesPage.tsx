@@ -68,8 +68,9 @@ function SiteEditor({ site, profiles, templates, defaultTimeoutMs, initialScript
     typescriptDefaults.addExtraLib(`
       interface AutomationLogger { info(message: string): void; warn(message: string): void; error(message: string): void; }
       interface Locator { click(options?: { timeout?: number }): Promise<void>; isVisible(): Promise<boolean>; fill(value: string): Promise<void>; waitFor(options: { state: 'visible' | 'hidden' | 'attached' | 'detached' }): Promise<void>; getByRole(role: string, options?: { name?: string; exact?: boolean }): Locator; or(other: Locator): Locator; first(): Locator; }
-      interface Page { url(): string; getByRole(role: string, options?: { name?: string; exact?: boolean }): Locator; getByText(text: string, options?: { exact?: boolean }): Locator; getByLabel(text: string, options?: { exact?: boolean }): Locator; locator(selector: string): Locator; waitForTimeout(ms: number): Promise<void>; }
-      interface AutomationContext { page: Page; log: AutomationLogger; config: Record<string, unknown>; }
+      interface BrowserContext { newPage(): Promise<Page>; pages(): Page[]; }
+      interface Page { url(): string; context(): BrowserContext; waitForEvent(event: 'popup'): Promise<Page>; getByRole(role: string, options?: { name?: string; exact?: boolean }): Locator; getByText(text: string, options?: { exact?: boolean }): Locator; getByLabel(text: string, options?: { exact?: boolean }): Locator; locator(selector: string): Locator; waitForTimeout(ms: number): Promise<void>; }
+      interface AutomationContext { page: Page; log: AutomationLogger; config: Record<string, unknown>; expect: (value: unknown) => any; }
     `, 'ts:site-runner/automation.d.ts');
   };
   async function save(event: { preventDefault(): void }, runAfter = false) {
