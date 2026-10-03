@@ -3,6 +3,7 @@ import type { BrowserProfile, ScriptTemplate, ScriptTemplateInput } from '../../
 import { PageHeader } from '../App';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useI18n } from '../i18n';
+import { TemplateFilesDialog } from '../components/TemplateFilesDialog';
 import { RecorderPanel } from '../components/RecorderPanel';
 
 export function TemplatesPage({ templates, profiles, canCreate, onUse, onChange, onError }: {
@@ -16,6 +17,14 @@ export function TemplatesPage({ templates, profiles, canCreate, onUse, onChange,
   const [pending, setPending] = useState<ScriptTemplate | 'restore' | null>(null);
   const [busy, setBusy] = useState(false);
   const [recordedScript, setRecordedScript] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [imported, setImported] = useState<ScriptTemplateInput[] | null>(null);
+  const [loadingImport, setLoadingImport] = useState(false);
+  async function loadImport() {
+    setLoadingImport(true);
+    try { const inputs = await window.siteRunner.templates.previewImport(); if (inputs) setImported(inputs); }
+    catch (error) { onError(error); } finally { setLoadingImport(false); }
+  }
   async function confirm() {
     if (!pending) return;
     setBusy(true);
@@ -27,13 +36,14 @@ export function TemplatesPage({ templates, profiles, canCreate, onUse, onChange,
     } catch (error) { onError(error); } finally { setBusy(false); }
   }
   return <>
-    <PageHeader eyebrow={t('templates.eyebrow')} title={t('nav.templates')} description={t('templates.description')} actions={<><button data-testid="restore-templates" className="secondary" onClick={() => setPending('restore')}>{t('templates.restore')}</button><button data-testid="add-template" className="primary" onClick={() => setEditing('new')}>{t('templates.add')}</button></>} />
+    <PageHeader eyebrow={t('templates.eyebrow')} title={t('nav.templates')} description={t('templates.description')} actions={<><button data-testid="export-templates" className="secondary" disabled={!templates.length} onClick={() => setExporting(true)}>{t('templates.export')}</button><button data-testid="import-templates" className="secondary" disabled={loadingImport} onClick={() => void loadImport()}>{t('templates.import')}</button><button data-testid="restore-templates" className="secondary" onClick={() => setPending('restore')}>{t('templates.restore')}</button><button data-testid="add-template" className="primary" onClick={() => setEditing('new')}>{t('templates.add')}</button></>} />
     <RecorderPanel profiles={profiles} onRecorded={(script) => { setRecordedScript(script); setEditing('new'); }} onError={onError} />
     {!canCreate && <div className="callout">{t('sites.needProfile')}</div>}
     {!selected ? <section className="panel table-empty">{t('templates.empty')}</section> : <section className="template-layout">
       <div className="template-list">{templates.map((item) => <button key={item.id} data-testid={`template-${item.id}`} aria-pressed={item.id === selected.id} className={`panel template-card ${item.id === selected.id ? 'selected' : ''}`} onClick={() => setSelectedId(item.id)}><strong>{item.name[language]}</strong><span>{item.description[language]}</span></button>)}</div>
       <article className="panel template-preview"><h2>{selected.name[language]}</h2><p>{selected.instructions[language]}</p><pre data-testid="template-code">{selected.script ?? t('templates.noScript')}</pre><div className="template-actions"><button data-testid="create-from-template" className="primary" disabled={!canCreate} onClick={() => onUse(selected)}>{t('templates.createSite')}</button><button data-testid="edit-template" className="secondary" onClick={() => setEditing(selected)}>{t('common.edit')}</button><button data-testid="delete-template" className="danger-ghost" onClick={() => setPending(selected)}>{t('common.delete')}</button></div></article>
     </section>}
+    {(exporting || imported) && <TemplateFilesDialog templates={templates} inputs={imported} onClose={() => { setExporting(false); setImported(null); }} onChange={onChange} onError={onError} />}
     {editing && <TemplateEditor template={editing === 'new' ? null : editing} initialScript={recordedScript} onClose={() => { setEditing(null); setRecordedScript(null); }} onSaved={async (saved) => { await onChange(); setSelectedId(saved.id); setEditing(null); setRecordedScript(null); }} onError={onError} />}
     {pending && <ConfirmDialog title={pending === 'restore' ? t('templates.restore') : t('templates.deleteQuestion', { name: pending.name[language] })} description={pending === 'restore' ? t('templates.restoreDescription') : t('templates.deleteDescription')} busy={busy} {...(pending === 'restore' ? { confirmLabel: t('templates.restoreConfirm'), eyebrow: t('templates.restore') } : {})} onCancel={() => setPending(null)} onConfirm={() => void confirm()} />}
   </>;

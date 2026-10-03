@@ -14,7 +14,16 @@ const api: SiteRunnerApi = {
     previewImport: () => ipcRenderer.invoke('sites:previewImport') as ReturnType<SiteRunnerApi['sites']['previewImport']>,
     importRules: (rules, profileId) => ipcRenderer.invoke('sites:importRules', rules, profileId) as ReturnType<SiteRunnerApi['sites']['importRules']>,
   },
+  folders: {
+    list: () => ipcRenderer.invoke('folders:list') as ReturnType<SiteRunnerApi['folders']['list']>,
+    save: (input) => ipcRenderer.invoke('folders:save', input) as ReturnType<SiteRunnerApi['folders']['save']>,
+    remove: (id) => ipcRenderer.invoke('folders:remove', id) as ReturnType<SiteRunnerApi['folders']['remove']>,
+    moveSites: (ids, folderId) => ipcRenderer.invoke('folders:moveSites', ids, folderId) as ReturnType<SiteRunnerApi['folders']['moveSites']>,
+  },
   templates: {
+    exportFiles: (ids) => ipcRenderer.invoke('templates:exportFiles', ids) as ReturnType<SiteRunnerApi['templates']['exportFiles']>,
+    previewImport: () => ipcRenderer.invoke('templates:previewImport') as ReturnType<SiteRunnerApi['templates']['previewImport']>,
+    importFiles: (inputs) => ipcRenderer.invoke('templates:importFiles', inputs) as ReturnType<SiteRunnerApi['templates']['importFiles']>,
     list: () => ipcRenderer.invoke('templates:list') as ReturnType<SiteRunnerApi['templates']['list']>,
     save: (input) => ipcRenderer.invoke('templates:save', input) as ReturnType<SiteRunnerApi['templates']['save']>,
     remove: (id) => ipcRenderer.invoke('templates:remove', id) as ReturnType<SiteRunnerApi['templates']['remove']>,
@@ -33,6 +42,7 @@ const api: SiteRunnerApi = {
     open: (id) => ipcRenderer.invoke('profiles:open', id) as ReturnType<SiteRunnerApi['profiles']['open']>,
   },
   runs: {
+    runSites: (ids) => ipcRenderer.invoke('runs:runSites', ids) as ReturnType<SiteRunnerApi['runs']['runSites']>,
     runSite: (id) => ipcRenderer.invoke('runs:runSite', id) as ReturnType<SiteRunnerApi['runs']['runSite']>,
     runEnabledSites: () => ipcRenderer.invoke('runs:runEnabledSites') as ReturnType<SiteRunnerApi['runs']['runEnabledSites']>,
     list: (siteId) => ipcRenderer.invoke('runs:list', siteId) as ReturnType<SiteRunnerApi['runs']['list']>,

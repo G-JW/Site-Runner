@@ -114,6 +114,35 @@ input:disabled { background: #ecece8; }
 .site-editor .form-grid > .checkbox { padding: 0; align-self: center; }
 .site-editor .cron-field { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; white-space: nowrap; }
 .site-editor .cron-field input { flex: 1; width: 0; }
+.sites-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; align-items: start; }
+.sites-content { min-width: 0; }
+.folder-panel { padding: 12px; }
+.folder-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.folder-heading .text-button { padding: 4px 0; font-size: 11px; }
+.folder-panel > button, .folder-item > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; border: 0; border-radius: 8px; background: transparent; text-align: left; padding: 10px 8px; cursor: pointer; }
+.folder-panel button span { overflow-wrap: anywhere; min-width: 0; }
+.folder-panel button.active { background: #edf2df; color: #465e29; font-weight: 700; }
+.folder-item { border-top: 1px solid #eceee7; margin-top: 6px; padding-top: 6px; }
+.folder-item-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 8px 4px; }
+.folder-item-actions button { font: inherit; font-size: 10px; border: 0; background: transparent; color: #737d6d; cursor: pointer; }
+.sites-tools { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.sites-tools input { flex: 1; min-width: 0; }
+.sites-tools .secondary { margin: 0; }
+.site-selection { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; font-size: 12px; color: #737d6d; }
+.site-selection .checkbox { padding: 0; }
+.site-selection > label:last-child { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.site-folder-label { color: #657948 !important; }
+.sites-content .table-head, .sites-content .table-row { grid-template-columns: minmax(180px, 2fr) minmax(75px, 0.7fr) minmax(80px, 0.8fr) minmax(70px, 0.6fr) 130px; gap: 10px; padding-left: 16px; padding-right: 16px; }
+.sites-content .site-cell { min-width: 0; gap: 8px; }
+.sites-content .site-cell > div { min-width: 0; }
+.sites-content .site-cell > input { flex-shrink: 0; width: 15px; height: 15px; }
+.sites-content .site-cell strong, .sites-content .site-cell small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1150px) {
+  .sites-layout { grid-template-columns: 150px minmax(0, 1fr); gap: 10px; }
+  .sites-content .sites-table { overflow-x: auto; }
+  .sites-content .table-head, .sites-content .table-row { min-width: 650px; }
+  .sites-tools { flex-wrap: wrap; }
+}
 .site-editor .editor-toolbar { padding: 10px 22px; }
 .site-editor .monaco-frame { margin: 0 22px; }
 .site-editor > .modal-actions { flex-shrink: 0; padding: 12px 22px; border-top: 1px solid #dfe1da; background: #f8f8f5; }

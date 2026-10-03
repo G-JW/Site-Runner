@@ -1,6 +1,7 @@
 import { dialog, ipcMain, shell } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 import { exportSiteRules, parseSiteRules } from '../site-rules.js';
+import { exportTemplates, parseTemplateFile } from '../template-files.js';
 import { getAppPaths } from '../paths.js';
 import type { NotificationChannelInput, SiteInput, ScriptTemplateInput } from '../../shared/types.js';
 import type { DataService } from '../services/data-service.js';
@@ -11,6 +12,10 @@ import type { NotificationService } from '../notifications/service.js';
 export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService, notifications: NotificationService): void {
   ipcMain.handle('app:openDataFolder', () => shell.openPath(getAppPaths().userData).then((error) => { if (error) throw new Error(error); }));
   ipcMain.handle('sites:list', () => data.listSites());
+  ipcMain.handle('folders:list', () => data.listFolders());
+  ipcMain.handle('folders:save', (_event, input: { id?: string; name: string }) => data.saveFolder(input));
+  ipcMain.handle('folders:remove', (_event, id: string) => data.removeFolder(id));
+  ipcMain.handle('folders:moveSites', (_event, ids: string[], folderId: string | null) => data.moveSites(ids, folderId));
   ipcMain.handle('sites:exportRules', async (_event, ids: string[]) => {
     if (!Array.isArray(ids) || ids.length === 0) throw new Error('Select sites to export');
     const file = exportSiteRules([...new Set(ids)].map((id) => data.getSite(id)));
@@ -34,6 +39,27 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   ipcMain.handle('templates:save', (_event, input: ScriptTemplateInput) => data.saveTemplate(input));
   ipcMain.handle('templates:remove', (_event, id: string) => data.removeTemplate(id));
   ipcMain.handle('templates:restoreDefaults', () => data.restoreDefaultTemplates());
+  ipcMain.handle('templates:exportFiles', async (_event, ids: string[]) => {
+    if (!Array.isArray(ids) || !ids.length) throw new Error('Select templates to export');
+    const templates = data.listTemplates();
+    const selected = [...new Set(ids)].map((id) => {
+      const template = templates.find((item) => item.id === id);
+      if (!template) throw new Error('Template not found');
+      return template;
+    });
+    const { canceled, filePath } = await dialog.showSaveDialog({ defaultPath: 'site-runner-templates.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (canceled || !filePath) return false;
+    await writeFile(filePath, JSON.stringify(exportTemplates(selected), null, 2), { mode: 0o600 });
+    return true;
+  });
+  ipcMain.handle('templates:previewImport', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (canceled || !filePaths[0]) return null;
+    const content = await readFile(filePaths[0]);
+    if (content.length > 10 * 1024 * 1024) throw new Error('Templates file exceeds 10 MB');
+    return parseTemplateFile(JSON.parse(content.toString('utf8')));
+  });
+  ipcMain.handle('templates:importFiles', (_event, inputs: unknown) => data.importTemplates(parseTemplateFile({ format: 'site-runner-templates', version: 1, templates: inputs })));
   ipcMain.handle('sites:save', (_event, input: SiteInput) => {
     const site = data.saveSite(input); scheduler.refresh(site); return site;
   });

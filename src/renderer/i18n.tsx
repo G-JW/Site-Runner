@@ -2,6 +2,15 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppLanguage } from '../shared/types';
 
 const en = {
+  'folders.title': 'Folders', 'folders.add': 'New folder', 'folders.rename': 'Rename', 'folders.save': 'Save folder',
+  'folders.all': 'All sites', 'folders.ungrouped': 'Unfiled', 'folders.deleteQuestion': 'Delete folder “{name}”?',
+  'folders.deleteNote': 'Sites in this folder will move to Unfiled. Their scripts, schedules and history are retained.',
+  'folders.search': 'Search sites by name or URL', 'folders.selectAll': 'Select all', 'folders.selected': '{count} selected',
+  'folders.move': 'Move to', 'folders.run': 'Run enabled sites in this view', 'folders.empty': 'No sites in this view.',
+  'templates.export': 'Export templates', 'templates.import': 'Import templates', 'templates.importCount': 'Import {count} templates',
+  'templates.exportNote': 'Export selected templates with both languages and scripts. Review scripts for sensitive content before sharing.',
+  'templates.importNote': 'Review scripts before importing. Imports add new templates; existing templates are preserved and duplicate names get a suffix. Importing does not execute scripts.',
+
   'nav.templates': 'Script templates', 'templates.eyebrow': 'STARTING POINTS',
   'templates.description': 'Choose a common workflow, review the example, and adapt it to your site.',
   'templates.noScript': 'No script needed. Site Runner opens the configured URL.',
@@ -90,6 +99,15 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  'folders.title': '文件夹', 'folders.add': '新建文件夹', 'folders.rename': '重命名', 'folders.save': '保存文件夹',
+  'folders.all': '全部站点', 'folders.ungrouped': '未分类', 'folders.deleteQuestion': '删除文件夹“{name}”？',
+  'folders.deleteNote': '文件夹内站点将移回未分类，脚本、定时设置和运行记录都会保留。',
+  'folders.search': '按名称或网址搜索站点', 'folders.selectAll': '全选', 'folders.selected': '已选择 {count} 个',
+  'folders.move': '移动到', 'folders.run': '运行当前列表中的启用站点', 'folders.empty': '当前列表中没有站点。',
+  'templates.export': '导出模板', 'templates.import': '导入模板', 'templates.importCount': '导入 {count} 个模板',
+  'templates.exportNote': '导出所选模板的中英文说明和脚本，分享前请检查脚本中的敏感内容。',
+  'templates.importNote': '请先检查脚本。导入只新增模板，不覆盖现有模板，重名自动加后缀；导入不会执行脚本。',
+
   'nav.templates': '脚本模板', 'templates.eyebrow': '常见自动化流程',
   'templates.description': '选择常见流程，查看示例，并按实际网站调整脚本。',
   'templates.noScript': '无需脚本，Site Runner 会打开配置的站点网址。',

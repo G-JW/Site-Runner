@@ -10,4 +10,8 @@ export function broadcastRunLog(entry: RunLogEntry): void {
 export function registerRunIpc(runner: AutomationRunner, batch: BatchRunner): void {
   ipcMain.handle('runs:runSite', (_event, id: string) => runner.runSite(id, 'manual'));
   ipcMain.handle('runs:runEnabledSites', () => batch.runEnabledSites());
+  ipcMain.handle('runs:runSites', (_event, ids: string[]) => {
+    if (!Array.isArray(ids) || !ids.length) throw new Error('Select sites to run');
+    return batch.runSites([...new Set(ids)]);
+  });
 }

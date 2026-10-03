@@ -3,6 +3,8 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { AppSettings, BrowserProfile, NotificationChannel, NotificationChannelInput, RunRecord, Site, SiteInput } from '../../shared/types.js';
 import cron from 'node-cron';
 import type { ScriptTemplate, ScriptTemplateInput } from '../../shared/types.js';
+import { validateTemplate } from '../template-files.js';
+import type { SiteFolder } from '../../shared/types.js';
 import { defaultScriptTemplates } from '../../shared/script-templates.js';
 
 type Row = Record<string, unknown>;
@@ -40,19 +42,7 @@ export class DataService {
 
   saveTemplate(input: ScriptTemplateInput): ScriptTemplate {
     const templates = this.listTemplates();
-    const template: ScriptTemplate = {
-      id: input.id ?? randomUUID(), name: { en: requiredText(input.name?.en, 'English name'), 'zh-CN': requiredText(input.name?.['zh-CN'], 'Chinese name') },
-      description: { en: '', 'zh-CN': '' }, instructions: { en: '', 'zh-CN': '' }, script: null,
-    };
-    for (const field of ['description', 'instructions'] as const) {
-      for (const language of ['en', 'zh-CN'] as const) {
-        const value = input[field]?.[language];
-        if (typeof value !== 'string') throw new Error(`Invalid template ${field}`);
-        template[field][language] = value.trim();
-      }
-    }
-    if (input.script !== null && typeof input.script !== 'string') throw new Error('Invalid template script');
-    template.script = input.script?.trim() || null;
+    const template: ScriptTemplate = { ...validateTemplate(input), id: input.id ?? randomUUID() };
     if (input.id) {
       const index = templates.findIndex((item) => item.id === input.id);
       if (index === -1) throw new Error('Template not found');
@@ -60,6 +50,60 @@ export class DataService {
     } else templates.push(template);
     this.writeTemplates(templates);
     return template;
+  }
+
+  importTemplates(inputs: ScriptTemplateInput[]): ScriptTemplate[] {
+    if (!Array.isArray(inputs) || !inputs.length || inputs.length > 500) throw new Error('Select 1–500 templates');
+    const validated = inputs.map(validateTemplate);
+    const templates = this.listTemplates();
+    const names = { en: new Set(templates.map((item) => item.name.en)), 'zh-CN': new Set(templates.map((item) => item.name['zh-CN'])) };
+    const imported = validated.map((input) => {
+      const name = { ...input.name };
+      for (const language of ['en', 'zh-CN'] as const) {
+        for (let index = 2; names[language].has(name[language]); index++) name[language] = `${input.name[language]} (${index})`;
+        names[language].add(name[language]);
+      }
+      return { ...input, name, id: randomUUID() };
+    });
+    this.writeTemplates([...templates, ...imported]);
+    return imported;
+  }
+
+  listFolders(): SiteFolder[] {
+    return (this.db.prepare('SELECT id, name FROM site_folders ORDER BY name COLLATE NOCASE, id').all() as Row[])
+      .map((row) => ({ id: String(row.id), name: String(row.name) }));
+  }
+
+  saveFolder(input: { id?: string; name: string }): SiteFolder {
+    const name = requiredText(input.name, 'Folder name');
+    if (name.length > 80) throw new Error('Folder name must be at most 80 characters');
+    if (this.listFolders().some((folder) => folder.id !== input.id && folder.name.toLowerCase() === name.toLowerCase())) throw new Error('Folder name already exists');
+    const id = input.id ?? randomUUID();
+    if (input.id) {
+      if (!this.db.prepare('UPDATE site_folders SET name = ? WHERE id = ?').run(name, id).changes) throw new Error('Folder not found');
+    } else this.db.prepare('INSERT INTO site_folders(id, name) VALUES (?, ?)').run(id, name);
+    return { id, name };
+  }
+
+  removeFolder(id: string): void {
+    if (!this.db.prepare('DELETE FROM site_folders WHERE id = ?').run(id).changes) throw new Error('Folder not found');
+  }
+
+  moveSites(ids: string[], folderId: string | null): void {
+    if (!Array.isArray(ids) || !ids.length) throw new Error('Select sites to move');
+    this.checkFolder(folderId);
+    const uniqueIds = [...new Set(ids)];
+    uniqueIds.forEach((id) => this.getSite(id));
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const statement = this.db.prepare('UPDATE sites SET folder_id = ?, updated_at = ? WHERE id = ?');
+      uniqueIds.forEach((id) => statement.run(folderId, now(), id));
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
+  private checkFolder(id: string | null): void {
+    if (id !== null && !this.listFolders().some((folder) => folder.id === id)) throw new Error('Folder not found');
   }
 
   removeTemplate(id: string): void {
@@ -96,19 +140,21 @@ export class DataService {
   saveSite(raw: SiteInput): Site {
     const input = validateSite(raw);
     this.getProfile(input.browserProfileId);
+    const folderId = input.folderId === undefined ? (input.id ? this.getSite(input.id).folderId : null) : input.folderId;
+    this.checkFolder(folderId);
     const timestamp = now();
     const id = input.id ?? randomUUID();
     if (input.id) {
       const result = this.db.prepare(`UPDATE sites SET name = ?, url = ?, enabled = ?, script = ?,
-        browser_profile_id = ?, timeout_ms = ?, schedule_enabled = ?, schedule_cron = ?, updated_at = ? WHERE id = ?`)
+        browser_profile_id = ?, timeout_ms = ?, schedule_enabled = ?, schedule_cron = ?, folder_id = ?, updated_at = ? WHERE id = ?`)
         .run(input.name, input.url, Number(input.enabled), input.script, input.browserProfileId,
-          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, timestamp, id);
+          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, timestamp, id);
       if (result.changes === 0) throw new Error('Site not found');
     } else {
       this.db.prepare(`INSERT INTO sites(id, name, url, enabled, script, browser_profile_id, timeout_ms,
-        schedule_enabled, schedule_cron, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        schedule_enabled, schedule_cron, folder_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(id, input.name, input.url, Number(input.enabled), input.script, input.browserProfileId,
-          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, timestamp, timestamp);
+          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, timestamp, timestamp);
     }
     return this.getSite(id);
   }
@@ -240,7 +286,7 @@ export class DataService {
 
   private mapSite(row: Row): Site {
     return {
-      id: String(row.id), name: String(row.name), url: String(row.url), enabled: asBoolean(row.enabled),
+      folderId: row.folder_id == null ? null : String(row.folder_id), id: String(row.id), name: String(row.name), url: String(row.url), enabled: asBoolean(row.enabled),
       script: row.script == null ? null : String(row.script), browserProfileId: String(row.browser_profile_id),
       timeoutMs: Number(row.timeout_ms), schedule: { enabled: asBoolean(row.schedule_enabled), cron: String(row.schedule_cron) },
       createdAt: String(row.created_at), updatedAt: String(row.updated_at),

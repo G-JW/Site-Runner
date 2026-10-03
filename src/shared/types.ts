@@ -14,12 +14,13 @@ export interface ScriptTemplate {
 }
 export type ScriptTemplateInput = Omit<ScriptTemplate, 'id'> & { id?: string };
 export interface SiteSchedule { enabled: boolean; cron: string }
+export interface SiteFolder { id: string; name: string }
 export interface Site {
   id: string; name: string; url: string; enabled: boolean; script: string | null;
-  browserProfileId: string; timeoutMs: number; schedule: SiteSchedule;
+  browserProfileId: string; timeoutMs: number; schedule: SiteSchedule; folderId: string | null;
   createdAt: string; updatedAt: string; lastRun: RunRecord | null;
 }
-export type SiteInput = Pick<Site, 'name' | 'url' | 'enabled' | 'script' | 'browserProfileId' | 'timeoutMs' | 'schedule'> & { id?: string };
+export type SiteInput = Pick<Site, 'name' | 'url' | 'enabled' | 'script' | 'browserProfileId' | 'timeoutMs' | 'schedule'> & { id?: string; folderId?: string | null };
 export type SiteRule = Omit<SiteInput, 'id' | 'browserProfileId'>;
 export interface BrowserProfile { id: string; name: string; createdAt: string }
 export interface RunRecord {
@@ -56,9 +57,15 @@ export interface SiteRunnerApi {
     exportRules(ids: string[]): Promise<boolean>; previewImport(): Promise<SiteRule[] | null>;
     importRules(rules: SiteRule[], profileId: string): Promise<Site[]>;
   };
+  folders: {
+    list(): Promise<SiteFolder[]>; save(input: { id?: string; name: string }): Promise<SiteFolder>;
+    remove(id: string): Promise<void>; moveSites(ids: string[], folderId: string | null): Promise<void>;
+  };
   templates: {
     list(): Promise<ScriptTemplate[]>; save(input: ScriptTemplateInput): Promise<ScriptTemplate>;
     remove(id: string): Promise<void>; restoreDefaults(): Promise<ScriptTemplate[]>;
+    exportFiles(ids: string[]): Promise<boolean>; previewImport(): Promise<ScriptTemplateInput[] | null>;
+    importFiles(inputs: ScriptTemplateInput[]): Promise<ScriptTemplate[]>;
   };
   recorder: { start(input: RecordingInput): Promise<void>; status(): Promise<RecordingStatus>; finish(): Promise<string>; cancel(): Promise<void> };
   profiles: {
@@ -66,7 +73,7 @@ export interface SiteRunnerApi {
     remove(id: string): Promise<void>; open(id: string): Promise<void>;
   };
   runs: {
-    runSite(id: string): Promise<SiteRunResult>; runEnabledSites(): Promise<BatchResult>;
+    runSite(id: string): Promise<SiteRunResult>; runEnabledSites(): Promise<BatchResult>; runSites(ids: string[]): Promise<BatchResult>;
     list(siteId?: string): Promise<RunRecord[]>; openScreenshot(runId: string): Promise<string>;
     onLog(listener: (entry: RunLogEntry) => void): () => void;
   };

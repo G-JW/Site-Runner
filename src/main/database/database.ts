@@ -16,8 +16,7 @@ export class AppDatabase {
 
   private migrate(): void {
     const version = this.connection.prepare('PRAGMA user_version').get() as { user_version: number };
-    if (version.user_version >= 1) return;
-    this.connection.exec(`
+    if (version.user_version < 1) this.connection.exec(`
       BEGIN;
       CREATE TABLE browser_profiles (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE sites (
@@ -46,6 +45,14 @@ export class AppDatabase {
         ('defaultTimeoutMs', '30000'), ('browserHeadless', 'false'),
         ('notificationEnabled', 'true'), ('notifyScheduledRuns', 'false'), ('language', 'en');
       PRAGMA user_version = 1;
+      COMMIT;
+    `);
+    if (version.user_version < 2) this.connection.exec(`
+      BEGIN;
+      CREATE TABLE site_folders (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE);
+      ALTER TABLE sites ADD COLUMN folder_id TEXT REFERENCES site_folders(id) ON DELETE SET NULL;
+      CREATE INDEX sites_folder ON sites(folder_id);
+      PRAGMA user_version = 2;
       COMMIT;
     `);
   }
