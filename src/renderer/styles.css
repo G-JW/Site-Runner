@@ -111,7 +111,9 @@ input:disabled { background: #ecece8; }
 .site-editor .form-grid input:not([type="checkbox"]), .site-editor .form-grid select { padding: 8px 10px; min-width: 0; }
 .site-editor .schedule-row { display: flex; align-items: center; gap: 12px; }
 .site-editor .schedule-row .checkbox { flex-shrink: 0; padding: 0; }
-.site-editor .cron-field { flex: 1; min-width: 0; }
+.site-editor .form-grid > .checkbox { padding: 0; align-self: center; }
+.site-editor .cron-field { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; white-space: nowrap; }
+.site-editor .cron-field input { flex: 1; width: 0; }
 .site-editor .editor-toolbar { padding: 10px 22px; }
 .site-editor .monaco-frame { margin: 0 22px; }
 .site-editor > .modal-actions { flex-shrink: 0; padding: 12px 22px; border-top: 1px solid #dfe1da; background: #f8f8f5; }
