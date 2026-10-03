@@ -104,6 +104,22 @@ input:disabled { background: #ecece8; }
 .monaco-frame { margin: 0 26px; border-radius: 9px; overflow: hidden; border: 1px solid #343934; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 20px 26px 24px; }
 .modal-actions .secondary { margin: 0; }
+.site-editor { display: flex; flex-direction: column; max-height: calc(100dvh - 48px); overflow: hidden; }
+.site-editor > .modal-head { flex-shrink: 0; padding: 16px 22px 12px; }
+.site-editor-body { min-height: 0; overflow-y: auto; }
+.site-editor .form-grid { padding: 0 22px 14px; gap: 10px 16px; }
+.site-editor .form-grid input:not([type="checkbox"]), .site-editor .form-grid select { padding: 8px 10px; min-width: 0; }
+.site-editor .schedule-row { display: flex; align-items: center; gap: 12px; }
+.site-editor .schedule-row .checkbox { flex-shrink: 0; padding: 0; }
+.site-editor .cron-field { flex: 1; min-width: 0; }
+.site-editor .editor-toolbar { padding: 10px 22px; }
+.site-editor .monaco-frame { margin: 0 22px; }
+.site-editor > .modal-actions { flex-shrink: 0; padding: 12px 22px; border-top: 1px solid #dfe1da; background: #f8f8f5; }
+@media (max-width: 620px) {
+  .site-editor .form-grid { grid-template-columns: 1fr; }
+  .site-editor .schedule-row { grid-column: 1 / -1; }
+  .site-editor > .modal-actions { flex-wrap: wrap; }
+}
 .toast { position: fixed; z-index: 40; right: 26px; bottom: 24px; max-width: 440px; padding: 13px 17px; border-radius: 10px; background: #252e27; color: white; box-shadow: 0 10px 35px #0004; font-size: 13px; }
 .log-panel { margin-top: 16px; }
 .log-lines { max-height: 230px; overflow: auto; background: #171d18; color: #dfe6df; padding: 8px 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
