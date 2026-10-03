@@ -7,10 +7,19 @@ import type { NotificationDelivery, NotificationProvider } from './types.js';
 export type ProviderFactory = (config: Record<string, unknown>) => NotificationProvider;
 const defaultRegistry: Record<string, ProviderFactory> = { ntfy: createNtfyProvider, webhook: createWebhookProvider };
 
+function shortError(error: string | null): string {
+  // Keep the message, excluding stack frames and verbose Playwright call logs.
+  const message = ((error ?? '').split(/\r?\n\s*(?:at\s|Call log:|Locator:|Expected:|Received:)/)[0] ?? '')
+    .replace(/^(?:\w*Error):\s*/, '').replace(/\s+/g, ' ').trim();
+  if (!message) return 'Unknown error';
+  return message.length > 180 ? `${message.slice(0, 179)}…` : message;
+}
+
 export function buildBatchNotification(batch: BatchResult): NotificationMessage {
-  const failedSites = batch.results.filter((result) => result.status === 'failed').map((result) => result.siteName);
+  const failures = batch.results.filter((result) => result.status === 'failed');
+  const failedSites = failures.map((result) => result.siteName);
   const level = batch.failed > 0 ? 'alert' : 'normal';
-  const failed = failedSites.length ? `\n\nFailed:\n${failedSites.map((name) => `- ${name}`).join('\n')}` : '';
+  const failed = failures.length ? `\n\nFailed:\n${failures.map((result) => `- ${result.siteName}: ${shortError(result.error)}`).join('\n')}` : '';
   return {
     title: batch.failed > 0 ? 'Site Runner · Attention needed' : 'Site Runner · All clear',
     body: `Completed: ${new Date(batch.finishedAt).toLocaleString()}\n\nTotal: ${batch.total}\nSuccess: ${batch.success}\nFailed: ${batch.failed}${failed}`,

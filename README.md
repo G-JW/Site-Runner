@@ -200,6 +200,8 @@ Register-ScheduledTask -TaskName 'Site Runner Daily' -Action $action -Trigger $t
 
 NTFY 配置包含 Server URL、Topic 和可选 Access Token。默认 Server URL 是 `https://ntfy.sh`。
 
+批量通知包含总数、成功数、失败数，以及每个失败站点的简短错误原因（最多 180 字符，省略堆栈和冗长的 Playwright 诊断）。完整错误和失败截图仍在运行记录中查看。错误文本来自脚本或浏览器，不会自动脱敏。
+
 Generic Webhook 支持 `POST`、`PUT` 或 `PATCH`，以及 JSON 格式的自定义 Headers。请求体是完整的 `NotificationMessage` JSON。
 
 选择 **Test** 可测试单个 Channel。未配置 Channel 或关闭全局通知时，自动化和批量结果仍会正常保存。

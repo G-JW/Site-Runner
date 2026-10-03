@@ -31,6 +31,21 @@ describe('NotificationService', () => {
     expect(buildBatchNotification(batch(1))).toMatchObject({ level: 'alert', batch: { failedSites: ['A'] } });
   });
 
+  it('includes concise failure reasons without stacks or assertion call logs', () => {
+    const result = batch(1);
+    result.results[0].error = 'Error: 点击签到后未出现已签到图标\n\nLocator: locator(".btnvisted")\nExpected: visible\nCall log:\n  - waiting\n    at run (script.js:5:1)';
+    const message = buildBatchNotification(result);
+    expect(message.body).toContain('- A: 点击签到后未出现已签到图标');
+    expect(message.body).not.toMatch(/Locator:|Call log:|script.js/);
+    result.results[0].error = 'TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n  - waiting for locator';
+    expect(buildBatchNotification(result).body).toContain('- A: locator.click: Timeout 8000ms exceeded.');
+    result.results[0].error = 'Error: ' + '长'.repeat(300);
+    expect(buildBatchNotification(result).body).toContain('长'.repeat(179) + '…');
+    expect(buildBatchNotification(result).body).not.toContain('长'.repeat(180));
+    result.results[0].error = null;
+    expect(buildBatchNotification(result).body).toContain('- A: Unknown error');
+  });
+
   it('routes by policy and isolates provider failures', async () => {
     const data = setup();
     data.saveChannel({ name: 'Normal', providerType: 'webhook', enabled: true, eventPolicy: 'normal', config: {} });
