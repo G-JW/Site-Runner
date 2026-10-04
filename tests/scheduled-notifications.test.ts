@@ -28,3 +28,23 @@ it('does not schedule disabled sites and delivers completed scheduled results', 
     scheduler.stop();
   } finally { database.close(); }
 });
+
+it('schedules folders and prevents an overlapping folder invocation', async () => {
+  callbacks.length = 0;
+  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-folder-schedule-'), 'test.sqlite3'));
+  try {
+    const data = new DataService(database.connection);
+    const folder = data.saveFolder({ name: 'Daily', schedule: { enabled: true, cron: '0 9 * * *' } });
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => { finish = resolve; });
+    const runFolder = vi.fn(async () => gate);
+    const scheduler = new SchedulerService(data, { runSite: vi.fn() }, undefined, runFolder);
+    scheduler.start(); expect(callbacks).toHaveLength(1);
+    callbacks[0]!(); callbacks[0]!(); expect(runFolder).toHaveBeenCalledTimes(1);
+    expect(runFolder).toHaveBeenCalledWith(folder.id);
+    finish(); await gate; await new Promise((resolve) => setTimeout(resolve, 0));
+    data.saveFolder({ ...folder, schedule: { ...folder.schedule, enabled: false } });
+    callbacks[0]!(); expect(runFolder).toHaveBeenCalledTimes(1);
+    scheduler.stop();
+  } finally { database.close(); }
+});

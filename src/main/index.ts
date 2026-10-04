@@ -113,6 +113,11 @@ app.whenReady().then(async () => {
     if (!data.getSettings().notifyScheduledRuns) return;
     await notifications.notifyBatch({ startedAt: result.startedAt, finishedAt: result.finishedAt, total: 1,
       success: result.status === 'success' ? 1 : 0, failed: result.status === 'failed' ? 1 : 0, results: [result] });
+  }, async (folderId) => {
+    const scheduledBatch = new BatchRunner(data, runner, async (result) => {
+      if (result.total && data.getSettings().notifyScheduledRuns) await notifications.notifyBatch(result);
+    });
+    await scheduledBatch.runSites(data.listSites().filter((site) => site.enabled && site.folderId === folderId).map((site) => site.id), undefined, 'schedule');
   });
   const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runner.isRunning(site.id)));
   ipcMain.handle('recorder:start', (_event, input) => recorder.start(input));

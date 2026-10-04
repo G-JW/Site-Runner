@@ -55,5 +55,12 @@ export class AppDatabase {
       PRAGMA user_version = 2;
       COMMIT;
     `);
+    if (version.user_version < 3) this.connection.exec(`
+      BEGIN;
+      ALTER TABLE site_folders ADD COLUMN schedule_enabled INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE site_folders ADD COLUMN schedule_cron TEXT NOT NULL DEFAULT '0 9 * * *';
+      PRAGMA user_version = 3;
+      COMMIT;
+    `);
   }
 }

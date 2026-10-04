@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppLanguage } from '../shared/types';
 
 const en = {
+  'folders.edit': 'Edit', 'folders.scheduleNote': 'Runs enabled sites sequentially using local system time. Avoid enabling overlapping site schedules.',
   'folders.title': 'Folders', 'folders.add': 'New folder', 'folders.rename': 'Rename', 'folders.save': 'Save folder',
   'folders.all': 'All sites', 'folders.ungrouped': 'Unfiled', 'folders.deleteQuestion': 'Delete folder “{name}”?',
   'folders.deleteNote': 'Sites in this folder will move to Unfiled. Their scripts, schedules and history are retained.',
@@ -99,6 +100,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  'folders.edit': '编辑', 'folders.scheduleNote': '按系统本地时间串行运行启用站点；请避免同时开启重叠的单站点定时任务。',
   'folders.title': '文件夹', 'folders.add': '新建文件夹', 'folders.rename': '重命名', 'folders.save': '保存文件夹',
   'folders.all': '全部站点', 'folders.ungrouped': '未分类', 'folders.deleteQuestion': '删除文件夹“{name}”？',
   'folders.deleteNote': '文件夹内站点将移回未分类，脚本、定时设置和运行记录都会保留。',

@@ -14,7 +14,7 @@ export interface ScriptTemplate {
 }
 export type ScriptTemplateInput = Omit<ScriptTemplate, 'id'> & { id?: string };
 export interface SiteSchedule { enabled: boolean; cron: string }
-export interface SiteFolder { id: string; name: string }
+export interface SiteFolder { id: string; name: string; schedule: SiteSchedule }
 export interface Site {
   id: string; name: string; url: string; enabled: boolean; script: string | null;
   browserProfileId: string; timeoutMs: number; schedule: SiteSchedule; folderId: string | null;
@@ -58,7 +58,7 @@ export interface SiteRunnerApi {
     importRules(rules: SiteRule[], profileId: string): Promise<Site[]>;
   };
   folders: {
-    list(): Promise<SiteFolder[]>; save(input: { id?: string; name: string }): Promise<SiteFolder>;
+    list(): Promise<SiteFolder[]>; save(input: { id?: string; name: string; schedule?: SiteSchedule }): Promise<SiteFolder>;
     remove(id: string): Promise<void>; moveSites(ids: string[], folderId: string | null): Promise<void>;
   };
   templates: {

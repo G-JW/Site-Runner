@@ -4,7 +4,7 @@ import type { AppSettings, BrowserProfile, NotificationChannel, NotificationChan
 import cron from 'node-cron';
 import type { ScriptTemplate, ScriptTemplateInput } from '../../shared/types.js';
 import { validateTemplate } from '../template-files.js';
-import type { SiteFolder } from '../../shared/types.js';
+import type { SiteFolder, SiteSchedule } from '../../shared/types.js';
 import { defaultScriptTemplates } from '../../shared/script-templates.js';
 
 type Row = Record<string, unknown>;
@@ -70,19 +70,21 @@ export class DataService {
   }
 
   listFolders(): SiteFolder[] {
-    return (this.db.prepare('SELECT id, name FROM site_folders ORDER BY name COLLATE NOCASE, id').all() as Row[])
-      .map((row) => ({ id: String(row.id), name: String(row.name) }));
+    return (this.db.prepare('SELECT * FROM site_folders ORDER BY name COLLATE NOCASE, id').all() as Row[])
+      .map((row) => ({ id: String(row.id), name: String(row.name), schedule: { enabled: asBoolean(row.schedule_enabled), cron: String(row.schedule_cron) } }));
   }
 
-  saveFolder(input: { id?: string; name: string }): SiteFolder {
+  saveFolder(input: { id?: string; name: string; schedule?: SiteSchedule }): SiteFolder {
     const name = requiredText(input.name, 'Folder name');
     if (name.length > 80) throw new Error('Folder name must be at most 80 characters');
     if (this.listFolders().some((folder) => folder.id !== input.id && folder.name.toLowerCase() === name.toLowerCase())) throw new Error('Folder name already exists');
+    const schedule = input.schedule ?? this.listFolders().find((folder) => folder.id === input.id)?.schedule ?? { enabled: false, cron: '0 9 * * *' };
+    if (typeof schedule.enabled !== 'boolean' || !cron.validate(schedule.cron)) throw new Error('Invalid folder cron expression');
     const id = input.id ?? randomUUID();
     if (input.id) {
-      if (!this.db.prepare('UPDATE site_folders SET name = ? WHERE id = ?').run(name, id).changes) throw new Error('Folder not found');
-    } else this.db.prepare('INSERT INTO site_folders(id, name) VALUES (?, ?)').run(id, name);
-    return { id, name };
+      if (!this.db.prepare('UPDATE site_folders SET name = ?, schedule_enabled = ?, schedule_cron = ? WHERE id = ?').run(name, Number(schedule.enabled), schedule.cron, id).changes) throw new Error('Folder not found');
+    } else this.db.prepare('INSERT INTO site_folders(id, name, schedule_enabled, schedule_cron) VALUES (?, ?, ?, ?)').run(id, name, Number(schedule.enabled), schedule.cron);
+    return { id, name, schedule: { ...schedule } };
   }
 
   removeFolder(id: string): void {

@@ -8,13 +8,24 @@ export function validateCron(expression: string): boolean { return cron.validate
 export class SchedulerService {
   private readonly tasks = new Map<string, ScheduledTask>();
 
-  constructor(private readonly data: DataService, private readonly runner: Pick<AutomationRunner, 'runSite'>, private readonly onComplete?: (result: SiteRunResult) => Promise<void>) {}
+  constructor(private readonly data: DataService, private readonly runner: Pick<AutomationRunner, 'runSite'>, private readonly onComplete?: (result: SiteRunResult) => Promise<void>, private readonly runFolder?: (folderId: string) => Promise<void>) {}
+
+  private readonly runningFolders = new Set<string>();
 
   start(): void { this.refreshAll(); }
 
   refreshAll(): void {
     this.stop();
     for (const site of this.data.listSites()) this.refresh(site);
+    if (this.runFolder) for (const folder of this.data.listFolders()) {
+      if (!folder.schedule.enabled) continue;
+      const task = cron.schedule(folder.schedule.cron, () => {
+        if (this.runningFolders.has(folder.id) || !this.data.listFolders().some((item) => item.id === folder.id && item.schedule.enabled)) return;
+        this.runningFolders.add(folder.id);
+        void this.runFolder!(folder.id).catch((error: unknown) => console.error('Folder schedule failed', error)).finally(() => this.runningFolders.delete(folder.id));
+      });
+      this.tasks.set(`folder:${folder.id}`, task);
+    }
   }
 
   refresh(site: Site): void {

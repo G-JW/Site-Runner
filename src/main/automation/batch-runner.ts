@@ -1,4 +1,4 @@
-import type { BatchResult, SiteRunResult } from '../../shared/types.js';
+import type { BatchResult, SiteRunResult, RunTrigger } from '../../shared/types.js';
 import type { AutomationRunner } from './runner.js';
 import type { DataService } from '../services/data-service.js';
 
@@ -13,13 +13,13 @@ export class BatchRunner {
     return this.runSites(this.data.listSites().filter((item) => item.enabled).map((item) => item.id));
   }
 
-  async runSites(siteIds: string[], headless?: boolean): Promise<BatchResult> {
+  async runSites(siteIds: string[], headless?: boolean, trigger: RunTrigger = 'batch'): Promise<BatchResult> {
     const sites = siteIds.map((id) => this.data.getSite(id));
     const startedAt = new Date().toISOString();
     const results: SiteRunResult[] = [];
     for (const site of sites) {
       try {
-        results.push(await this.runner.runSite(site.id, 'batch', headless));
+        results.push(await this.runner.runSite(site.id, trigger, headless));
       } catch (error) {
         results.push({
           siteId: site.id, siteName: site.name, status: 'failed', message: null,

@@ -13,8 +13,8 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   ipcMain.handle('app:openDataFolder', () => shell.openPath(getAppPaths().userData).then((error) => { if (error) throw new Error(error); }));
   ipcMain.handle('sites:list', () => data.listSites());
   ipcMain.handle('folders:list', () => data.listFolders());
-  ipcMain.handle('folders:save', (_event, input: { id?: string; name: string }) => data.saveFolder(input));
-  ipcMain.handle('folders:remove', (_event, id: string) => data.removeFolder(id));
+  ipcMain.handle('folders:save', (_event, input: Parameters<DataService['saveFolder']>[0]) => { const folder = data.saveFolder(input); scheduler.refreshAll(); return folder; });
+  ipcMain.handle('folders:remove', (_event, id: string) => { data.removeFolder(id); scheduler.refreshAll(); });
   ipcMain.handle('folders:moveSites', (_event, ids: string[], folderId: string | null) => data.moveSites(ids, folderId));
   ipcMain.handle('sites:exportRules', async (_event, ids: string[]) => {
     if (!Array.isArray(ids) || ids.length === 0) throw new Error('Select sites to export');
