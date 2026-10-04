@@ -84,7 +84,8 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(async () => {
   const paths = getAppPaths();
-  const logger = createLogger(paths.logs);
+  const logging = createLogger(paths.logs);
+  const logger = logging.logger;
   const database = new AppDatabase(paths.database);
   const data = new DataService(database.connection);
   const cleanup = new CleanupService(data, paths.userData);
@@ -108,6 +109,7 @@ app.whenReady().then(async () => {
     } finally {
       await profiles.closeAll();
       database.close();
+      logging.close();
       // Let macOS finish its ready event before exiting commands with no browser work.
       setTimeout(() => app.exit(exitCode), 100);
     }
@@ -145,7 +147,7 @@ app.whenReady().then(async () => {
     scheduler.stop();
     cleanup.stop();
     void Promise.all([recorder.cancel(), profiles.closeAll()]).then(() => {
-      database.close(); app.exit(0);
+      database.close(); logging.close(); app.exit(0);
     }).catch((error: unknown) => { console.error('Cleanup failed', error); app.exit(1); });
   });
 
@@ -167,6 +169,7 @@ app.whenReady().then(async () => {
     scheduler.stop();
     await profiles.closeAll();
     database.close();
+    logging.close();
     app.exit(exitCode);
     return;
   }
