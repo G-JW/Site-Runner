@@ -1,4 +1,4 @@
-import type { RunLogEntry, SiteRunResult } from '../../shared/types.js';
+import type { RunLogEntry, SiteRunResult, VisitOptions } from '../../shared/types.js';
 
 export interface AutomationRequest {
   siteId: string;
@@ -9,6 +9,7 @@ export interface AutomationRequest {
   profilePath: string;
   screenshotPath: string;
   headless: boolean;
+  visitOptions?: VisitOptions;
 }
 
 export interface AutomationExecutionResult extends SiteRunResult {

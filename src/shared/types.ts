@@ -14,13 +14,14 @@ export interface ScriptTemplate {
 }
 export type ScriptTemplateInput = Omit<ScriptTemplate, 'id'> & { id?: string };
 export interface SiteSchedule { enabled: boolean; cron: string }
+export interface VisitOptions { stayMs: number; detectChallenges: boolean; check: 'none' | 'selector' | 'text'; value: string }
 export interface SiteFolder { id: string; name: string; schedule: SiteSchedule }
 export interface Site {
   id: string; name: string; url: string; enabled: boolean; script: string | null;
-  browserProfileId: string; timeoutMs: number; schedule: SiteSchedule; folderId: string | null;
+  browserProfileId: string; timeoutMs: number; schedule: SiteSchedule; folderId: string | null; visitOptions: VisitOptions;
   createdAt: string; updatedAt: string; lastRun: RunRecord | null;
 }
-export type SiteInput = Pick<Site, 'name' | 'url' | 'enabled' | 'script' | 'browserProfileId' | 'timeoutMs' | 'schedule'> & { id?: string; folderId?: string | null };
+export type SiteInput = Pick<Site, 'name' | 'url' | 'enabled' | 'script' | 'browserProfileId' | 'timeoutMs' | 'schedule'> & { id?: string; folderId?: string | null; visitOptions?: VisitOptions };
 export type SiteRule = Omit<SiteInput, 'id' | 'browserProfileId'>;
 export interface BrowserProfile { id: string; name: string; createdAt: string }
 export interface RunRecord {

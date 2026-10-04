@@ -41,6 +41,7 @@ export class AutomationRunner {
         result = await this.executor({
           siteId: site.id, siteName: site.name, url: site.url, script: site.script,
           timeoutMs: site.timeoutMs, profilePath: this.profiles.getProfilePath(site.browserProfileId),
+          visitOptions: site.visitOptions,
           screenshotPath, headless: headless ?? settings.browserHeadless,
         }, this.emit);
       } catch (error) {

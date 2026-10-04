@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppLanguage } from '../shared/types';
 
 const en = {
+  'visit.title': 'Visit checks (empty script)', 'visit.stay': 'Stay after opening (ms)', 'visit.check': 'Success check', 'visit.none': 'Basic visit', 'visit.selector': 'Visible selector', 'visit.text': 'Visible exact text', 'visit.value': 'Selector or text', 'visit.detect': 'Detect common challenge pages', 'visit.note': 'Basic visits do not prove login or rewards. Checks run only when the script is empty.',
   'folders.edit': 'Edit', 'folders.scheduleNote': 'Runs enabled sites sequentially using local system time. Avoid enabling overlapping site schedules.',
   'folders.title': 'Folders', 'folders.add': 'New folder', 'folders.rename': 'Rename', 'folders.save': 'Save folder',
   'folders.all': 'All sites', 'folders.ungrouped': 'Unfiled', 'folders.deleteQuestion': 'Delete folder “{name}”?',
@@ -100,6 +101,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  'visit.title': '访问检查（空脚本时生效）', 'visit.stay': '打开后停留（毫秒）', 'visit.check': '成功检查', 'visit.none': '基本访问', 'visit.selector': '指定元素可见', 'visit.text': '指定文字可见', 'visit.value': '选择器或文字', 'visit.detect': '识别常见安全验证页', 'visit.note': '基本访问不代表登录或奖励成功；这些检查仅在脚本为空时执行。',
   'folders.edit': '编辑', 'folders.scheduleNote': '按系统本地时间串行运行启用站点；请避免同时开启重叠的单站点定时任务。',
   'folders.title': '文件夹', 'folders.add': '新建文件夹', 'folders.rename': '重命名', 'folders.save': '保存文件夹',
   'folders.all': '全部站点', 'folders.ungrouped': '未分类', 'folders.deleteQuestion': '删除文件夹“{name}”？',

@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { AppSettings, BrowserProfile, NotificationChannel, NotificationChannelInput, RunRecord, Site, SiteInput } from '../../shared/types.js';
 import cron from 'node-cron';
 import type { ScriptTemplate, ScriptTemplateInput } from '../../shared/types.js';
+import { legacyVisitOptions, validateVisitOptions } from '../../shared/visit-options.js';
 import { validateTemplate } from '../template-files.js';
 import type { SiteFolder, SiteSchedule } from '../../shared/types.js';
 import { defaultScriptTemplates } from '../../shared/script-templates.js';
@@ -24,7 +25,7 @@ export function validateSite(input: SiteInput): SiteInput {
   }
   if (input.schedule.enabled && !cron.validate(input.schedule.cron)) throw new Error('Invalid cron expression');
   return {
-    ...input, name: requiredText(input.name, 'Name'), url,
+    ...input, ...(input.visitOptions ? { visitOptions: validateVisitOptions(input.visitOptions) } : {}), name: requiredText(input.name, 'Name'), url,
     browserProfileId: requiredText(input.browserProfileId, 'Browser profile'),
     script: input.script?.trim() || null,
     schedule: { enabled: Boolean(input.schedule.enabled), cron: requiredText(input.schedule.cron, 'Cron expression') },
@@ -144,19 +145,20 @@ export class DataService {
     this.getProfile(input.browserProfileId);
     const folderId = input.folderId === undefined ? (input.id ? this.getSite(input.id).folderId : null) : input.folderId;
     this.checkFolder(folderId);
+    const visitOptions = input.visitOptions ?? (input.id ? this.getSite(input.id).visitOptions : legacyVisitOptions);
     const timestamp = now();
     const id = input.id ?? randomUUID();
     if (input.id) {
       const result = this.db.prepare(`UPDATE sites SET name = ?, url = ?, enabled = ?, script = ?,
-        browser_profile_id = ?, timeout_ms = ?, schedule_enabled = ?, schedule_cron = ?, folder_id = ?, updated_at = ? WHERE id = ?`)
+        browser_profile_id = ?, timeout_ms = ?, schedule_enabled = ?, schedule_cron = ?, folder_id = ?, visit_options_json = ?, updated_at = ? WHERE id = ?`)
         .run(input.name, input.url, Number(input.enabled), input.script, input.browserProfileId,
-          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, timestamp, id);
+          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, JSON.stringify(visitOptions), timestamp, id);
       if (result.changes === 0) throw new Error('Site not found');
     } else {
       this.db.prepare(`INSERT INTO sites(id, name, url, enabled, script, browser_profile_id, timeout_ms,
-        schedule_enabled, schedule_cron, folder_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        schedule_enabled, schedule_cron, folder_id, visit_options_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(id, input.name, input.url, Number(input.enabled), input.script, input.browserProfileId,
-          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, timestamp, timestamp);
+          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, JSON.stringify(visitOptions), timestamp, timestamp);
     }
     return this.getSite(id);
   }
@@ -175,7 +177,7 @@ export class DataService {
         let name = input.name;
         for (let index = 2; usedNames.has(name); index++) name = `${input.name} (${index})`;
         usedNames.add(name);
-        return this.saveSite({ name, url: input.url, script: input.script, timeoutMs: input.timeoutMs, browserProfileId: input.browserProfileId,
+        return this.saveSite({ name, visitOptions: input.visitOptions ?? legacyVisitOptions, url: input.url, script: input.script, timeoutMs: input.timeoutMs, browserProfileId: input.browserProfileId,
           enabled: false, schedule: { ...input.schedule, enabled: false } });
       });
       this.db.exec('COMMIT');
@@ -288,7 +290,7 @@ export class DataService {
 
   private mapSite(row: Row): Site {
     return {
-      folderId: row.folder_id == null ? null : String(row.folder_id), id: String(row.id), name: String(row.name), url: String(row.url), enabled: asBoolean(row.enabled),
+      visitOptions: JSON.parse(String(row.visit_options_json)) as Site['visitOptions'], folderId: row.folder_id == null ? null : String(row.folder_id), id: String(row.id), name: String(row.name), url: String(row.url), enabled: asBoolean(row.enabled),
       script: row.script == null ? null : String(row.script), browserProfileId: String(row.browser_profile_id),
       timeoutMs: Number(row.timeout_ms), schedule: { enabled: asBoolean(row.schedule_enabled), cron: String(row.schedule_cron) },
       createdAt: String(row.created_at), updatedAt: String(row.updated_at),

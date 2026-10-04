@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { BrowserContext, Page } from 'playwright';
 import type { RunLogEntry } from '../../shared/types.js';
 import { runTrustedScript } from './script-runner.js';
+import { legacyVisitOptions } from '../../shared/visit-options.js';
 import type { AutomationExecutionResult, AutomationRequest } from './types.js';
 
 export async function executeAutomation(request: AutomationRequest, emit: (entry: RunLogEntry) => void): Promise<AutomationExecutionResult> {
@@ -22,20 +23,35 @@ export async function executeAutomation(request: AutomationRequest, emit: (entry
     page = context.pages()[0] ?? await context.newPage();
     const response = await page.goto(request.url, { waitUntil: 'domcontentloaded', timeout: request.timeoutMs });
     if (response && response.status() >= 400) throw new Error(`HTTP ${response.status()}`);
+    let message = request.script ? 'Automation completed' : 'Page loaded (no result assertion)';
     if (request.script) {
       log('info', 'Running site script');
-      await runTrustedScript(request.script, {
+      const scriptMessage = await runTrustedScript(request.script, {
         page,
         log: { info: (message) => log('info', message), warn: (message) => log('warn', message), error: (message) => log('error', message) },
         config: {},
       });
+      if (scriptMessage) message = scriptMessage;
     } else {
+      const options = request.visitOptions ?? legacyVisitOptions;
+      if (options.stayMs) await page.waitForTimeout(options.stayMs);
+      if (options.detectChallenges) {
+        const title = await page.title();
+        const challengeHeader = response?.headers()['cf-mitigated'] === 'challenge';
+        if (challengeHeader || /^(just a moment|attention required|security verification|verify you are human)/i.test(title.trim()) || await page.locator('#challenge-running, #challenge-stage').count() > 0) throw new Error('Page blocked by a security challenge; normal content was not confirmed');
+      }
+      if (options.check !== 'none') {
+        const { expect } = await import('playwright/test');
+        const target = options.check === 'selector' ? page.locator(options.value) : page.getByText(options.value, { exact: true });
+        await expect(target, 'Expected page content was not visible').toBeVisible({ timeout: Math.min(request.timeoutMs, 15000) });
+        message = 'Expected page content verified';
+      } else if (options.stayMs || options.detectChallenges) message = 'Page visited (login and business results not verified)';
       log('info', 'URL loaded; no site script configured');
     }
     log('info', 'Run completed');
     return {
       siteId: request.siteId, siteName: request.siteName, status: 'success',
-      message: request.script ? 'Automation completed' : 'Page loaded (no result assertion)', error: null,
+      message, error: null,
       startedAt, finishedAt: new Date().toISOString(), screenshotPath: null, lastUrl: page.url(),
     };
   } catch (error) {

@@ -13,7 +13,7 @@ export interface AutomationContext {
   expect: typeof import('playwright/test').expect;
 }
 
-export async function runTrustedScript(source: string, context: Omit<AutomationContext, 'expect'>): Promise<void> {
+export async function runTrustedScript(source: string, context: Omit<AutomationContext, 'expect'>): Promise<string | null> {
   const { transform } = await import('esbuild');
   const transformed = await transform(source, { loader: 'ts', format: 'cjs', target: 'node20' });
   const scriptModule: { exports: unknown } = { exports: {} };
@@ -22,5 +22,8 @@ export async function runTrustedScript(source: string, context: Omit<AutomationC
   const exported = scriptModule.exports as { default?: unknown };
   if (typeof exported.default !== 'function') throw new Error('Script must export a default run function');
   const { expect } = await import('playwright/test');
-  await (exported.default as (value: AutomationContext) => Promise<void>)({ ...context, expect });
+  const result = await (exported.default as (value: AutomationContext) => Promise<unknown>)({ ...context, expect });
+  if (typeof result === 'string') return result.slice(0, 1000);
+  if (result && typeof result === 'object' && 'message' in result && typeof result.message === 'string') return result.message.slice(0, 1000);
+  return null;
 }

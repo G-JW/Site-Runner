@@ -62,5 +62,11 @@ export class AppDatabase {
       PRAGMA user_version = 3;
       COMMIT;
     `);
+    if (version.user_version < 4) this.connection.exec(`
+      BEGIN;
+      ALTER TABLE sites ADD COLUMN visit_options_json TEXT NOT NULL DEFAULT '{"stayMs":0,"detectChallenges":false,"check":"none","value":""}';
+      PRAGMA user_version = 4;
+      COMMIT;
+    `);
   }
 }
