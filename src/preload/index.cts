@@ -2,6 +2,11 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { SiteRunnerApi } from '../shared/types.js';
 
 const api: SiteRunnerApi = {
+  cleanup: {
+    preview: () => ipcRenderer.invoke('cleanup:preview') as ReturnType<SiteRunnerApi['cleanup']['preview']>,
+    execute: (id) => ipcRenderer.invoke('cleanup:execute', id) as ReturnType<SiteRunnerApi['cleanup']['execute']>,
+    status: () => ipcRenderer.invoke('cleanup:status') as ReturnType<SiteRunnerApi['cleanup']['status']>,
+  },
   app: {
     info: () => ipcRenderer.invoke('app:info') as ReturnType<SiteRunnerApi['app']['info']>,
     openDataFolder: () => ipcRenderer.invoke('app:openDataFolder') as ReturnType<SiteRunnerApi['app']['openDataFolder']>,

@@ -9,8 +9,12 @@ import type { DataService } from '../services/data-service.js';
 import type { ProfileService } from '../profiles/profile-service.js';
 import type { SchedulerService } from '../scheduler/scheduler-service.js';
 import type { NotificationService } from '../notifications/service.js';
+import type { CleanupService } from '../services/cleanup-service.js';
 
-export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService, notifications: NotificationService): void {
+export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService, notifications: NotificationService, cleanup: CleanupService): void {
+  ipcMain.handle('cleanup:preview', () => cleanup.preview());
+  ipcMain.handle('cleanup:execute', (_event, id: string) => cleanup.execute(id));
+  ipcMain.handle('cleanup:status', () => data.getCleanupStatus());
   ipcMain.handle('app:openDataFolder', () => shell.openPath(getAppPaths().userData).then((error) => { if (error) throw new Error(error); }));
   ipcMain.handle('sites:list', () => data.listSites());
   ipcMain.handle('folders:list', () => data.listFolders());

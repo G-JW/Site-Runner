@@ -14,6 +14,7 @@ import { NotificationService } from './notifications/service.js';
 import { createLogger } from './logging.js';
 import { cliHelp, executeCliCommand, parseCliCommand, type CliCommand } from './cli.js';
 import { RecorderService } from './recording/recorder-service.js';
+import { CleanupService } from './services/cleanup-service.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 let cliCommand: CliCommand | null = null;
@@ -38,7 +39,7 @@ if (cliCommand) {
   if (process.platform === 'darwin') app.setActivationPolicy('prohibited');
 }
 app.on('second-instance', (_event, argv) => {
-  if (argv.some((arg) => arg === '--run-all' || arg === '--run-site' || arg === '--list-sites')) return;
+  if (argv.some((arg) => ['--run-all', '--run-site', '--run-folder', '--list-sites', '--list-folders'].includes(arg))) return;
   const window = BrowserWindow.getAllWindows()[0];
   if (window) { if (window.isMinimized()) window.restore(); window.focus(); }
 });
@@ -86,6 +87,7 @@ app.whenReady().then(async () => {
   const logger = createLogger(paths.logs);
   const database = new AppDatabase(paths.database);
   const data = new DataService(database.connection);
+  const cleanup = new CleanupService(data, paths.userData);
   const profiles = new ProfileService(data, paths.profiles);
   const runner = new AutomationRunner(data, profiles, paths.screenshots, (entry) => {
     logger[entry.level]({ siteId: entry.siteId }, entry.message);
@@ -95,6 +97,9 @@ app.whenReady().then(async () => {
   if (cliCommand) {
     let exitCode = 1;
     try {
+      if (cliCommand.action.startsWith('run-')) {
+        try { cleanup.runAutomatic(); } catch (error) { logger.error({ error }, 'Automatic cleanup failed'); }
+      }
       const result = await executeCliCommand(cliCommand, data, runner, notifications);
       console.log(JSON.stringify(result.output));
       exitCode = result.exitCode;
@@ -125,9 +130,10 @@ app.whenReady().then(async () => {
   ipcMain.handle('recorder:finish', () => recorder.finish());
   ipcMain.handle('recorder:cancel', () => recorder.cancel());
   if (data.listProfiles().length === 0) profiles.create('Default');
-  registerDataIpc(data, profiles, scheduler, notifications);
+  registerDataIpc(data, profiles, scheduler, notifications, cleanup);
   registerRunIpc(runner, batch);
   scheduler.start();
+  cleanup.start();
   ipcMain.handle('app:info', () => ({
     name: 'Site Runner',
     version: app.getVersion(),
@@ -137,6 +143,7 @@ app.whenReady().then(async () => {
   app.once('before-quit', (event) => {
     event.preventDefault();
     scheduler.stop();
+    cleanup.stop();
     void Promise.all([recorder.cancel(), profiles.closeAll()]).then(() => {
       database.close(); app.exit(0);
     }).catch((error: unknown) => { console.error('Cleanup failed', error); app.exit(1); });

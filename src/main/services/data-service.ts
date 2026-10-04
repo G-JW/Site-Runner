@@ -7,6 +7,8 @@ import { legacyVisitOptions, validateVisitOptions } from '../../shared/visit-opt
 import { validateTemplate } from '../template-files.js';
 import type { SiteFolder, SiteSchedule, RunLogEntry, RunQuery, NotificationReceipt } from '../../shared/types.js';
 import { defaultScriptTemplates } from '../../shared/script-templates.js';
+import { defaultCleanupPolicy, validateCleanupPolicy } from '../../shared/cleanup.js';
+import type { CleanupStatus } from '../../shared/types.js';
 
 type Row = Record<string, unknown>;
 const now = () => new Date().toISOString();
@@ -277,6 +279,7 @@ export class DataService {
       notificationEnabled: values.notificationEnabled !== 'false',
       notifyScheduledRuns: values.notifyScheduledRuns === 'true',
       language: values.language === 'zh-CN' ? 'zh-CN' : 'en',
+      cleanup: values.cleanup ? validateCleanupPolicy(JSON.parse(values.cleanup)) : { ...defaultCleanupPolicy },
     };
   }
 
@@ -286,9 +289,36 @@ export class DataService {
       throw new Error('Default timeout must be between 1000 and 300000 milliseconds');
     }
     if (current.language !== 'en' && current.language !== 'zh-CN') throw new Error('Unsupported language');
+    current.cleanup = validateCleanupPolicy(current.cleanup);
     const statement = this.db.prepare('INSERT OR REPLACE INTO settings(key, value) VALUES (?, ?)');
-    for (const [key, value] of Object.entries(current)) statement.run(key, String(value));
+    for (const [key, value] of Object.entries(current)) statement.run(key, key === 'cleanup' ? JSON.stringify(value) : String(value));
     return current;
+  }
+
+  cleanupCandidates(cutoff: string): { runs: string[]; receipts: string[]; retainedScreenshots: string[] } {
+    return {
+      runs: (this.db.prepare('SELECT id FROM run_records WHERE julianday(finished_at) < julianday(?)').all(cutoff) as Row[]).map((row) => String(row.id)),
+      receipts: (this.db.prepare('SELECT id FROM notification_receipts WHERE julianday(created_at) < julianday(?)').all(cutoff) as Row[]).map((row) => String(row.id)),
+      retainedScreenshots: (this.db.prepare('SELECT screenshot_path FROM run_records WHERE screenshot_path IS NOT NULL AND (julianday(finished_at) IS NULL OR julianday(finished_at) >= julianday(?))').all(cutoff) as Row[]).map((row) => String(row.screenshot_path)),
+    };
+  }
+
+  deleteExpiredHistory(runs: string[], receipts: string[], cutoff: string): { runs: number; receipts: number } {
+    return this.transaction(() => {
+      const removeRun = this.db.prepare('DELETE FROM run_records WHERE id = ? AND julianday(finished_at) < julianday(?)');
+      const removeReceipt = this.db.prepare('DELETE FROM notification_receipts WHERE id = ? AND julianday(created_at) < julianday(?)');
+      return { runs: runs.reduce((total, id) => total + Number(removeRun.run(id, cutoff).changes), 0),
+        receipts: receipts.reduce((total, id) => total + Number(removeReceipt.run(id, cutoff).changes), 0) };
+    });
+  }
+
+  getCleanupStatus(): CleanupStatus | null {
+    const row = this.db.prepare("SELECT value FROM settings WHERE key = 'cleanupLastResult'").get() as Row | undefined;
+    return row ? JSON.parse(String(row.value)) as CleanupStatus : null;
+  }
+
+  saveCleanupStatus(status: CleanupStatus): void {
+    this.db.prepare("INSERT OR REPLACE INTO settings(key, value) VALUES ('cleanupLastResult', ?)").run(JSON.stringify(status));
   }
 
   listChannels(): NotificationChannel[] {

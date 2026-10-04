@@ -49,7 +49,12 @@ export interface BatchResult {
 export interface AppSettings {
   defaultTimeoutMs: number; browserHeadless: boolean; notificationEnabled: boolean; notifyScheduledRuns: boolean;
   language: AppLanguage;
+  cleanup: CleanupPolicy;
 }
+export interface CleanupPolicy { automatic: boolean; historyDays: number; backupDays: number }
+export interface CleanupReport { runs: number; receipts: number; screenshots: number; backups: number; bytes: number; errors: string[] }
+export interface CleanupPreview extends CleanupReport { id: string }
+export interface CleanupStatus { finishedAt: string; report: CleanupReport }
 export interface NotificationChannel {
   id: string; name: string; providerType: ProviderType; enabled: boolean; eventPolicy: NotificationPolicy;
   config: Record<string, unknown>; createdAt: string; updatedAt: string;
@@ -98,4 +103,5 @@ export interface SiteRunnerApi {
     exportConfiguration(): Promise<boolean>; previewConfiguration(): Promise<ConfigurationFile | null>;
     importConfiguration(file: ConfigurationFile, applySettings: boolean): Promise<{ sites: number; templates: number }>;
   };
+  cleanup: { preview(): Promise<CleanupPreview>; execute(id: string): Promise<CleanupReport>; status(): Promise<CleanupStatus | null> };
 }
