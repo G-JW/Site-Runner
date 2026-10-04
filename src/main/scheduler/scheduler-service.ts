@@ -1,14 +1,14 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import type { AutomationRunner } from '../automation/runner.js';
 import type { DataService } from '../services/data-service.js';
-import type { Site } from '../../shared/types.js';
+import type { Site, SiteRunResult } from '../../shared/types.js';
 
 export function validateCron(expression: string): boolean { return cron.validate(expression); }
 
 export class SchedulerService {
   private readonly tasks = new Map<string, ScheduledTask>();
 
-  constructor(private readonly data: DataService, private readonly runner: Pick<AutomationRunner, 'runSite'>) {}
+  constructor(private readonly data: DataService, private readonly runner: Pick<AutomationRunner, 'runSite'>, private readonly onComplete?: (result: SiteRunResult) => Promise<void>) {}
 
   start(): void { this.refreshAll(); }
 
@@ -19,10 +19,12 @@ export class SchedulerService {
 
   refresh(site: Site): void {
     this.remove(site.id);
-    if (!site.schedule.enabled) return;
+    if (!site.enabled || !site.schedule.enabled) return;
     if (!validateCron(site.schedule.cron)) throw new Error('Invalid cron expression');
     const task = cron.schedule(site.schedule.cron, () => {
-      void this.runner.runSite(site.id, 'schedule').catch((error: unknown) => {
+      const current = this.data.getSite(site.id);
+      if (!current.enabled || !current.schedule.enabled) return;
+      void this.runner.runSite(site.id, 'schedule').then((result) => this.onComplete?.(result)).catch((error: unknown) => {
         console.error(`Scheduled run failed for ${site.name}:`, error);
       });
     });

@@ -218,7 +218,7 @@ Generic Webhook 支持 `POST`、`PUT` 或 `PATCH`，以及 JSON 格式的自定�
 
 ## 设置
 
-**Settings** 页面可以在 English 和简体中文之间切换，并提供默认 Timeout、Headless Browser、Batch Notifications 和 Scheduled Run Notifications 配置。语言选择会立即生效并保存在本地。默认 Timeout 用于新建网站；Headless 设置用于后续自动化运行。Scheduled Run Notifications 开关目前是预留设置，单个定时任务尚不发送通知。
+**Settings** 页面可以在 English 和简体中文之间切换，并提供默认 Timeout、Headless Browser、Batch Notifications 和 Scheduled Run Notifications 配置。语言选择会立即生效并保存在本地。默认 Timeout 用于新建网站；Headless 设置用于后续自动化运行。Scheduled Run Notifications 控制定时任务的结果通知，仍需启用全局通知及匹配渠道。禁用站点不会执行其 Cron；共用 Profile 的任务排队执行，运行或排队期间不能手动打开或录制该 Profile。
 
 ## 本地数据
 

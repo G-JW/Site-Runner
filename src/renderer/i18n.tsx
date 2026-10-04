@@ -92,7 +92,7 @@ const en = {
   'settings.batchNotifications': 'Batch notifications',
   'settings.batchNotificationsDescription': 'Route final summaries to matching enabled channels.',
   'settings.scheduledNotifications': 'Scheduled run notifications',
-  'settings.scheduledNotificationsDescription': 'Reserved for optional per-site schedule delivery.',
+  'settings.scheduledNotificationsDescription': 'Send scheduled task results to matching notification channels.',
   'settings.localData': 'Local data', 'batch.completed': 'Batch completed: {success} succeeded, {failed} failed',
 } as const;
 
@@ -189,7 +189,7 @@ const zh: Record<TranslationKey, string> = {
   'settings.batchNotifications': '批量运行通知',
   'settings.batchNotificationsDescription': '将最终汇总发送到匹配且已启用的渠道。',
   'settings.scheduledNotifications': '定时运行通知',
-  'settings.scheduledNotificationsDescription': '为未来的单站点定时通知预留。',
+  'settings.scheduledNotificationsDescription': '将定时任务结果发送到匹配且已启用的通知渠道。',
   'settings.localData': '本地数据', 'batch.completed': '批量运行完成：成功 {success} 个，失败 {failed} 个',
 };
 

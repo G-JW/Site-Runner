@@ -24,6 +24,20 @@ describe('ProfileService paths', () => {
     expect(existsSync(profilePath)).toBe(false);
   });
 
+  it('queues tasks sharing a profile and protects queued profiles from manual use', async () => {
+    const profile = profiles.create('Queue');
+    const first = await profiles.acquireForRun(profile.id);
+    let acquired = false;
+    const second = profiles.acquireForRun(profile.id).then((release) => { acquired = true; return release; });
+    await Promise.resolve(); expect(acquired).toBe(false);
+    await expect(profiles.open(profile.id)).rejects.toThrow(/queued/);
+    expect(() => profiles.reserveForRecording(profile.id)).toThrow(/queued/);
+    expect(() => profiles.remove(profile.id)).toThrow(/queued/);
+    first(); const release = await second; expect(acquired).toBe(true);
+    release(); release();
+    const recordRelease = profiles.reserveForRecording(profile.id); recordRelease();
+  });
+
   it('protects a profile during recording and releases it afterward', async () => {
     const profile = profiles.create('Recorder');
     const release = profiles.reserveForRecording(profile.id);

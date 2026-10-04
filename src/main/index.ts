@@ -109,7 +109,11 @@ app.whenReady().then(async () => {
     return;
   }
   const batch = new BatchRunner(data, runner, (result) => notifications.notifyBatch(result).then(() => undefined));
-  const scheduler = new SchedulerService(data, runner);
+  const scheduler = new SchedulerService(data, runner, async (result) => {
+    if (!data.getSettings().notifyScheduledRuns) return;
+    await notifications.notifyBatch({ startedAt: result.startedAt, finishedAt: result.finishedAt, total: 1,
+      success: result.status === 'success' ? 1 : 0, failed: result.status === 'failed' ? 1 : 0, results: [result] });
+  });
   const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runner.isRunning(site.id)));
   ipcMain.handle('recorder:start', (_event, input) => recorder.start(input));
   ipcMain.handle('recorder:status', () => recorder.getStatus());

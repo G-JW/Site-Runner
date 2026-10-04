@@ -8,6 +8,27 @@ export class ProfileService {
   private readonly contexts = new Map<string, BrowserContext>();
   private readonly recordingProfiles = new Set<string>();
   private readonly openingProfiles = new Set<string>();
+  private readonly runQueues = new Map<string, Promise<void>>();
+
+  async acquireForRun(id: string): Promise<() => void> {
+    this.data.getProfile(id); this.assertNotRecording(id);
+    if (this.contexts.has(id) || this.openingProfiles.has(id)) throw new Error('Close the profile browser before running tasks');
+    const previous = this.runQueues.get(id) ?? Promise.resolve();
+    let unlock!: () => void;
+    const gate = new Promise<void>((resolve) => { unlock = resolve; });
+    const tail = previous.then(() => gate);
+    this.runQueues.set(id, tail);
+    await previous;
+    let released = false;
+    return () => {
+      if (released) return; released = true; unlock();
+      if (this.runQueues.get(id) === tail) this.runQueues.delete(id);
+    };
+  }
+
+  private assertNotRunning(id: string): void {
+    if (this.runQueues.has(id)) throw new Error('This browser profile has running or queued tasks');
+  }
 
   constructor(private readonly data: DataService, private readonly profilesRoot: string) {
     mkdirSync(profilesRoot, { recursive: true });
@@ -23,6 +44,7 @@ export class ProfileService {
   }
 
   reserveForRecording(id: string): () => void {
+    this.assertNotRunning(id);
     this.data.getProfile(id); this.assertNotRecording(id);
     if (this.contexts.has(id) || this.openingProfiles.has(id)) throw new Error('Close the profile browser before recording');
     this.recordingProfiles.add(id);
@@ -37,6 +59,7 @@ export class ProfileService {
   }
 
   remove(id: string): void {
+    this.assertNotRunning(id);
     this.assertNotRecording(id);
     if (this.contexts.has(id) || this.openingProfiles.has(id)) throw new Error('Close the profile browser before deleting it');
     const profilePath = this.getProfilePath(id);
@@ -45,6 +68,7 @@ export class ProfileService {
   }
 
   async open(id: string): Promise<void> {
+    this.assertNotRunning(id);
     this.assertNotRecording(id);
     if (this.contexts.has(id) || this.openingProfiles.has(id)) return;
     this.openingProfiles.add(id);

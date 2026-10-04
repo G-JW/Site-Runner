@@ -33,7 +33,9 @@ export class AutomationRunner {
     const screenshotPath = path.join(this.screenshotsRoot, month, `${site.id}-${fileStamp}.png`);
     mkdirSync(path.dirname(screenshotPath), { recursive: true });
     const settings = this.data.getSettings();
+    let releaseProfile: (() => void) | undefined;
     try {
+      releaseProfile = await this.profiles.acquireForRun(site.browserProfileId);
       let result: AutomationExecutionResult;
       try {
         result = await this.executor({
@@ -58,6 +60,7 @@ export class AutomationRunner {
       this.data.saveRun(record);
       return result;
     } finally {
+      releaseProfile?.();
       this.runningSites.delete(siteId);
     }
   }
