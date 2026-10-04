@@ -85,4 +85,31 @@ describe('NotificationService', () => {
     expect(drained).toBe(false); finish(); await test; await shutdown;
     expect(data.listReceipts()).toEqual([expect.objectContaining({ channelName: 'Pending', success: true })]);
   });
+
+  it('shares concurrent tests for one channel while independent channels can send, even when notifications are disabled', async () => {
+    const data = setup(); data.updateSettings({ notificationEnabled: false, notifyScheduledRuns: false });
+    const first = data.saveChannel({ name: 'First', providerType: 'ntfy', enabled: false, eventPolicy: 'alert', config: { key: 'first' } });
+    const second = data.saveChannel({ name: 'Second', providerType: 'ntfy', enabled: true, eventPolicy: 'all', config: { key: 'second' } });
+    let release!: () => void; const gate = new Promise<void>((resolve) => { release = resolve; });
+    const send = vi.fn(async () => gate);
+    const service = new NotificationService(data, { ntfy: () => ({ send }) });
+    const requests = [service.testChannel(first.id), service.testChannel(first.id), service.testChannel(second.id)];
+    expect(send).toHaveBeenCalledTimes(2); expect(data.listReceipts()).toHaveLength(0);
+    release(); await Promise.all(requests);
+    expect(data.listReceipts()).toHaveLength(2);
+    await service.testChannel(first.id); expect(send).toHaveBeenCalledTimes(3);
+  });
+
+  it('shares test failures and allows a fresh attempt after the pending request finishes', async () => {
+    const data = setup(), channel = data.saveChannel({ name: 'Retry', providerType: 'ntfy', enabled: true, eventPolicy: 'all', config: {} });
+    let release!: () => void; const gate = new Promise<void>((resolve) => { release = resolve; });
+    const send = vi.fn().mockImplementationOnce(async () => { await gate; throw new Error('HTTP 503'); }).mockResolvedValue(undefined);
+    const service = new NotificationService(data, { ntfy: () => ({ send }) });
+    const requests = [service.testChannel(channel.id), service.testChannel(channel.id)];
+    const settled = Promise.allSettled(requests); expect(send).toHaveBeenCalledOnce(); release();
+    expect(await settled).toEqual([expect.objectContaining({ status: 'rejected', reason: expect.objectContaining({ message: 'HTTP 503' }) }), expect.objectContaining({ status: 'rejected', reason: expect.objectContaining({ message: 'HTTP 503' }) })]);
+    expect(data.listReceipts()).toEqual([expect.objectContaining({ success: false, error: 'HTTP 503' })]);
+    await service.testChannel(channel.id); expect(send).toHaveBeenCalledTimes(2);
+    expect(data.listReceipts()).toHaveLength(2);
+  });
 });

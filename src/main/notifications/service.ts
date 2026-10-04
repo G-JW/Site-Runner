@@ -30,6 +30,7 @@ export function buildBatchNotification(batch: BatchResult): NotificationMessage 
 
 export class NotificationService {
   private readonly active = new Set<Promise<NotificationDelivery[]>>();
+  private readonly tests = new Map<string, Promise<void>>();
   private closing = false;
   constructor(private readonly data: DataService, private readonly registry: Record<string, ProviderFactory> = defaultRegistry) {}
 
@@ -54,7 +55,16 @@ export class NotificationService {
 
   async testChannel(id: string): Promise<void> {
     if (this.closing) throw new Error('Application is closing');
+    const pending = this.tests.get(id);
+    if (pending) return pending;
     const channel = this.data.getChannel(id);
+    const work = this.performTest(channel);
+    this.tests.set(id, work);
+    void work.then(() => this.tests.delete(id), () => this.tests.delete(id));
+    return work;
+  }
+
+  private async performTest(channel: NotificationChannel): Promise<void> {
     const message: NotificationMessage = {
       title: 'Site Runner test', body: 'Your notification channel is working.', level: 'normal', timestamp: new Date().toISOString(),
     };

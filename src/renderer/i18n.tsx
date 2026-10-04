@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppLanguage } from '../shared/types';
 
 const en = {
+  'notifications.setup': 'Notification configuration', 'notifications.refresh': 'Refresh', 'notifications.global': 'Batch notifications', 'notifications.scheduled': 'Scheduled notifications',
+  'notifications.globalOff': 'Batch notifications are off. Manual batches and scheduled tasks will not send summaries.', 'notifications.scheduleOff': 'Scheduled notifications are off. Scheduled tasks still run, but do not send summaries.',
+  'notifications.normalRoute': 'Channels for successful batches: {count}', 'notifications.alertRoute': 'Channels for batches with failures: {count}', 'notifications.noNormal': 'No enabled channel accepts normal events. Successful batches will not send notifications.', 'notifications.noAlert': 'No enabled channel accepts alert events. Batches with failures will not send notifications.',
+  'notifications.setupNote': 'These channels match the event policies; delivery also requires the switches above. Test sends directly to one channel even if it or notifications are disabled. A successful test means the service accepted the request. Single manual site runs do not send batch summaries.', 'notifications.testing': 'Testing…',
   'sites.filter': 'Filter sites', 'sites.filter.all': 'All statuses', 'sites.filter.enabled': 'Enabled', 'sites.filter.disabled': 'Disabled', 'sites.filter.success': 'Last run succeeded', 'sites.filter.failed': 'Last run failed', 'sites.filter.notRun': 'Never run', 'sites.filter.active': 'Running or waiting',
   'sites.sort': 'Sort sites', 'sites.sort.default': 'Default order', 'sites.sort.name': 'Name', 'sites.sort.recent': 'Most recently run',
   'sites.runSelected': 'Run selected ({count})', 'sites.retryFailed': 'Retry failed ({count})', 'sites.viewNote': 'Showing {visible} of {total} sites. Batch actions use enabled sites in this view; selected runs use checked sites only.',
@@ -112,6 +116,10 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  'notifications.setup': '通知配置检查', 'notifications.refresh': '刷新', 'notifications.global': '批量运行通知', 'notifications.scheduled': '定时运行通知',
+  'notifications.globalOff': '批量运行通知已关闭，手动批量和定时任务均不会发送汇总。', 'notifications.scheduleOff': '定时运行通知已关闭，定时任务仍会执行，但不会发送汇总。',
+  'notifications.normalRoute': '全部成功时匹配的渠道：{count}', 'notifications.alertRoute': '存在失败时匹配的渠道：{count}', 'notifications.noNormal': '没有启用的渠道接收普通事件，全部成功的批量任务不会发送通知。', 'notifications.noAlert': '没有启用的渠道接收警报事件，存在失败的批量任务不会发送通知。',
+  'notifications.setupNote': '以上渠道按事件策略匹配，实际发送还需开启对应开关。测试会直接发送到单个渠道，不受开关、启用状态或事件策略影响；测试成功表示服务接受请求。手动运行单个站点不会发送批量汇总。', 'notifications.testing': '正在测试…',
   'cleanup.title': '存储清理', 'cleanup.note': '清理过期运行记录及日志、通知发送记录和应用生成的截图。升级备份至少保留最新一份。保留站点、脚本、模板、通知渠道和登录配置。',
   'cleanup.historyDays': '历史和截图保留天数', 'cleanup.backupDays': '升级备份保留天数', 'cleanup.automatic': '启用自动清理', 'cleanup.schedule': '自动清理默认关闭。启用后在启动应用时、保持运行的每 24 小时及命令任务执行前清理。数据库会复用删除后的空间，文件大小不一定立即缩小。', 'cleanup.save': '保存保留设置', 'cleanup.preview': '预览清理', 'cleanup.unsaved': '请先保存保留设置，再预览清理内容。',
   'cleanup.count': '{runs} 条运行记录、{receipts} 条通知记录、{screenshots} 张截图和 {backups} 份备份；文件共 {mb} MB', 'cleanup.confirmTitle': '清理过期数据？', 'cleanup.confirmNote': '删除的历史和文件无法撤销。执行前会再次检查，保留新增或已修改的文件。', 'cleanup.confirm': '清理过期数据', 'cleanup.last': '最近清理：{time}', 'cleanup.errors': '部分文件未能删除，下次清理时会重试。',

@@ -87,7 +87,7 @@ export function App() {
     if (page === 'templates') return <TemplatesPage templates={templates} profiles={profiles} onChange={refresh} onError={showError} canCreate={profiles.length > 0} onUse={(template) => { setSiteTemplate(template); setPage('sites'); }} />;
     if (page === 'profiles') return <ProfilesPage busyProfiles={busyProfiles} profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
-    if (page === 'notifications') return <NotificationsPage onError={showError} />;
+    if (page === 'notifications') return <NotificationsPage onSettings={() => setPage('settings')} onError={showError} />;
     if (page === 'settings') return <SettingsPage info={info} onChange={refresh} onError={showError} />;
     return <OverviewPage sites={sites} profiles={profiles} latestRun={latestBatch} batchRunning={batchRunning || busy.size > 0 || runtime.batches.length > 0} onNavigate={setPage} onRunAll={async () => {
       setBatchRunning(true);
