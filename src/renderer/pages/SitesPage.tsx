@@ -10,7 +10,7 @@ import { SiteRulesDialog } from '../components/SiteRulesDialog';
 import { useI18n } from '../i18n';
 
 export function SitesPage({ runtime, busy, logs, onClearLogs, folders, sites, profiles, templates, initialTemplate, onTemplateConsumed, onChange, onError }: { runtime: RuntimeSnapshot; busy: Set<string>; logs: RunLogEntry[]; onClearLogs(): void; folders: SiteFolder[]; sites: Site[]; profiles: BrowserProfile[]; templates: ScriptTemplate[]; initialTemplate: ScriptTemplate | null; onTemplateConsumed(): void; onChange(): Promise<void>; onError(error: unknown): void }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [editing, setEditing] = useState<Site | 'new' | null>(initialTemplate ? 'new' : null);
   const [draftScript] = useState(initialTemplate?.script ?? null);
   const [starting, setStarting] = useState<Set<string>>(new Set());
@@ -25,20 +25,30 @@ export function SitesPage({ runtime, busy, logs, onClearLogs, folders, sites, pr
   const [loadingImport, setLoadingImport] = useState(false);
   const [folderId, setFolderId] = useState('all');
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sort, setSort] = useState('default');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [moving, setMoving] = useState(false);
   const [batchRunning, setBatchRunning] = useState(false);
   const activeFolder = folderId === 'all' || folderId === 'ungrouped' || folders.some((item) => item.id === folderId) ? folderId : 'all';
-  const visibleSites = sites.filter((site) => (activeFolder === 'all' || (activeFolder === 'ungrouped' ? !site.folderId : site.folderId === activeFolder)) && `${site.name} ${site.url}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const visibleSites = sites.filter((site) => {
+    const inFolder = activeFolder === 'all' || (activeFolder === 'ungrouped' ? !site.folderId : site.folderId === activeFolder);
+    const matchesSearch = `${site.name} ${site.url}`.toLowerCase().includes(search.trim().toLowerCase());
+    const matchesStatus = filter === 'all' || (filter === 'enabled' ? site.enabled : filter === 'disabled' ? !site.enabled : filter === 'active' ? running.has(site.id) : filter === 'notRun' ? !site.lastRun : site.lastRun?.status === filter);
+    return inFolder && matchesSearch && matchesStatus;
+  }).sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name, language) : sort === 'recent' ? (b.lastRun ? Date.parse(b.lastRun.finishedAt) : 0) - (a.lastRun ? Date.parse(a.lastRun.finishedAt) : 0) : 0);
   const selectedIds = visibleSites.filter((site) => selected.has(site.id)).map((site) => site.id);
+  const enabledIds = visibleSites.filter((site) => site.enabled).map((site) => site.id);
+  const selectedRunIds = visibleSites.filter((site) => site.enabled && selected.has(site.id)).map((site) => site.id);
+  const failedIds = visibleSites.filter((site) => site.enabled && site.lastRun?.status === 'failed').map((site) => site.id);
+  const cannotRun = (ids: string[]) => !ids.length || batchRunning || runtime.batches.length > 0 || ids.some((id) => running.has(id));
   function selectFolder(id: string) { setFolderId(id); setSelected(new Set()); }
   async function move(target: string) {
     if (!selectedIds.length) return; setMoving(true);
     try { await window.siteRunner.folders.moveSites(selectedIds, target || null); await onChange(); setSelected(new Set()); }
     catch (error) { onError(error); } finally { setMoving(false); }
   }
-  async function runView() {
-    const ids = visibleSites.filter((site) => site.enabled).map((site) => site.id);
+  async function runView(ids: string[]) {
     if (!ids.length) return; setBatchRunning(true);
     try { await window.siteRunner.runs.runSites(ids); await onChange(); }
     catch (error) { onError(error); } finally { setBatchRunning(false); }
@@ -69,8 +79,9 @@ export function SitesPage({ runtime, busy, logs, onClearLogs, folders, sites, pr
   return <><PageHeader eyebrow={t('sites.eyebrow')} title={t('sites.title')} description={t('sites.description')} actions={<><button data-testid="export-rules" className="secondary" disabled={sites.length === 0} onClick={() => setExporting(true)}>{t('rules.export')}</button><button data-testid="import-rules" className="secondary" disabled={loadingImport || profiles.length === 0} onClick={() => void loadImport()}>{t('rules.import')}</button><button data-testid="add-site" className="primary" disabled={profiles.length === 0} onClick={() => setEditing('new')}>{t('sites.add')}</button></>} />
     {profiles.length === 0 && <div className="callout">{t('sites.needProfile')}</div>}
     <div className="sites-layout"><FolderPanel folders={folders} sites={sites} selected={activeFolder} onSelect={selectFolder} onChange={onChange} onError={onError} /><div className="sites-content">
-    <div className="sites-tools"><input data-testid="site-search" aria-label={t('folders.search')} placeholder={t('folders.search')} value={search} onChange={(event) => { setSearch(event.target.value); setSelected(new Set()); }} /><button data-testid="run-folder" className="secondary" disabled={batchRunning || runtime.batches.length > 0 || !visibleSites.some((site) => site.enabled) || running.size > 0} onClick={() => void runView()}>{t('folders.run')}</button></div>
-    <div className="site-selection"><label className="checkbox"><input data-testid="select-all-sites" type="checkbox" disabled={!visibleSites.length || moving} checked={visibleSites.length > 0 && selectedIds.length === visibleSites.length} onChange={(event) => setSelected(event.target.checked ? new Set(visibleSites.map((site) => site.id)) : new Set())} />{t('folders.selectAll')}</label><span>{t('folders.selected', { count: selectedIds.length })}</span><label>{t('folders.move')}<select data-testid="move-sites" value="" disabled={moving || !selectedIds.length} onChange={(event) => void move(event.target.value === 'ungrouped' ? '' : event.target.value)}><option value="" disabled>{t('folders.move')}</option><option value="ungrouped">{t('folders.ungrouped')}</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label></div>
+    <div className="sites-tools"><input data-testid="site-search" aria-label={t('folders.search')} placeholder={t('folders.search')} value={search} onChange={(event) => { setSearch(event.target.value); setSelected(new Set()); }} /><select data-testid="site-status-filter" aria-label={t('sites.filter')} value={filter} onChange={(event) => { setFilter(event.target.value); setSelected(new Set()); }}>{(['all', 'enabled', 'disabled', 'success', 'failed', 'notRun', 'active'] as const).map((value) => <option key={value} value={value}>{t(`sites.filter.${value}`)}</option>)}</select><select data-testid="site-sort" aria-label={t('sites.sort')} value={sort} onChange={(event) => setSort(event.target.value)}>{(['default', 'name', 'recent'] as const).map((value) => <option key={value} value={value}>{t(`sites.sort.${value}`)}</option>)}</select><button data-testid="run-folder" className="secondary" disabled={cannotRun(enabledIds)} onClick={() => void runView(enabledIds)}>{t('folders.run')}</button></div>
+    <div className="site-selection"><label className="checkbox"><input data-testid="select-all-sites" type="checkbox" disabled={!visibleSites.length || moving} checked={visibleSites.length > 0 && selectedIds.length === visibleSites.length} onChange={(event) => setSelected(event.target.checked ? new Set(visibleSites.map((site) => site.id)) : new Set())} />{t('folders.selectAll')}</label><span>{t('folders.selected', { count: selectedIds.length })}</span><button data-testid="run-selected-sites" className="secondary" disabled={cannotRun(selectedRunIds)} onClick={() => void runView(selectedRunIds)}>{t('sites.runSelected', { count: selectedRunIds.length })}</button><button data-testid="retry-failed-sites" className="secondary" disabled={cannotRun(failedIds)} onClick={() => void runView(failedIds)}>{t('sites.retryFailed', { count: failedIds.length })}</button><label>{t('folders.move')}<select data-testid="move-sites" value="" disabled={moving || !selectedIds.length} onChange={(event) => void move(event.target.value === 'ungrouped' ? '' : event.target.value)}><option value="" disabled>{t('folders.move')}</option><option value="ungrouped">{t('folders.ungrouped')}</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label></div>
+    <p className="sites-view-note">{t('sites.viewNote', { visible: visibleSites.length, total: sites.length })}</p>
     <section className="panel table-panel sites-table"><div className="table-head"><span>{t('sites.site')}</span><span>{t('sites.profile')}</span><span>{t('sites.schedule')}</span><span>{t('sites.lastRun')}</span><span>{t('sites.actions')}</span></div>
       {visibleSites.length === 0 ? <div className="table-empty">{t('folders.empty')}</div> : visibleSites.map((site) => <div className="table-row" data-testid={`site-row-${site.id}`} key={site.id}><div className="site-cell"><input type="checkbox" aria-label={site.name} checked={selected.has(site.id)} disabled={moving} onChange={(event) => setSelected((current) => { const next = new Set(current); if (event.target.checked) next.add(site.id); else next.delete(site.id); return next; })} /><button className={`toggle ${site.enabled ? 'on' : ''}`} disabled={running.has(site.id)} aria-label={`${site.enabled ? t('common.enabled') : t('common.disabled')} ${site.name}`} onClick={() => void toggle(site)}><span /></button><div><strong>{site.name}</strong><small>{site.url}</small><small className="site-folder-label">{folders.find((folder) => folder.id === site.folderId)?.name ?? t('folders.ungrouped')}</small></div></div><span>{profileNames[site.browserProfileId] ?? t('common.unknown')}</span><span>{site.schedule.enabled ? site.schedule.cron : t('sites.off')}</span><span><i className={`result-dot ${site.lastRun?.status ?? 'idle'}`} />{running.has(site.id) ? t(runtime.runs.find((run) => run.siteId === site.id)?.phase === 'running' ? 'common.running' : 'runtime.queued') : (site.lastRun ? t(`common.${site.lastRun.status}`) : t('common.notRun'))}</span><div className="row-actions"><button disabled={running.has(site.id)} onClick={() => void run(site)}>{t('sites.run')}</button><button disabled={running.has(site.id)} onClick={() => setEditing(site)}>{t('common.edit')}</button><button className="danger-ghost" disabled={running.has(site.id)} onClick={() => setPendingDelete(site)}>{t('common.delete')}</button></div></div>)}</section>
     </div></div>

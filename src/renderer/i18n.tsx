@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppLanguage } from '../shared/types';
 
 const en = {
+  'sites.filter': 'Filter sites', 'sites.filter.all': 'All statuses', 'sites.filter.enabled': 'Enabled', 'sites.filter.disabled': 'Disabled', 'sites.filter.success': 'Last run succeeded', 'sites.filter.failed': 'Last run failed', 'sites.filter.notRun': 'Never run', 'sites.filter.active': 'Running or waiting',
+  'sites.sort': 'Sort sites', 'sites.sort.default': 'Default order', 'sites.sort.name': 'Name', 'sites.sort.recent': 'Most recently run',
+  'sites.runSelected': 'Run selected ({count})', 'sites.retryFailed': 'Retry failed ({count})', 'sites.viewNote': 'Showing {visible} of {total} sites. Batch actions use enabled sites in this view; selected runs use checked sites only.',
   'runtime.title': 'Active tasks', 'runtime.batch': 'Manual batch', 'runtime.scheduledBatch': 'Scheduled batch', 'runtime.progress': '{completed}/{total} completed · {success} successful · {failed} failed', 'runtime.queued': 'Waiting to run', 'runtime.waiting': 'Preparing next site', 'runtime.notifying': 'Tasks finished; completing notifications',
   'app.closing': 'Finishing before exit', 'app.closingNote': 'New tasks are paused. Waiting for current tasks and notifications to finish and saving their results. This may take up to the configured task timeout.',
   'cleanup.title': 'Storage cleanup', 'cleanup.note': 'Remove expired run records and logs, notification deliveries and generated screenshots. Keep at least the newest database upgrade backup. Sites, scripts, templates, notification channels and login profiles are preserved.',
@@ -16,7 +19,7 @@ const en = {
   'folders.all': 'All sites', 'folders.ungrouped': 'Unfiled', 'folders.deleteQuestion': 'Delete folder “{name}”?',
   'folders.deleteNote': 'Sites in this folder will move to Unfiled. Their scripts, schedules and history are retained.',
   'folders.search': 'Search sites by name or URL', 'folders.selectAll': 'Select all', 'folders.selected': '{count} selected',
-  'folders.move': 'Move to', 'folders.run': 'Run enabled sites in this view', 'folders.empty': 'No sites in this view.',
+  'folders.move': 'Move to', 'folders.run': 'Run this view', 'folders.empty': 'No sites in this view.',
   'templates.export': 'Export templates', 'templates.import': 'Import templates', 'templates.importCount': 'Import {count} templates',
   'templates.exportNote': 'Export selected templates with both languages and scripts. Review scripts for sensitive content before sharing.',
   'templates.importNote': 'Review scripts before importing. Imports add new templates; existing templates are preserved and duplicate names get a suffix. Importing does not execute scripts.',
@@ -113,6 +116,9 @@ const zh: Record<TranslationKey, string> = {
   'cleanup.historyDays': '历史和截图保留天数', 'cleanup.backupDays': '升级备份保留天数', 'cleanup.automatic': '启用自动清理', 'cleanup.schedule': '自动清理默认关闭。启用后在启动应用时、保持运行的每 24 小时及命令任务执行前清理。数据库会复用删除后的空间，文件大小不一定立即缩小。', 'cleanup.save': '保存保留设置', 'cleanup.preview': '预览清理', 'cleanup.unsaved': '请先保存保留设置，再预览清理内容。',
   'cleanup.count': '{runs} 条运行记录、{receipts} 条通知记录、{screenshots} 张截图和 {backups} 份备份；文件共 {mb} MB', 'cleanup.confirmTitle': '清理过期数据？', 'cleanup.confirmNote': '删除的历史和文件无法撤销。执行前会再次检查，保留新增或已修改的文件。', 'cleanup.confirm': '清理过期数据', 'cleanup.last': '最近清理：{time}', 'cleanup.errors': '部分文件未能删除，下次清理时会重试。',
   'app.closing': '正在完成退出前的任务', 'app.closingNote': '已停止接收新任务，正在等待当前任务和通知完成并保存结果。可能需要等待至任务设置的超时时间。',
+  'sites.filter': '筛选站点', 'sites.filter.all': '全部状态', 'sites.filter.enabled': '已启用', 'sites.filter.disabled': '已禁用', 'sites.filter.success': '上次成功', 'sites.filter.failed': '上次失败', 'sites.filter.notRun': '尚未运行', 'sites.filter.active': '运行或等待中',
+  'sites.sort': '站点排序', 'sites.sort.default': '默认顺序', 'sites.sort.name': '按名称排序', 'sites.sort.recent': '最近运行优先',
+  'sites.runSelected': '运行勾选（{count}）', 'sites.retryFailed': '重试失败（{count}）', 'sites.viewNote': '显示 {visible} / {total} 个站点。批量操作只运行当前列表中的启用站点；运行勾选仅执行勾选项。',
   'runtime.title': '当前任务', 'runtime.batch': '手动批量运行', 'runtime.scheduledBatch': '定时批量运行', 'runtime.progress': '已完成 {completed}/{total} · 成功 {success} · 失败 {failed}', 'runtime.queued': '等待执行', 'runtime.waiting': '正在准备下一个站点', 'runtime.notifying': '任务已完成，正在处理通知',
   'backup.title': '配置备份', 'backup.export': '导出配置', 'backup.import': '导入配置', 'backup.confirm': '新增导入的配置', 'backup.note': '包含站点、文件夹、模板、浏览器配置名称及偏好设置；不包含登录状态、通知密钥或运行历史。数据库升级前也会自动生成本地 SQLite 备份。', 'backup.restoreNote': '只新增站点、文件夹和浏览器配置名称，保留现有数据；导入站点和定时任务默认禁用，需要重新登录对应 Profile。导入前请检查脚本。', 'backup.count': '{sites} 个站点、{folders} 个文件夹、{templates} 个模板', 'backup.settings': '同时替换全局偏好设置',
   'history.view': '查看详情', 'history.from': '起始日期', 'history.to': '结束日期', 'history.allStatuses': '全部状态', 'history.previous': '上一页', 'history.next': '下一页', 'history.page': '第 {page} 页', 'history.noLogs': '没有保存的日志（旧记录可能没有日志）。', 'notifications.delivery': '通知发送记录', 'notifications.deliveryNote': '显示最近 100 次发送，包含渠道测试；成功表示服务接受请求，不代表手机已展示通知。',
@@ -122,7 +128,7 @@ const zh: Record<TranslationKey, string> = {
   'folders.all': '全部站点', 'folders.ungrouped': '未分类', 'folders.deleteQuestion': '删除文件夹“{name}”？',
   'folders.deleteNote': '文件夹内站点将移回未分类，脚本、定时设置和运行记录都会保留。',
   'folders.search': '按名称或网址搜索站点', 'folders.selectAll': '全选', 'folders.selected': '已选择 {count} 个',
-  'folders.move': '移动到', 'folders.run': '运行当前列表中的启用站点', 'folders.empty': '当前列表中没有站点。',
+  'folders.move': '移动到', 'folders.run': '运行当前列表', 'folders.empty': '当前列表中没有站点。',
   'templates.export': '导出模板', 'templates.import': '导入模板', 'templates.importCount': '导入 {count} 个模板',
   'templates.exportNote': '导出所选模板的中英文说明和脚本，分享前请检查脚本中的敏感内容。',
   'templates.importNote': '请先检查脚本。导入只新增模板，不覆盖现有模板，重名自动加后缀；导入不会执行脚本。',

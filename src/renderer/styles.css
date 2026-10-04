@@ -125,10 +125,13 @@ input:disabled { background: #ecece8; }
 .folder-item { border-top: 1px solid #eceee7; margin-top: 6px; padding-top: 6px; }
 .folder-item-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 8px 4px; }
 .folder-item-actions button { font: inherit; font-size: 10px; border: 0; background: transparent; color: #737d6d; cursor: pointer; }
-.sites-tools { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.sites-tools input { flex: 1; min-width: 0; }
+.sites-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.sites-tools input { flex: 1 1 180px; min-width: 150px; }
+.sites-tools select { max-width: 180px; }
 .sites-tools .secondary { margin: 0; }
-.site-selection { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; font-size: 12px; color: #737d6d; }
+.site-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; color: #737d6d; }
+.site-selection .secondary { padding: 8px 12px; }
+.sites-view-note { margin: 0 0 12px; font-size: 11px; color: #737d6d; line-height: 1.5; }
 .site-selection .checkbox { padding: 0; }
 .site-selection > label:last-child { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .site-folder-label { color: #657948 !important; }
