@@ -53,6 +53,17 @@ describe('one-shot CLI', () => {
     expect(notifications.notifyBatch).toHaveBeenCalledTimes(1);
   });
 
+  it('runs only enabled sites in the requested folder and lists folders', async () => {
+    const { data, sites, runner, notifications } = setup();
+    const folder = data.saveFolder({ name: 'Daily' });
+    data.moveSites([sites[0]!.id, sites[2]!.id], folder.id);
+    const result = await executeCliCommand(parseCliCommand(['--run-folder', 'Daily'])!, data, runner, notifications);
+    expect(result.output).toMatchObject({ total: 1, success: 1 });
+    expect(notifications.notifyBatch).toHaveBeenCalledOnce();
+    expect((await executeCliCommand(parseCliCommand(['--list-folders'])!, data, runner, notifications)).output).toMatchObject({ folders: [{ id: folder.id, name: 'Daily' }] });
+    expect((await executeCliCommand(parseCliCommand(['--run-folder', 'Missing'])!, data, runner, notifications)).exitCode).toBe(2);
+  });
+
   it('runs an explicitly selected disabled site and rejects ambiguous or missing names', async () => {
     const { data, sites, runner, notifications, headlessModes } = setup();
     const disabled = sites[2]!;

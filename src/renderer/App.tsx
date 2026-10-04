@@ -63,7 +63,7 @@ export function App() {
     if (page === 'profiles') return <ProfilesPage profiles={profiles} onChange={refresh} onError={showError} />;
     if (page === 'history') return <RunHistoryPage runs={runs} sites={sites} onError={showError} />;
     if (page === 'notifications') return <NotificationsPage onError={showError} />;
-    if (page === 'settings') return <SettingsPage info={info} onError={showError} />;
+    if (page === 'settings') return <SettingsPage info={info} onChange={refresh} onError={showError} />;
     return <OverviewPage sites={sites} profiles={profiles} latestRun={latestBatch} batchRunning={batchRunning} onNavigate={setPage} onRunAll={async () => {
       setBatchRunning(true);
       try {

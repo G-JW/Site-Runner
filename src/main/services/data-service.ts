@@ -35,6 +35,12 @@ export function validateSite(input: SiteInput): SiteInput {
 export class DataService {
   constructor(private readonly db: DatabaseSync) {}
 
+  transaction<T>(work: () => T): T {
+    this.db.exec('BEGIN IMMEDIATE');
+    try { const result = work(); this.db.exec('COMMIT'); return result; }
+    catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
   listTemplates(): ScriptTemplate[] {
     const row = this.db.prepare("SELECT value FROM settings WHERE key = 'scriptTemplates'").get() as Row | undefined;
     if (!row) return this.restoreDefaultTemplates();
@@ -210,12 +216,14 @@ export class DataService {
   }
 
   saveRun(record: RunRecord, logs: RunLogEntry[] = []): void {
+    this.transaction(() => {
     this.db.prepare(`INSERT INTO run_records(id, site_id, started_at, finished_at, status, message,
       error, last_url, screenshot_path, trigger) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(record.id, record.siteId, record.startedAt, record.finishedAt, record.status,
         record.message, record.error, record.lastUrl, record.screenshotPath, record.trigger);
     const statement = this.db.prepare('INSERT INTO run_logs(run_id, position, level, message, timestamp) VALUES (?, ?, ?, ?, ?)');
     logs.slice(-1000).forEach((entry, index) => statement.run(record.id, index, entry.level, entry.message.slice(0, 4000), entry.timestamp));
+    });
   }
 
   searchRuns(query: RunQuery): RunRecord[] {

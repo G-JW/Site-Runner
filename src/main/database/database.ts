@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { chmodSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -9,7 +9,15 @@ export class AppDatabase {
     mkdirSync(path.dirname(databasePath), { recursive: true });
     this.connection = new DatabaseSync(databasePath);
     this.connection.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
-    this.migrate();
+    const version = this.connection.prepare('PRAGMA user_version').get() as { user_version: number };
+    try {
+      if (version.user_version > 0 && version.user_version < 5) {
+        const directory = path.join(path.dirname(databasePath), 'backups'); mkdirSync(directory, { recursive: true });
+        const target = path.join(directory, `before-v${version.user_version}-${Date.now()}.sqlite3`);
+        this.connection.prepare('VACUUM INTO ?').run(target); chmodSync(target, 0o600);
+      }
+      this.migrate();
+    } catch (error) { this.connection.close(); throw error; }
   }
 
   close(): void { this.connection.close(); }

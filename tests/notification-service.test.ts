@@ -67,4 +67,12 @@ describe('NotificationService', () => {
   it('does nothing when no channels are configured', async () => {
     expect(await new NotificationService(setup()).notifyBatch(batch())).toEqual([]);
   });
+
+  it('does not turn an accepted delivery into a failure if receipt storage fails', async () => {
+    const data = setup();
+    data.saveChannel({ name: 'Accepted', providerType: 'ntfy', enabled: true, eventPolicy: 'all', config: {} });
+    vi.spyOn(data, 'saveReceipt').mockImplementation(() => { throw new Error('disk full'); });
+    const service = new NotificationService(data, { ntfy: () => ({ send: async () => undefined }) });
+    expect(await service.notifyBatch(batch())).toEqual([expect.objectContaining({ success: true, error: null })]);
+  });
 });

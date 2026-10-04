@@ -63,6 +63,9 @@ const api: SiteRunnerApi = {
     test: (id) => ipcRenderer.invoke('notifications:test', id) as ReturnType<SiteRunnerApi['notifications']['test']>,
   },
   settings: {
+    exportConfiguration: () => ipcRenderer.invoke('settings:exportConfiguration') as ReturnType<SiteRunnerApi['settings']['exportConfiguration']>,
+    previewConfiguration: () => ipcRenderer.invoke('settings:previewConfiguration') as ReturnType<SiteRunnerApi['settings']['previewConfiguration']>,
+    importConfiguration: (file, applySettings) => ipcRenderer.invoke('settings:importConfiguration', file, applySettings) as ReturnType<SiteRunnerApi['settings']['importConfiguration']>,
     get: () => ipcRenderer.invoke('settings:get') as ReturnType<SiteRunnerApi['settings']['get']>,
     update: (settings) => ipcRenderer.invoke('settings:update', settings) as ReturnType<SiteRunnerApi['settings']['update']>,
   },

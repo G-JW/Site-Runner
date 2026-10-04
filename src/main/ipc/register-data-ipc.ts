@@ -2,6 +2,7 @@ import { dialog, ipcMain, shell } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 import { exportSiteRules, parseSiteRules } from '../site-rules.js';
 import { exportTemplates, parseTemplateFile } from '../template-files.js';
+import { exportConfiguration, importConfiguration, parseConfiguration } from '../configuration.js';
 import { getAppPaths } from '../paths.js';
 import type { NotificationChannelInput, SiteInput, ScriptTemplateInput } from '../../shared/types.js';
 import type { DataService } from '../services/data-service.js';
@@ -82,5 +83,21 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   ipcMain.handle('notifications:remove', (_event, id: string) => data.removeChannel(id));
   ipcMain.handle('notifications:test', (_event, id: string) => notifications.testChannel(id));
   ipcMain.handle('settings:get', () => data.getSettings());
+  ipcMain.handle('settings:exportConfiguration', async () => {
+    const file = exportConfiguration(data);
+    const { canceled, filePath } = await dialog.showSaveDialog({ defaultPath: 'site-runner-configuration.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (canceled || !filePath) return false;
+    await writeFile(filePath, JSON.stringify(file, null, 2), { mode: 0o600 }); return true;
+  });
+  ipcMain.handle('settings:previewConfiguration', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (canceled || !filePaths[0]) return null;
+    const file = await readFile(filePaths[0]);
+    if (file.length > 10 * 1024 * 1024) throw new Error('Configuration file exceeds 10 MB');
+    return parseConfiguration(JSON.parse(file.toString('utf8')));
+  });
+  ipcMain.handle('settings:importConfiguration', (_event, file: unknown, applySettings: boolean) => {
+    const result = importConfiguration(data, file, applySettings === true); scheduler.refreshAll(); return result;
+  });
   ipcMain.handle('settings:update', (_event, patch) => data.updateSettings(patch));
 }

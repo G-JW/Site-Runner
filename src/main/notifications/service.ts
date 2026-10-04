@@ -31,6 +31,11 @@ export function buildBatchNotification(batch: BatchResult): NotificationMessage 
 export class NotificationService {
   constructor(private readonly data: DataService, private readonly registry: Record<string, ProviderFactory> = defaultRegistry) {}
 
+  private recordDelivery(input: Parameters<DataService['saveReceipt']>[0]): void {
+    try { this.data.saveReceipt(input); }
+    catch (error) { console.error('Could not save notification receipt:', error); }
+  }
+
   async notifyBatch(batch: BatchResult): Promise<NotificationDelivery[]> {
     if (!this.data.getSettings().notificationEnabled) return [];
     const message = buildBatchNotification(batch);
@@ -54,12 +59,12 @@ export class NotificationService {
         const factory = this.registry[channel.providerType];
         if (!factory) throw new Error(`Unknown notification provider: ${channel.providerType}`);
         await factory(channel.config).send(message);
-        this.data.saveReceipt({ channelName: channel.name, title: message.title, success: true, error: null });
+        this.recordDelivery({ channelName: channel.name, title: message.title, success: true, error: null });
         return { channelId: channel.id, channelName: channel.name, success: true, error: null };
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         console.error(`Notification channel ${channel.name} failed: ${reason}`);
-        this.data.saveReceipt({ channelName: channel.name, title: message.title, success: false, error: reason });
+        this.recordDelivery({ channelName: channel.name, title: message.title, success: false, error: reason });
         return { channelId: channel.id, channelName: channel.name, success: false, error: reason };
       }
     }));

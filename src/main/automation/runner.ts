@@ -31,13 +31,13 @@ export class AutomationRunner {
     const month = timestamp.toISOString().slice(0, 7);
     const fileStamp = timestamp.toISOString().replaceAll(':', '-').replaceAll('.', '-');
     const screenshotPath = path.join(this.screenshotsRoot, month, `${site.id}-${fileStamp}.png`);
-    mkdirSync(path.dirname(screenshotPath), { recursive: true });
     const settings = this.data.getSettings();
     const logs: RunLogEntry[] = [];
     let releaseProfile: (() => void) | undefined;
     try {
       let result: AutomationExecutionResult;
       try {
+        mkdirSync(path.dirname(screenshotPath), { recursive: true });
         releaseProfile = await this.profiles.acquireForRun(site.browserProfileId);
         result = await this.executor({
           siteId: site.id, siteName: site.name, url: site.url, script: site.script,

@@ -32,6 +32,13 @@ export interface RunRecord {
 export interface RunLogEntry { siteId: string; level: 'info' | 'warn' | 'error'; message: string; timestamp: string }
 export interface RunQuery { siteId?: string; status?: RunStatus; from?: string; to?: string; offset?: number }
 export interface NotificationReceipt { id: string; channelName: string; title: string; success: boolean; error: string | null; createdAt: string }
+export interface ConfigurationFile {
+  format: 'site-runner-configuration'; version: 1;
+  profiles: Array<{ key: string; name: string }>;
+  folders: Array<{ key: string; name: string; schedule: SiteSchedule }>;
+  sites: Array<SiteRule & { profileKey: string; folderKey: string | null }>;
+  templates: ScriptTemplateInput[]; settings: AppSettings;
+}
 export interface SiteRunResult {
   siteId: string; siteName: string; status: RunStatus; message: string | null; error: string | null;
   startedAt: string; finishedAt: string; screenshotPath: string | null;
@@ -86,5 +93,9 @@ export interface SiteRunnerApi {
     remove(id: string): Promise<void>; test(id: string): Promise<void>;
     receipts(): Promise<NotificationReceipt[]>;
   };
-  settings: { get(): Promise<AppSettings>; update(settings: Partial<AppSettings>): Promise<AppSettings> };
+  settings: {
+    get(): Promise<AppSettings>; update(settings: Partial<AppSettings>): Promise<AppSettings>;
+    exportConfiguration(): Promise<boolean>; previewConfiguration(): Promise<ConfigurationFile | null>;
+    importConfiguration(file: ConfigurationFile, applySettings: boolean): Promise<{ sites: number; templates: number }>;
+  };
 }
