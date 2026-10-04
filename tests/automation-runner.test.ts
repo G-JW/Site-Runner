@@ -62,4 +62,17 @@ describe('AutomationRunner', () => {
     expect(data.runDetail(records.find((run) => run.status === 'failed')!.id).logs[0]?.message).toContain('Queued run cancelled');
     expect(runner.isRunning(sites[0]!.id) || runner.isRunning(sites[1]!.id)).toBe(false);
   });
+
+  it('bounds live log messages before publishing and retaining them in memory', async () => {
+    const root = mkdtempSync('/private/tmp/site-runner-log-bound-'), database = new AppDatabase(path.join(root, 'test.sqlite3')); databases.push(database);
+    const data = new DataService(database.connection), profiles = new ProfileService(data, path.join(root, 'profiles'));
+    const site = data.saveSite({ name: 'Logs', url: 'https://example.com', enabled: true, script: null, browserProfileId: profiles.create('Default').id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } });
+    const messages: string[] = [];
+    const runner = new AutomationRunner(data, profiles, path.join(root, 'screenshots'), (entry) => messages.push(entry.message), async (request, emit) => {
+      emit({ siteId: request.siteId, level: 'info', message: 'x'.repeat(100000), timestamp: '' });
+      return { siteId: request.siteId, siteName: request.siteName, status: 'success', message: null, error: null, startedAt: '', finishedAt: '', screenshotPath: null, lastUrl: null };
+    });
+    await runner.runSite(site.id, 'manual'); expect(messages[0]).toHaveLength(4000); expect(messages[0]?.endsWith('…')).toBe(true);
+    expect(data.runDetail(data.listRuns()[0]!.id).logs[0]?.message).toBe(messages[0]);
+  });
 });

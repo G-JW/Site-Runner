@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
-import type { RunLogEntry, RunRecord, RunTrigger, SiteRunResult } from '../../shared/types.js';
+import type { ActiveRun, RunLogEntry, RunRecord, RunTrigger, SiteRunResult } from '../../shared/types.js';
 import type { ProfileService } from '../profiles/profile-service.js';
 import type { DataService } from '../services/data-service.js';
 import type { AutomationExecutionResult, AutomationRequest, AutomationWorkerMessage } from './types.js';
@@ -10,7 +10,8 @@ import type { AutomationExecutionResult, AutomationRequest, AutomationWorkerMess
 export type AutomationExecutor = (request: AutomationRequest, emit: (entry: RunLogEntry) => void) => Promise<AutomationExecutionResult>;
 
 export class AutomationRunner {
-  private readonly runningSites = new Set<string>();
+  private readonly runningSites = new Map<string, ActiveRun>();
+  private readonly listeners = new Set<() => void>();
   private readonly active = new Set<Promise<SiteRunResult>>();
   private stopping = false;
 
@@ -23,6 +24,9 @@ export class AutomationRunner {
   ) {}
 
   isRunning(siteId: string): boolean { return this.runningSites.has(siteId); }
+  getActiveRuns(): ActiveRun[] { return [...this.runningSites.values()].map((run) => ({ ...run })); }
+  onState(listener: () => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
+  private changed(): void { for (const listener of this.listeners) listener(); }
   isStopping(): boolean { return this.stopping; }
 
   async shutdown(): Promise<void> {
@@ -42,12 +46,18 @@ export class AutomationRunner {
     if (this.runningSites.has(siteId)) throw new Error('This site is already running');
     const site = this.data.getSite(siteId);
     this.profiles.assertNotRecording(site.browserProfileId);
-    this.runningSites.add(siteId);
     const timestamp = new Date();
+    this.runningSites.set(siteId, { siteId, siteName: site.name, profileId: site.browserProfileId, trigger, phase: 'queued', requestedAt: timestamp.toISOString() });
+    this.changed();
     const month = timestamp.toISOString().slice(0, 7);
     const fileStamp = timestamp.toISOString().replaceAll(':', '-').replaceAll('.', '-');
     const screenshotPath = path.join(this.screenshotsRoot, month, `${site.id}-${fileStamp}.png`);
     const logs: RunLogEntry[] = [];
+    const captureLog = (entry: RunLogEntry) => {
+      const message = String(entry.message);
+      const bounded = { ...entry, message: message.length > 4000 ? message.slice(0, 3999) + '…' : message };
+      logs.push(bounded); if (logs.length > 1000) logs.shift(); this.emit(bounded);
+    };
     let releaseProfile: (() => void) | undefined;
     try {
       let result: AutomationExecutionResult;
@@ -56,16 +66,17 @@ export class AutomationRunner {
         mkdirSync(path.dirname(screenshotPath), { recursive: true });
         releaseProfile = await this.profiles.acquireForRun(site.browserProfileId);
         if (this.stopping) throw new Error('Queued run cancelled because the application is closing');
+        this.runningSites.get(siteId)!.phase = 'running'; this.changed();
         result = await this.executor({
           siteId: site.id, siteName: site.name, url: site.url, script: site.script,
           timeoutMs: site.timeoutMs, profilePath: this.profiles.getProfilePath(site.browserProfileId),
           visitOptions: site.visitOptions,
           screenshotPath, headless: headless ?? settings.browserHeadless,
-        }, (entry) => { logs.push(entry); if (logs.length > 1000) logs.shift(); this.emit(entry); });
+        }, captureLog);
       } catch (error) {
         const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
         const entry = { siteId, level: 'error' as const, message, timestamp: new Date().toISOString() };
-        logs.push(entry); this.emit(entry);
+        captureLog(entry);
         result = {
           siteId, siteName: site.name, status: 'failed', message: null, error: message,
           startedAt: timestamp.toISOString(), finishedAt: new Date().toISOString(),
@@ -82,6 +93,7 @@ export class AutomationRunner {
     } finally {
       releaseProfile?.();
       this.runningSites.delete(siteId);
+      this.changed();
     }
   }
 }

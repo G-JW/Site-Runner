@@ -64,3 +64,15 @@ it('waits for an in-flight scheduled notification and ignores callbacks after sh
     finish(); await shutdown; expect(drained).toBe(true);
   } finally { database.close(); }
 });
+
+it('skips a site cron occurrence while that site is reserved by another batch', async () => {
+  callbacks.length = 0;
+  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-schedule-busy-'), 'test.sqlite3'));
+  try {
+    const data = new DataService(database.connection), profile = data.createProfile('Default');
+    data.saveSite({ name: 'Waiting', url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: true, cron: '0 9 * * *' } });
+    let available = false; const runSite = vi.fn(async () => undefined);
+    const scheduler = new SchedulerService(data, { runSite: runSite as unknown as ConstructorParameters<typeof SchedulerService>[1]['runSite'] }, undefined, undefined, () => available);
+    scheduler.start(); callbacks[0]!(); expect(runSite).not.toHaveBeenCalled(); available = true; callbacks[0]!(); expect(runSite).toHaveBeenCalledOnce(); scheduler.stop();
+  } finally { database.close(); }
+});

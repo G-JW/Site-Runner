@@ -30,6 +30,9 @@ export interface RunRecord {
   screenshotPath: string | null; trigger: RunTrigger;
 }
 export interface RunLogEntry { siteId: string; level: 'info' | 'warn' | 'error'; message: string; timestamp: string }
+export interface ActiveRun { siteId: string; siteName: string; profileId: string; trigger: RunTrigger; phase: 'queued' | 'running'; requestedAt: string }
+export interface ActiveBatch { id: string; siteIds: string[]; trigger: RunTrigger; total: number; completed: number; success: number; failed: number; currentSiteId: string | null; phase: 'running' | 'notifying' }
+export interface RuntimeSnapshot { revision: number; runs: ActiveRun[]; batches: ActiveBatch[] }
 export interface RunQuery { siteId?: string; status?: RunStatus; from?: string; to?: string; offset?: number }
 export interface NotificationReceipt { id: string; channelName: string; title: string; success: boolean; error: string | null; createdAt: string }
 export interface ConfigurationFile {
@@ -88,6 +91,7 @@ export interface SiteRunnerApi {
     remove(id: string): Promise<void>; open(id: string): Promise<void>;
   };
   runs: {
+    state(): Promise<RuntimeSnapshot>; onState(listener: (state: RuntimeSnapshot) => void): () => void;
     runSite(id: string): Promise<SiteRunResult>; runEnabledSites(): Promise<BatchResult>; runSites(ids: string[]): Promise<BatchResult>;
     list(siteId?: string): Promise<RunRecord[]>; openScreenshot(runId: string): Promise<string>;
     search(query: RunQuery): Promise<RunRecord[]>; detail(id: string): Promise<{ run: RunRecord; logs: RunLogEntry[] }>;

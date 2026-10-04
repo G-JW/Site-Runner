@@ -15,6 +15,7 @@ import { createLogger } from './logging.js';
 import { cliHelp, executeCliCommand, parseCliCommand, type CliCommand } from './cli.js';
 import { RecorderService } from './recording/recorder-service.js';
 import { CleanupService } from './services/cleanup-service.js';
+import { RuntimeService } from './services/runtime-service.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 let cliCommand: CliCommand | null = null;
@@ -116,24 +117,27 @@ app.whenReady().then(async () => {
     return;
   }
   const batch = new BatchRunner(data, runner, (result) => notifications.notifyBatch(result).then(() => undefined));
+  const scheduledBatch = new BatchRunner(data, runner, async (result) => {
+    if (result.total && data.getSettings().notifyScheduledRuns) await notifications.notifyBatch(result);
+  });
+  const runtime = new RuntimeService(runner, [batch, scheduledBatch]);
   const scheduler = new SchedulerService(data, runner, async (result) => {
     if (!data.getSettings().notifyScheduledRuns) return;
     await notifications.notifyBatch({ startedAt: result.startedAt, finishedAt: result.finishedAt, total: 1,
       success: result.status === 'success' ? 1 : 0, failed: result.status === 'failed' ? 1 : 0, results: [result] });
   }, async (folderId) => {
-    const scheduledBatch = new BatchRunner(data, runner, async (result) => {
-      if (result.total && data.getSettings().notifyScheduledRuns) await notifications.notifyBatch(result);
-    });
-    await scheduledBatch.runSites(data.listSites().filter((site) => site.enabled && site.folderId === folderId).map((site) => site.id), undefined, 'schedule');
-  });
-  const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runner.isRunning(site.id)));
+    const ids = data.listSites().filter((site) => site.enabled && site.folderId === folderId && !runtime.isBusy(site.id)).map((site) => site.id);
+    if (!ids.length) return;
+    await scheduledBatch.runSites(ids, undefined, 'schedule');
+  }, (id) => !runtime.isBusy(id));
+  const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runtime.isBusy(site.id)));
   ipcMain.handle('recorder:start', (_event, input) => { if (runner.isStopping()) throw new Error('Application is closing'); return recorder.start(input); });
   ipcMain.handle('recorder:status', () => recorder.getStatus());
   ipcMain.handle('recorder:finish', () => recorder.finish());
   ipcMain.handle('recorder:cancel', () => recorder.cancel());
   if (data.listProfiles().length === 0) profiles.create('Default');
-  registerDataIpc(data, profiles, scheduler, notifications, cleanup);
-  registerRunIpc(runner, batch);
+  registerDataIpc(data, profiles, scheduler, notifications, cleanup, runtime);
+  registerRunIpc(runner, batch, runtime, data);
   scheduler.start();
   cleanup.start();
   ipcMain.handle('app:info', () => ({
@@ -148,7 +152,7 @@ app.whenReady().then(async () => {
     if (closing) return;
     closing = true;
     cleanup.stop();
-    const finishing = [scheduler.shutdown(), batch.shutdown(), runner.shutdown(), recorder.cancel(), profiles.closeAll()];
+    const finishing = [scheduler.shutdown(), batch.shutdown(), scheduledBatch.shutdown(), runner.shutdown(), recorder.cancel(), profiles.closeAll()];
     for (const window of BrowserWindow.getAllWindows()) {
       if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('app:closing');
     }

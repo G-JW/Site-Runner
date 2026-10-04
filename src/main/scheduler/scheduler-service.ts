@@ -20,7 +20,7 @@ export class SchedulerService {
     await Promise.allSettled([...this.active]);
   }
 
-  constructor(private readonly data: DataService, private readonly runner: Pick<AutomationRunner, 'runSite'>, private readonly onComplete?: (result: SiteRunResult) => Promise<void>, private readonly runFolder?: (folderId: string) => Promise<void>) {}
+  constructor(private readonly data: DataService, private readonly runner: Pick<AutomationRunner, 'runSite'>, private readonly onComplete?: (result: SiteRunResult) => Promise<void>, private readonly runFolder?: (folderId: string) => Promise<void>, private readonly canRun: (siteId: string) => boolean = () => true) {}
 
   private readonly runningFolders = new Set<string>();
 
@@ -49,7 +49,7 @@ export class SchedulerService {
     const task = cron.schedule(site.schedule.cron, () => {
       if (this.closing) return;
       const current = this.data.getSite(site.id);
-      if (!current.enabled || !current.schedule.enabled) return;
+      if (!current.enabled || !current.schedule.enabled || !this.canRun(site.id)) return;
       this.track(this.runner.runSite(site.id, 'schedule').then((result) => this.onComplete?.(result)).catch((error: unknown) => {
         console.error(`Scheduled run failed for ${site.name}:`, error);
       }));

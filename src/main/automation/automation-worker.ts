@@ -6,7 +6,10 @@ import { executeAutomation } from './worker-execution.js';
 if (!parentPort) throw new Error('Automation worker requires a parent port');
 const port = parentPort;
 const request = workerData as AutomationRequest;
-const emit = (entry: RunLogEntry) => port.postMessage({ type: 'log', entry } satisfies AutomationWorkerMessage);
+const emit = (entry: RunLogEntry) => {
+  const message = String(entry.message);
+  port.postMessage({ type: 'log', entry: { ...entry, message: message.length > 4000 ? message.slice(0, 3999) + '…' : message } } satisfies AutomationWorkerMessage);
+};
 void executeAutomation(request, emit).then((result) => {
   port.postMessage({ type: 'result', result } satisfies AutomationWorkerMessage);
 }).catch((error: unknown) => {

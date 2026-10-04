@@ -52,6 +52,12 @@ const api: SiteRunnerApi = {
     open: (id) => ipcRenderer.invoke('profiles:open', id) as ReturnType<SiteRunnerApi['profiles']['open']>,
   },
   runs: {
+    state: () => ipcRenderer.invoke('runs:state') as ReturnType<SiteRunnerApi['runs']['state']>,
+    onState: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof listener>[0]) => listener(state);
+      ipcRenderer.on('runs:state', handler);
+      return () => ipcRenderer.removeListener('runs:state', handler);
+    },
     search: (query) => ipcRenderer.invoke('runs:search', query) as ReturnType<SiteRunnerApi['runs']['search']>,
     detail: (id) => ipcRenderer.invoke('runs:detail', id) as ReturnType<SiteRunnerApi['runs']['detail']>,
     runSites: (ids) => ipcRenderer.invoke('runs:runSites', ids) as ReturnType<SiteRunnerApi['runs']['runSites']>,

@@ -10,8 +10,9 @@ import type { ProfileService } from '../profiles/profile-service.js';
 import type { SchedulerService } from '../scheduler/scheduler-service.js';
 import type { NotificationService } from '../notifications/service.js';
 import type { CleanupService } from '../services/cleanup-service.js';
+import type { RuntimeService } from '../services/runtime-service.js';
 
-export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService, notifications: NotificationService, cleanup: CleanupService): void {
+export function registerDataIpc(data: DataService, profiles: ProfileService, scheduler: SchedulerService, notifications: NotificationService, cleanup: CleanupService, runtime: RuntimeService): void {
   ipcMain.handle('cleanup:preview', () => cleanup.preview());
   ipcMain.handle('cleanup:execute', (_event, id: string) => cleanup.execute(id));
   ipcMain.handle('cleanup:status', () => data.getCleanupStatus());
@@ -66,13 +67,15 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   });
   ipcMain.handle('templates:importFiles', (_event, inputs: unknown) => data.importTemplates(parseTemplateFile({ format: 'site-runner-templates', version: 1, templates: inputs })));
   ipcMain.handle('sites:save', (_event, input: SiteInput) => {
+    if (input.id) runtime.assertIdle(input.id);
     const site = data.saveSite(input); scheduler.refresh(site); return site;
   });
-  ipcMain.handle('sites:remove', (_event, id: string) => { scheduler.remove(id); data.removeSite(id); });
+  ipcMain.handle('sites:remove', (_event, id: string) => { runtime.assertIdle(id); scheduler.remove(id); data.removeSite(id); });
   ipcMain.handle('profiles:list', () => data.listProfiles());
   ipcMain.handle('profiles:create', (_event, name: string) => profiles.create(name));
-  ipcMain.handle('profiles:remove', (_event, id: string) => profiles.remove(id));
-  ipcMain.handle('profiles:open', (_event, id: string) => profiles.open(id));
+  const assertProfileIdle = (id: string) => { if (data.listSites().some((site) => site.browserProfileId === id && runtime.isBusy(site.id))) throw new Error('This profile has running or waiting tasks'); };
+  ipcMain.handle('profiles:remove', (_event, id: string) => { assertProfileIdle(id); profiles.remove(id); });
+  ipcMain.handle('profiles:open', (_event, id: string) => { assertProfileIdle(id); return profiles.open(id); });
   ipcMain.handle('runs:search', (_event, query) => data.searchRuns(query));
   ipcMain.handle('runs:detail', (_event, id: string) => data.runDetail(id));
   ipcMain.handle('notifications:receipts', () => data.listReceipts());

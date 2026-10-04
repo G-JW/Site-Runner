@@ -214,3 +214,12 @@ input:disabled { background: #ecece8; }
 .notification-history > p { font-size: 12px; color: #71766f; }
 .receipt-row { display: grid; grid-template-columns: 70px 1fr 180px; gap: 8px; border-top: 1px solid #eceee7; padding: 12px 0; font-size: 12px; }
 .receipt-row p { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
+
+.active-tasks { margin-bottom: 18px; padding: 16px 20px; background: #f0f3e9; }
+.active-tasks > strong { display: block; margin-bottom: 8px; }
+.active-batch { padding: 8px 0; }
+.active-batch > div, .active-single { display: flex; justify-content: space-between; gap: 14px; font-size: 13px; }
+.active-batch progress { width: 100%; height: 8px; accent-color: #61734d; }
+.active-batch small { color: #626b5e; }
+.active-single { padding: 5px 0; }
+.log-panel > select { margin: 0 20px 12px; }
