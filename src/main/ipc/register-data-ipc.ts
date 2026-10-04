@@ -68,6 +68,9 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   ipcMain.handle('profiles:create', (_event, name: string) => profiles.create(name));
   ipcMain.handle('profiles:remove', (_event, id: string) => profiles.remove(id));
   ipcMain.handle('profiles:open', (_event, id: string) => profiles.open(id));
+  ipcMain.handle('runs:search', (_event, query) => data.searchRuns(query));
+  ipcMain.handle('runs:detail', (_event, id: string) => data.runDetail(id));
+  ipcMain.handle('notifications:receipts', () => data.listReceipts());
   ipcMain.handle('runs:list', (_event, siteId?: string) => data.listRuns(siteId));
   ipcMain.handle('runs:openScreenshot', (_event, runId: string) => {
     const run = data.getRun(runId);

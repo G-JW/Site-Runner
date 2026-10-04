@@ -54,10 +54,12 @@ export class NotificationService {
         const factory = this.registry[channel.providerType];
         if (!factory) throw new Error(`Unknown notification provider: ${channel.providerType}`);
         await factory(channel.config).send(message);
+        this.data.saveReceipt({ channelName: channel.name, title: message.title, success: true, error: null });
         return { channelId: channel.id, channelName: channel.name, success: true, error: null };
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         console.error(`Notification channel ${channel.name} failed: ${reason}`);
+        this.data.saveReceipt({ channelName: channel.name, title: message.title, success: false, error: reason });
         return { channelId: channel.id, channelName: channel.name, success: false, error: reason };
       }
     }));

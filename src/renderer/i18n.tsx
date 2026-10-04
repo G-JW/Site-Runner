@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { AppLanguage } from '../shared/types';
 
 const en = {
+  'history.view': 'View details', 'history.from': 'From date', 'history.to': 'To date', 'history.allStatuses': 'All statuses', 'history.previous': 'Previous', 'history.next': 'Next', 'history.page': 'Page {page}', 'history.noLogs': 'No saved logs (older records may have no logs).', 'notifications.delivery': 'Notification deliveries', 'notifications.deliveryNote': 'Latest 100 deliveries, including channel tests. Provider success confirms acceptance, not that your phone displayed it.',
   'visit.title': 'Visit checks (empty script)', 'visit.stay': 'Stay after opening (ms)', 'visit.check': 'Success check', 'visit.none': 'Basic visit', 'visit.selector': 'Visible selector', 'visit.text': 'Visible exact text', 'visit.value': 'Selector or text', 'visit.detect': 'Detect common challenge pages', 'visit.note': 'Basic visits do not prove login or rewards. Checks run only when the script is empty.',
   'folders.edit': 'Edit', 'folders.scheduleNote': 'Runs enabled sites sequentially using local system time. Avoid enabling overlapping site schedules.',
   'folders.title': 'Folders', 'folders.add': 'New folder', 'folders.rename': 'Rename', 'folders.save': 'Save folder',
@@ -101,6 +102,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  'history.view': '查看详情', 'history.from': '起始日期', 'history.to': '结束日期', 'history.allStatuses': '全部状态', 'history.previous': '上一页', 'history.next': '下一页', 'history.page': '第 {page} 页', 'history.noLogs': '没有保存的日志（旧记录可能没有日志）。', 'notifications.delivery': '通知发送记录', 'notifications.deliveryNote': '显示最近 100 次发送，包含渠道测试；成功表示服务接受请求，不代表手机已展示通知。',
   'visit.title': '访问检查（空脚本时生效）', 'visit.stay': '打开后停留（毫秒）', 'visit.check': '成功检查', 'visit.none': '基本访问', 'visit.selector': '指定元素可见', 'visit.text': '指定文字可见', 'visit.value': '选择器或文字', 'visit.detect': '识别常见安全验证页', 'visit.note': '基本访问不代表登录或奖励成功；这些检查仅在脚本为空时执行。',
   'folders.edit': '编辑', 'folders.scheduleNote': '按系统本地时间串行运行启用站点；请避免同时开启重叠的单站点定时任务。',
   'folders.title': '文件夹', 'folders.add': '新建文件夹', 'folders.rename': '重命名', 'folders.save': '保存文件夹',

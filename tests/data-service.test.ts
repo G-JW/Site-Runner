@@ -40,4 +40,15 @@ describe('DataService', () => {
     data.removeChannel(channel.id);
     expect(data.listChannels()).toEqual([]);
   });
+
+  it('queries history beyond the latest 500 and associates logs with each run', () => {
+    const profile = data.createProfile('Default');
+    const site = data.saveSite({ name: 'History', url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } });
+    for (let index = 0; index < 505; index++) data.saveRun({ id: `r${index}`, siteId: site.id, siteName: site.name, startedAt: new Date(Date.UTC(2026, 9, 3, 12, 0, index)).toISOString(), finishedAt: '', status: index % 2 ? 'failed' : 'success', message: 'done', error: null, lastUrl: site.url, screenshotPath: null, trigger: 'manual' }, [{ siteId: site.id, level: 'info', message: `log ${index}`, timestamp: '2026-10-03T12:00:00Z' }]);
+    expect(data.searchRuns({ offset: 500 })).toHaveLength(5);
+    expect(data.searchRuns({ status: 'failed' }).every((run) => run.status === 'failed')).toBe(true);
+    expect(data.searchRuns({ from: '2026-10-04' })).toEqual([]);
+    expect(data.runDetail('r504').logs[0]?.message).toBe('log 504');
+    expect(() => data.searchRuns({ offset: -1 })).toThrow();
+  });
 });

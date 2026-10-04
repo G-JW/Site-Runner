@@ -30,7 +30,7 @@ describe('site folders', () => {
       const data = new DataService(database.connection);
       expect(data.getSite('site')).toMatchObject({ folderId: null, script: 'script', schedule: { enabled: true }, lastRun: { id: 'run' } });
       expect(data.listTemplates()).toEqual([]);
-      expect(database.connection.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 4 });
+      expect(database.connection.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 5 });
       const folder = data.saveFolder({ name: 'Forums' });
       data.moveSites(['site'], folder.id);
       expect(data.getSite('site').folderId).toBe(folder.id);

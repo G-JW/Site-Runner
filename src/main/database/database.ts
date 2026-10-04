@@ -68,5 +68,14 @@ export class AppDatabase {
       PRAGMA user_version = 4;
       COMMIT;
     `);
+    if (version.user_version < 5) this.connection.exec(`
+      BEGIN;
+      CREATE TABLE run_logs (run_id TEXT NOT NULL REFERENCES run_records(id) ON DELETE CASCADE, position INTEGER NOT NULL,
+        level TEXT NOT NULL, message TEXT NOT NULL, timestamp TEXT NOT NULL, PRIMARY KEY(run_id, position));
+      CREATE TABLE notification_receipts (id TEXT PRIMARY KEY, channel_name TEXT NOT NULL, title TEXT NOT NULL,
+        success INTEGER NOT NULL, error TEXT, created_at TEXT NOT NULL);
+      PRAGMA user_version = 5;
+      COMMIT;
+    `);
   }
 }

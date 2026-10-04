@@ -5,7 +5,7 @@ import cron from 'node-cron';
 import type { ScriptTemplate, ScriptTemplateInput } from '../../shared/types.js';
 import { legacyVisitOptions, validateVisitOptions } from '../../shared/visit-options.js';
 import { validateTemplate } from '../template-files.js';
-import type { SiteFolder, SiteSchedule } from '../../shared/types.js';
+import type { SiteFolder, SiteSchedule, RunLogEntry, RunQuery, NotificationReceipt } from '../../shared/types.js';
 import { defaultScriptTemplates } from '../../shared/script-templates.js';
 
 type Row = Record<string, unknown>;
@@ -209,11 +209,41 @@ export class DataService {
     if (this.db.prepare('DELETE FROM browser_profiles WHERE id = ?').run(id).changes === 0) throw new Error('Browser profile not found');
   }
 
-  saveRun(record: RunRecord): void {
+  saveRun(record: RunRecord, logs: RunLogEntry[] = []): void {
     this.db.prepare(`INSERT INTO run_records(id, site_id, started_at, finished_at, status, message,
       error, last_url, screenshot_path, trigger) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(record.id, record.siteId, record.startedAt, record.finishedAt, record.status,
         record.message, record.error, record.lastUrl, record.screenshotPath, record.trigger);
+    const statement = this.db.prepare('INSERT INTO run_logs(run_id, position, level, message, timestamp) VALUES (?, ?, ?, ?, ?)');
+    logs.slice(-1000).forEach((entry, index) => statement.run(record.id, index, entry.level, entry.message.slice(0, 4000), entry.timestamp));
+  }
+
+  searchRuns(query: RunQuery): RunRecord[] {
+    const conditions: string[] = [], values: string[] = [];
+    if (query.siteId) { conditions.push('r.site_id = ?'); values.push(query.siteId); }
+    if (query.status) { if (!['success', 'failed'].includes(query.status)) throw new Error('Invalid status'); conditions.push('r.status = ?'); values.push(query.status); }
+    for (const [field, operator] of [['from', '>='], ['to', '<=']] as const) {
+      if (query[field]) { if (!/^\d{4}-\d{2}-\d{2}$/.test(query[field])) throw new Error('Invalid date'); conditions.push(`date(r.started_at, 'localtime') ${operator} ?`); values.push(query[field]); }
+    }
+    const offset = query.offset ?? 0;
+    if (!Number.isInteger(offset) || offset < 0) throw new Error('Invalid offset');
+    return (this.db.prepare(`SELECT r.*, s.name AS site_name FROM run_records r JOIN sites s ON s.id = r.site_id
+      ${conditions.length ? 'WHERE ' + conditions.join(' AND ') : ''} ORDER BY r.started_at DESC, r.id DESC LIMIT 50 OFFSET ?`).all(...values, offset) as Row[]).map((row) => this.mapRun(row));
+  }
+
+  runDetail(id: string): { run: RunRecord; logs: RunLogEntry[] } {
+    const run = this.getRun(id);
+    const logs = (this.db.prepare('SELECT * FROM run_logs WHERE run_id = ? ORDER BY position').all(id) as Row[])
+      .map((row) => ({ siteId: run.siteId, level: row.level as RunLogEntry['level'], message: String(row.message), timestamp: String(row.timestamp) }));
+    return { run, logs };
+  }
+
+  saveReceipt(input: Omit<NotificationReceipt, 'id' | 'createdAt'>): void {
+    this.db.prepare('INSERT INTO notification_receipts VALUES (?, ?, ?, ?, ?, ?)').run(randomUUID(), input.channelName, input.title, Number(input.success), input.error, now());
+  }
+
+  listReceipts(): NotificationReceipt[] {
+    return (this.db.prepare('SELECT * FROM notification_receipts ORDER BY created_at DESC LIMIT 100').all() as Row[]).map((row) => ({ id: String(row.id), channelName: String(row.channel_name), title: String(row.title), success: asBoolean(row.success), error: row.error == null ? null : String(row.error), createdAt: String(row.created_at) }));
   }
 
   listRuns(siteId?: string): RunRecord[] {

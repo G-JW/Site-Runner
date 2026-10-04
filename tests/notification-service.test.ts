@@ -60,6 +60,8 @@ describe('NotificationService', () => {
     expect(deliveries).toHaveLength(2);
     expect(deliveries.map((item) => item.success)).toEqual([false, true]);
     expect(failingSend).toHaveBeenCalledOnce(); expect(normalSend).toHaveBeenCalledOnce();
+    expect(data.listReceipts()).toHaveLength(2);
+    expect(data.listReceipts()).toEqual(expect.arrayContaining([expect.objectContaining({ channelName: 'Alert', success: false, error: 'offline' }), expect.objectContaining({ channelName: 'All', success: true })]));
   });
 
   it('does nothing when no channels are configured', async () => {

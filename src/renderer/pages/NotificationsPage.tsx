@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { NotificationHistory } from '../components/NotificationHistory';
 import type { NotificationChannel, NotificationChannelInput, ProviderType } from '../../shared/types';
 import { PageHeader } from '../App';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -24,6 +25,7 @@ export function NotificationsPage({ onError }: { onError(error: unknown): void }
     catch (error) { onError(error); }
   }
   return <><PageHeader eyebrow={t('notifications.eyebrow')} title={t('notifications.title')} description={t('notifications.description')} actions={<button className="primary" onClick={() => setEditing('new')}>{t('notifications.add')}</button>} />
+    <NotificationHistory onError={onError} />
     {feedback && <div className="success-callout" role="status">{feedback}<button aria-label={t('common.close')} onClick={() => setFeedback('')}>×</button></div>}
     <section className="card-grid">{channels.length === 0 ? <div className="panel empty-state compact"><div className="empty-icon">◇</div><h2>{t('notifications.emptyTitle')}</h2><p>{t('notifications.emptyDescription')}</p></div> : channels.map((channel) => <article className="panel profile-card" key={channel.id}><span className="profile-glyph">◇</span><div><h2>{channel.name}</h2><p>{channel.providerType.toUpperCase()} · {t('notifications.events', { policy: t(`channel.${channel.eventPolicy}`) })} · {channel.enabled ? t('common.enabled') : t('common.disabled')}</p></div><div className="card-actions"><div><button className="text-button" onClick={() => void test(channel)}>{t('common.test')}</button><button className="text-button" onClick={() => setEditing(channel)}>{t('common.edit')}</button></div><button className="danger-ghost" onClick={() => setPendingDelete(channel)}>{t('common.delete')}</button></div></article>)}</section>
     {editing && <ChannelEditor channel={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} onError={onError} />}

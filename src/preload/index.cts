@@ -42,6 +42,8 @@ const api: SiteRunnerApi = {
     open: (id) => ipcRenderer.invoke('profiles:open', id) as ReturnType<SiteRunnerApi['profiles']['open']>,
   },
   runs: {
+    search: (query) => ipcRenderer.invoke('runs:search', query) as ReturnType<SiteRunnerApi['runs']['search']>,
+    detail: (id) => ipcRenderer.invoke('runs:detail', id) as ReturnType<SiteRunnerApi['runs']['detail']>,
     runSites: (ids) => ipcRenderer.invoke('runs:runSites', ids) as ReturnType<SiteRunnerApi['runs']['runSites']>,
     runSite: (id) => ipcRenderer.invoke('runs:runSite', id) as ReturnType<SiteRunnerApi['runs']['runSite']>,
     runEnabledSites: () => ipcRenderer.invoke('runs:runEnabledSites') as ReturnType<SiteRunnerApi['runs']['runEnabledSites']>,
@@ -54,6 +56,7 @@ const api: SiteRunnerApi = {
     },
   },
   notifications: {
+    receipts: () => ipcRenderer.invoke('notifications:receipts') as ReturnType<SiteRunnerApi['notifications']['receipts']>,
     list: () => ipcRenderer.invoke('notifications:list') as ReturnType<SiteRunnerApi['notifications']['list']>,
     save: (input) => ipcRenderer.invoke('notifications:save', input) as ReturnType<SiteRunnerApi['notifications']['save']>,
     remove: (id) => ipcRenderer.invoke('notifications:remove', id) as ReturnType<SiteRunnerApi['notifications']['remove']>,

@@ -30,6 +30,8 @@ export interface RunRecord {
   screenshotPath: string | null; trigger: RunTrigger;
 }
 export interface RunLogEntry { siteId: string; level: 'info' | 'warn' | 'error'; message: string; timestamp: string }
+export interface RunQuery { siteId?: string; status?: RunStatus; from?: string; to?: string; offset?: number }
+export interface NotificationReceipt { id: string; channelName: string; title: string; success: boolean; error: string | null; createdAt: string }
 export interface SiteRunResult {
   siteId: string; siteName: string; status: RunStatus; message: string | null; error: string | null;
   startedAt: string; finishedAt: string; screenshotPath: string | null;
@@ -76,11 +78,13 @@ export interface SiteRunnerApi {
   runs: {
     runSite(id: string): Promise<SiteRunResult>; runEnabledSites(): Promise<BatchResult>; runSites(ids: string[]): Promise<BatchResult>;
     list(siteId?: string): Promise<RunRecord[]>; openScreenshot(runId: string): Promise<string>;
+    search(query: RunQuery): Promise<RunRecord[]>; detail(id: string): Promise<{ run: RunRecord; logs: RunLogEntry[] }>;
     onLog(listener: (entry: RunLogEntry) => void): () => void;
   };
   notifications: {
     list(): Promise<NotificationChannel[]>; save(input: NotificationChannelInput): Promise<NotificationChannel>;
     remove(id: string): Promise<void>; test(id: string): Promise<void>;
+    receipts(): Promise<NotificationReceipt[]>;
   };
   settings: { get(): Promise<AppSettings>; update(settings: Partial<AppSettings>): Promise<AppSettings> };
 }

@@ -33,17 +33,18 @@ export class AutomationRunner {
     const screenshotPath = path.join(this.screenshotsRoot, month, `${site.id}-${fileStamp}.png`);
     mkdirSync(path.dirname(screenshotPath), { recursive: true });
     const settings = this.data.getSettings();
+    const logs: RunLogEntry[] = [];
     let releaseProfile: (() => void) | undefined;
     try {
-      releaseProfile = await this.profiles.acquireForRun(site.browserProfileId);
       let result: AutomationExecutionResult;
       try {
+        releaseProfile = await this.profiles.acquireForRun(site.browserProfileId);
         result = await this.executor({
           siteId: site.id, siteName: site.name, url: site.url, script: site.script,
           timeoutMs: site.timeoutMs, profilePath: this.profiles.getProfilePath(site.browserProfileId),
           visitOptions: site.visitOptions,
           screenshotPath, headless: headless ?? settings.browserHeadless,
-        }, this.emit);
+        }, (entry) => { logs.push(entry); if (logs.length > 1000) logs.shift(); this.emit(entry); });
       } catch (error) {
         const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
         this.emit({ siteId, level: 'error', message, timestamp: new Date().toISOString() });
@@ -58,7 +59,7 @@ export class AutomationRunner {
         finishedAt: result.finishedAt, status: result.status, message: result.message,
         error: result.error, lastUrl: result.lastUrl, screenshotPath: result.screenshotPath, trigger,
       };
-      this.data.saveRun(record);
+      this.data.saveRun(record, logs);
       return result;
     } finally {
       releaseProfile?.();
