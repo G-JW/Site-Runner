@@ -66,7 +66,7 @@ export interface NotificationMessage {
 }
 
 export interface SiteRunnerApi {
-  app: { info(): Promise<AppInfo>; openDataFolder(): Promise<void> };
+  app: { info(): Promise<AppInfo>; openDataFolder(): Promise<void>; onClosing(listener: () => void): () => void };
   sites: {
     list(): Promise<Site[]>; save(input: SiteInput): Promise<Site>; remove(id: string): Promise<void>;
     exportRules(ids: string[]): Promise<boolean>; previewImport(): Promise<SiteRule[] | null>;

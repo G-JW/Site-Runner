@@ -4,7 +4,9 @@ import type { AutomationRunner } from '../automation/runner.js';
 import type { BatchRunner } from '../automation/batch-runner.js';
 
 export function broadcastRunLog(entry: RunLogEntry): void {
-  for (const window of BrowserWindow.getAllWindows()) window.webContents.send('runs:log', entry);
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('runs:log', entry);
+  }
 }
 
 export function registerRunIpc(runner: AutomationRunner, batch: BatchRunner): void {

@@ -3,9 +3,11 @@ import type { AutomationRunner } from './runner.js';
 import type { DataService } from '../services/data-service.js';
 
 export class BatchRunner {
+  private stopping = false;
+  private readonly active = new Set<Promise<BatchResult>>();
   constructor(
     private readonly data: DataService,
-    private readonly runner: Pick<AutomationRunner, 'runSite'>,
+    private readonly runner: Pick<AutomationRunner, 'runSite'> & Partial<Pick<AutomationRunner, 'isStopping'>>,
     private readonly onComplete?: (result: BatchResult) => Promise<void>,
   ) {}
 
@@ -14,10 +16,24 @@ export class BatchRunner {
   }
 
   async runSites(siteIds: string[], headless?: boolean, trigger: RunTrigger = 'batch'): Promise<BatchResult> {
+    if (this.stopping || this.runner.isStopping?.()) throw new Error('Application is closing; new batches are not accepted');
+    const work = this.performBatch(siteIds, headless, trigger);
+    this.active.add(work);
+    void work.then(() => this.active.delete(work), () => this.active.delete(work));
+    return work;
+  }
+
+  async shutdown(): Promise<void> {
+    this.stopping = true;
+    await Promise.allSettled([...this.active]);
+  }
+
+  private async performBatch(siteIds: string[], headless?: boolean, trigger: RunTrigger = 'batch'): Promise<BatchResult> {
     const sites = siteIds.map((id) => this.data.getSite(id));
     const startedAt = new Date().toISOString();
     const results: SiteRunResult[] = [];
     for (const site of sites) {
+      if (this.stopping || this.runner.isStopping?.()) break;
       try {
         results.push(await this.runner.runSite(site.id, trigger, headless));
       } catch (error) {
@@ -33,7 +49,7 @@ export class BatchRunner {
       success: results.filter((result) => result.status === 'success').length,
       failed: results.filter((result) => result.status === 'failed').length, results,
     };
-    await this.onComplete?.(batch);
+    if (batch.total) await this.onComplete?.(batch);
     return batch;
   }
 }

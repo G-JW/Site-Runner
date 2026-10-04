@@ -8,6 +8,11 @@ const api: SiteRunnerApi = {
     status: () => ipcRenderer.invoke('cleanup:status') as ReturnType<SiteRunnerApi['cleanup']['status']>,
   },
   app: {
+    onClosing: (listener) => {
+      const handler = () => listener();
+      ipcRenderer.on('app:closing', handler);
+      return () => ipcRenderer.removeListener('app:closing', handler);
+    },
     info: () => ipcRenderer.invoke('app:info') as ReturnType<SiteRunnerApi['app']['info']>,
     openDataFolder: () => ipcRenderer.invoke('app:openDataFolder') as ReturnType<SiteRunnerApi['app']['openDataFolder']>,
   },

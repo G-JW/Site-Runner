@@ -29,7 +29,14 @@ export function buildBatchNotification(batch: BatchResult): NotificationMessage 
 }
 
 export class NotificationService {
+  private readonly active = new Set<Promise<NotificationDelivery[]>>();
+  private closing = false;
   constructor(private readonly data: DataService, private readonly registry: Record<string, ProviderFactory> = defaultRegistry) {}
+
+  async shutdown(): Promise<void> {
+    this.closing = true;
+    await Promise.allSettled([...this.active]);
+  }
 
   private recordDelivery(input: Parameters<DataService['saveReceipt']>[0]): void {
     try { this.data.saveReceipt(input); }
@@ -37,6 +44,7 @@ export class NotificationService {
   }
 
   async notifyBatch(batch: BatchResult): Promise<NotificationDelivery[]> {
+    if (this.closing) throw new Error('Application is closing');
     if (!this.data.getSettings().notificationEnabled) return [];
     const message = buildBatchNotification(batch);
     const channels = this.data.listChannels().filter((channel) => channel.enabled &&
@@ -45,6 +53,7 @@ export class NotificationService {
   }
 
   async testChannel(id: string): Promise<void> {
+    if (this.closing) throw new Error('Application is closing');
     const channel = this.data.getChannel(id);
     const message: NotificationMessage = {
       title: 'Site Runner test', body: 'Your notification channel is working.', level: 'normal', timestamp: new Date().toISOString(),
@@ -54,7 +63,7 @@ export class NotificationService {
   }
 
   private async deliver(message: NotificationMessage, channels: NotificationChannel[]): Promise<NotificationDelivery[]> {
-    return Promise.all(channels.map(async (channel) => {
+    const work = Promise.all(channels.map(async (channel) => {
       try {
         const factory = this.registry[channel.providerType];
         if (!factory) throw new Error(`Unknown notification provider: ${channel.providerType}`);
@@ -68,5 +77,8 @@ export class NotificationService {
         return { channelId: channel.id, channelName: channel.name, success: false, error: reason };
       }
     }));
+    this.active.add(work);
+    void work.then(() => this.active.delete(work), () => this.active.delete(work));
+    return work;
   }
 }

@@ -27,4 +27,21 @@ describe('BatchRunner', () => {
     expect(order).toEqual(['A', 'B', 'C']);
     expect(result).toMatchObject({ total: 3, success: 2, failed: 1 });
   });
+
+  it('stops starting remaining sites and waits for the final notification before shutdown resolves', async () => {
+    const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-batch-exit-'), 'test.sqlite3')); databases.push(database);
+    const data = new DataService(database.connection), profile = data.createProfile('Default');
+    const sites = ['A', 'B'].map((name) => data.saveSite({ name, url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } }));
+    let finish!: () => void, send!: () => void, notify!: () => void;
+    const gate = new Promise<void>((resolve) => { finish = resolve; }), delivery = new Promise<void>((resolve) => { send = resolve; }), sending = new Promise<void>((resolve) => { notify = resolve; });
+    const order: string[] = [];
+    const batch = new BatchRunner(data, { runSite: async (id) => {
+      order.push(id); await gate;
+      return { siteId: id, siteName: 'A', status: 'success', message: null, error: null, startedAt: '', finishedAt: '', screenshotPath: null };
+    } }, async () => { notify(); await delivery; });
+    const work = batch.runEnabledSites(); let drained = false; const shutdown = batch.shutdown().then(() => { drained = true; });
+    await expect(batch.runEnabledSites()).rejects.toThrow(/closing/); finish(); await sending;
+    expect(drained).toBe(false); expect(order).toEqual([sites[0]!.id]); send();
+    await expect(work).resolves.toMatchObject({ total: 1, success: 1 }); await shutdown; expect(drained).toBe(true);
+  });
 });

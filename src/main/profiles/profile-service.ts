@@ -9,8 +9,13 @@ export class ProfileService {
   private readonly recordingProfiles = new Set<string>();
   private readonly openingProfiles = new Set<string>();
   private readonly runQueues = new Map<string, Promise<void>>();
+  private readonly opening = new Set<Promise<void>>();
+  private closing = false;
+
+  private assertOpen(): void { if (this.closing) throw new Error('Application is closing'); }
 
   async acquireForRun(id: string): Promise<() => void> {
+    this.assertOpen();
     this.data.getProfile(id); this.assertNotRecording(id);
     if (this.contexts.has(id) || this.openingProfiles.has(id)) throw new Error('Close the profile browser before running tasks');
     const previous = this.runQueues.get(id) ?? Promise.resolve();
@@ -44,6 +49,7 @@ export class ProfileService {
   }
 
   reserveForRecording(id: string): () => void {
+    this.assertOpen();
     this.assertNotRunning(id);
     this.data.getProfile(id); this.assertNotRecording(id);
     if (this.contexts.has(id) || this.openingProfiles.has(id)) throw new Error('Close the profile browser before recording');
@@ -68,6 +74,14 @@ export class ProfileService {
   }
 
   async open(id: string): Promise<void> {
+    this.assertOpen();
+    const work = this.openProfile(id);
+    this.opening.add(work);
+    void work.then(() => this.opening.delete(work), () => this.opening.delete(work));
+    return work;
+  }
+
+  private async openProfile(id: string): Promise<void> {
     this.assertNotRunning(id);
     this.assertNotRecording(id);
     if (this.contexts.has(id) || this.openingProfiles.has(id)) return;
@@ -84,6 +98,8 @@ export class ProfileService {
   }
 
   async closeAll(): Promise<void> {
+    this.closing = true;
+    await Promise.allSettled([...this.opening]);
     const contexts = [...this.contexts.values()];
     this.contexts.clear();
     await Promise.allSettled(contexts.map((context) => context.close()));

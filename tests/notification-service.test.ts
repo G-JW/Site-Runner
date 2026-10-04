@@ -75,4 +75,14 @@ describe('NotificationService', () => {
     const service = new NotificationService(data, { ntfy: () => ({ send: async () => undefined }) });
     expect(await service.notifyBatch(batch())).toEqual([expect.objectContaining({ success: true, error: null })]);
   });
+
+  it('waits for a pending channel test receipt and rejects new deliveries after shutdown starts', async () => {
+    const data = setup(), channel = data.saveChannel({ name: 'Pending', providerType: 'ntfy', enabled: true, eventPolicy: 'all', config: {} });
+    let finish!: () => void; const gate = new Promise<void>((resolve) => { finish = resolve; });
+    const service = new NotificationService(data, { ntfy: () => ({ send: async () => gate }) });
+    const test = service.testChannel(channel.id); let drained = false; const shutdown = service.shutdown().then(() => { drained = true; });
+    await expect(service.testChannel(channel.id)).rejects.toThrow(/closing/); await expect(service.notifyBatch(batch())).rejects.toThrow(/closing/);
+    expect(drained).toBe(false); finish(); await test; await shutdown;
+    expect(data.listReceipts()).toEqual([expect.objectContaining({ channelName: 'Pending', success: true })]);
+  });
 });

@@ -33,6 +33,8 @@ export function App() {
   const [batchRunning, setBatchRunning] = useState(false);
   const [siteTemplate, setSiteTemplate] = useState<ScriptTemplate | null>(null);
   const [templates, setTemplates] = useState<ScriptTemplate[]>([]);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => window.siteRunner.app.onClosing(() => setClosing(true)), []);
 
   const refresh = useCallback(async () => {
     const [nextSites, nextProfiles, nextRuns, nextTemplates, nextFolders] = await Promise.all([
@@ -76,7 +78,7 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <aside className="sidebar" inert={closing}>
         <div className="brand"><span className="brand-mark">S</span><span>Site Runner</span></div>
         <nav>{navigation.map((item) => (
           <button data-testid={`nav-${item.id}`} className={page === item.id ? 'active' : ''} key={item.id} onClick={() => setPage(item.id)}>
@@ -85,8 +87,9 @@ export function App() {
         ))}</nav>
         <div className="sidebar-foot"><span className="status-dot" /> {t('app.local')} · v{info?.version ?? '—'}</div>
       </aside>
-      <main>{pageContent}</main>
-      {notice && <div className="toast" role="alert">{notice}</div>}
+      <main inert={closing}>{pageContent}</main>
+      {notice && !closing && <div className="toast" role="alert">{notice}</div>}
+      {closing && <div className="modal-backdrop" data-testid="closing-overlay"><section className="small-modal" role="dialog" aria-modal="true" aria-labelledby="closing-title"><div className="modal-head"><div><h2 id="closing-title">{t('app.closing')}</h2><p role="status">{t('app.closingNote')}</p></div></div></section></div>}
     </div>
   );
 }

@@ -48,3 +48,19 @@ it('schedules folders and prevents an overlapping folder invocation', async () =
     scheduler.stop();
   } finally { database.close(); }
 });
+
+it('waits for an in-flight scheduled notification and ignores callbacks after shutdown', async () => {
+  callbacks.length = 0;
+  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-schedule-exit-'), 'test.sqlite3'));
+  try {
+    const data = new DataService(database.connection), profile = data.createProfile('Default');
+    const site = data.saveSite({ name: 'Active', url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: true, cron: '0 9 * * *' } });
+    let finish!: () => void; const gate = new Promise<void>((resolve) => { finish = resolve; });
+    const runSite = vi.fn(async () => ({ siteId: site.id, siteName: site.name, status: 'success' as const, message: null, error: null, startedAt: '', finishedAt: '', screenshotPath: null }));
+    const sending = vi.fn(async () => gate), scheduler = new SchedulerService(data, { runSite }, sending);
+    scheduler.start(); callbacks[0]!(); await vi.waitFor(() => expect(sending).toHaveBeenCalledOnce());
+    let drained = false; const shutdown = scheduler.shutdown().then(() => { drained = true; });
+    callbacks[0]!(); scheduler.refreshAll(); expect(runSite).toHaveBeenCalledOnce(); expect(callbacks).toHaveLength(1); expect(drained).toBe(false);
+    finish(); await shutdown; expect(drained).toBe(true);
+  } finally { database.close(); }
+});

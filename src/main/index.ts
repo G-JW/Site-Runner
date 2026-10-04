@@ -127,7 +127,7 @@ app.whenReady().then(async () => {
     await scheduledBatch.runSites(data.listSites().filter((site) => site.enabled && site.folderId === folderId).map((site) => site.id), undefined, 'schedule');
   });
   const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runner.isRunning(site.id)));
-  ipcMain.handle('recorder:start', (_event, input) => recorder.start(input));
+  ipcMain.handle('recorder:start', (_event, input) => { if (runner.isStopping()) throw new Error('Application is closing'); return recorder.start(input); });
   ipcMain.handle('recorder:status', () => recorder.getStatus());
   ipcMain.handle('recorder:finish', () => recorder.finish());
   ipcMain.handle('recorder:cancel', () => recorder.cancel());
@@ -142,13 +142,22 @@ app.whenReady().then(async () => {
     userDataPath: getAppPaths().userData,
   }));
 
-  app.once('before-quit', (event) => {
+  let closing = false;
+  app.on('before-quit', (event) => {
     event.preventDefault();
-    scheduler.stop();
+    if (closing) return;
+    closing = true;
     cleanup.stop();
-    void Promise.all([recorder.cancel(), profiles.closeAll()]).then(() => {
-      database.close(); logging.close(); app.exit(0);
-    }).catch((error: unknown) => { console.error('Cleanup failed', error); app.exit(1); });
+    const finishing = [scheduler.shutdown(), batch.shutdown(), runner.shutdown(), recorder.cancel(), profiles.closeAll()];
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('app:closing');
+    }
+    void Promise.allSettled(finishing).then(async (results) => {
+      await notifications.shutdown();
+      const errors = results.filter((result) => result.status === 'rejected');
+      if (errors.length) logger.error({ errors }, 'Exit cleanup failed');
+      database.close(); logging.close(); app.exit(errors.length ? 1 : 0);
+    }).catch((error: unknown) => { logger.error({ error }, 'Exit cleanup failed'); logging.close(); app.exit(1); });
   });
 
   if (process.argv.includes('--automation-smoke-test')) {
@@ -282,6 +291,7 @@ app.whenReady().then(async () => {
   }
 
   app.on('activate', () => {
+    if (closing) return;
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
   logger.info({ userData: paths.userData }, 'Site Runner started');

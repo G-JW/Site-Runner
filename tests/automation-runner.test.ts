@@ -34,4 +34,32 @@ describe('AutomationRunner', () => {
     expect(runner.isRunning(site.id)).toBe(false);
     expect(data.listRuns(site.id)).toHaveLength(1);
   });
+
+  it('waits for active work, saves cancelled queued runs and rejects new work during shutdown', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'site-runner-shutdown-'));
+    const database = new AppDatabase(path.join(root, 'test.sqlite3')); databases.push(database);
+    const data = new DataService(database.connection), profiles = new ProfileService(data, path.join(root, 'profiles')), profile = profiles.create('Default');
+    const sites = ['Active', 'Queued', 'New'].map((name) => data.saveSite({ name, url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } }));
+    let started!: () => void, finish!: () => void;
+    const entered = new Promise<void>((resolve) => { started = resolve; }), gate = new Promise<void>((resolve) => { finish = resolve; });
+    const executed: string[] = [];
+    const executor: AutomationExecutor = async (request, emit) => {
+      executed.push(request.siteId); started(); await gate;
+      emit({ siteId: request.siteId, level: 'info', message: 'Saved on exit', timestamp: new Date().toISOString() });
+      return { siteId: request.siteId, siteName: request.siteName, status: 'success', message: 'Finished', error: null, startedAt: '', finishedAt: '', screenshotPath: null, lastUrl: request.url };
+    };
+    const runner = new AutomationRunner(data, profiles, path.join(root, 'screenshots'), () => undefined, executor);
+    const active = runner.runSite(sites[0]!.id, 'manual'); await entered;
+    const queued = runner.runSite(sites[1]!.id, 'manual');
+    let drained = false; const shutdown = runner.shutdown().then(() => { drained = true; });
+    await expect(runner.runSite(sites[2]!.id, 'manual')).rejects.toThrow(/closing/);
+    expect(drained).toBe(false); finish();
+    await expect(active).resolves.toMatchObject({ status: 'success' });
+    await expect(queued).resolves.toMatchObject({ status: 'failed', error: expect.stringContaining('Queued run cancelled') });
+    await shutdown; expect(drained).toBe(true); expect(executed).toEqual([sites[0]!.id]);
+    const records = data.listRuns(); expect(records).toHaveLength(2);
+    expect(data.runDetail(records.find((run) => run.status === 'success')!.id).logs[0]?.message).toBe('Saved on exit');
+    expect(data.runDetail(records.find((run) => run.status === 'failed')!.id).logs[0]?.message).toContain('Queued run cancelled');
+    expect(runner.isRunning(sites[0]!.id) || runner.isRunning(sites[1]!.id)).toBe(false);
+  });
 });
