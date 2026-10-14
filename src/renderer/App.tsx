@@ -92,11 +92,13 @@ export function App() {
   });
   const [logs, setLogs] = useState<RunLogEntry[]>([]);
   const [closing, setClosing] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const inactive = closing || installingUpdate;
   const [settingsRevision, setSettingsRevision] = useState(0);
   const [commandOpen, setCommandOpen] = useState(false);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || closing) return;
+      if (!(event.metaKey || event.ctrlKey) || inactive) return;
       if (
         event.key.toLowerCase() === "k" ||
         (event.shiftKey && event.key.toLowerCase() === "p")
@@ -125,8 +127,15 @@ export function App() {
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  }, [closing, commandOpen, navigate, toggleSidebar, toggleOutput]);
+  }, [inactive, commandOpen, navigate, toggleSidebar, toggleOutput]);
   useEffect(() => window.siteRunner.app.onClosing(() => setClosing(true)), []);
+  useEffect(
+    () =>
+      window.siteRunner.updates.onState((state) =>
+        setInstallingUpdate(state.phase === "installing"),
+      ),
+    [],
+  );
   useEffect(() => {
     const main = document.getElementById("main-content");
     if (main) main.scrollTop = 0;
@@ -301,7 +310,7 @@ export function App() {
       <div
         className={`app-shell workbench ${sidebarOpen ? "" : "sidebar-hidden"}`}
       >
-        <div className="titlebar" inert={closing}>
+        <div className="titlebar" inert={inactive}>
           <div className="titlebar-brand">
             <span className="brand-mark">
               <Icon name="play" size={14} />
@@ -343,7 +352,7 @@ export function App() {
         </div>
         <aside
           className="sidebar explorer"
-          inert={closing}
+          inert={inactive}
           aria-label={t("navigation.title")}
         >
           <nav className="feature-nav" aria-label={t("navigation.title")}>
@@ -393,7 +402,7 @@ export function App() {
             </div>
           </div>
         </aside>
-        <div className="workspace-main" inert={closing}>
+        <div className="workspace-main" inert={inactive}>
           <main id="main-content">
             <section
               className="workspace-page"
@@ -442,7 +451,7 @@ export function App() {
             onError={showError}
           />
         </div>
-        <footer className="status-bar" inert={closing}>
+        <footer className="status-bar" inert={inactive}>
           <span>
             <span className={`status-dot ${busy.size ? "working" : ""}`} />
             {t(busy.size ? "workspace.busy" : "workspace.ready", {
@@ -459,7 +468,7 @@ export function App() {
             <span>{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
           </span>
         </footer>
-        {commandOpen && !closing && (
+        {commandOpen && !inactive && (
           <CommandPalette
             sites={sites}
             busy={busy}

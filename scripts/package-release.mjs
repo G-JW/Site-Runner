@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -17,6 +17,15 @@ const run = (command, args) => {
     throw new Error(`${command} failed with exit code ${result.status}`);
 };
 const cli = require.resolve("electron-builder/cli.js");
+// CI can skip dependency lifecycle scripts; prepare the pinned Electron runtime explicitly.
+if (!existsSync(path.resolve("node_modules/electron/dist"))) {
+  run(process.execPath, [
+    path.join(
+      path.dirname(require.resolve("electron/package.json")),
+      "install.js",
+    ),
+  ]);
+}
 if (process.platform === "darwin") {
   run(process.execPath, [
     cli,

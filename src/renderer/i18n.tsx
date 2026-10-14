@@ -34,7 +34,7 @@ const en = {
   "updates.error.permission":
     "The application folder is not writable. Move the app out of the mounted disk image to a writable folder, then try again.",
   "updates.error.busy":
-    "Finish running tasks or recordings and close login browsers before restarting to update.",
+    "Finish tasks and recordings, close login browsers, and save or cancel any open editor before restarting to update.",
   "updates.error.install":
     "Installation failed. The previous app is retained; retry or restart the application.",
   "updates.error.platform":
@@ -643,7 +643,7 @@ const zh: Record<TranslationKey, string> = {
   "updates.error.permission":
     "应用所在目录不可写。请将应用从挂载的镜像移到可写目录，再尝试更新。",
   "updates.error.busy":
-    "请先完成运行中的任务或录制，并关闭登录浏览器，再重启更新。",
+    "请先完成任务或录制、关闭登录浏览器，并保存或取消打开的编辑窗口，再重启更新。",
   "updates.error.install": "安装失败，已保留旧版应用。可重试或重新启动软件。",
   "updates.error.platform": "此版本尚未发布适合当前系统及 CPU 的更新包。",
   "updates.size": "更新包大小：{size} MB，由应用内部下载。",

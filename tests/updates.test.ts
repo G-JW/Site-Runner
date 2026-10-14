@@ -92,7 +92,7 @@ function fixture() {
     userData,
     publicKey,
     fetch: transport,
-    isBusy: () => busy.value,
+    isBusy: async () => busy.value,
     beforeInstall: async () => undefined,
     installer,
     quit,

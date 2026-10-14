@@ -31,10 +31,8 @@ for (const name of readdirSync(directory).sort()) {
       name,
     );
   if (!match) continue;
-  if (
-    match[1] !== version ||
-    (match[2] === "darwin" ? match[4] !== "zip" : match[4] !== "exe")
-  )
+  if (match[1] !== version) continue;
+  if (match[2] === "darwin" ? match[4] !== "zip" : match[4] !== "exe")
     throw new Error("Unexpected release artifact");
   const filename = path.join(directory, name),
     hash = createHash("sha256");

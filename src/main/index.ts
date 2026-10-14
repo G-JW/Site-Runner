@@ -137,7 +137,15 @@ app.whenReady().then(async () => {
     executable: process.execPath, userData: paths.userData, packaged: app.isPackaged,
     ...(process.env.PORTABLE_EXECUTABLE_FILE ? { portablePath: process.env.PORTABLE_EXECUTABLE_FILE } : {}),
     fetch: (url, options) => net.fetch(url as string, options),
-    isBusy: () => { const snapshot = runtime.snapshot(); return snapshot.runs.length > 0 || snapshot.batches.length > 0 || profiles.hasOpenBrowsers() || ['recording', 'ready'].includes(recorder.getStatus().state); },
+    isBusy: async () => {
+      const snapshot = runtime.snapshot();
+      if (snapshot.runs.length > 0 || snapshot.batches.length > 0 || profiles.hasOpenBrowsers() || ['recording', 'ready'].includes(recorder.getStatus().state)) return true;
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
+        if (await window.webContents.executeJavaScript("Boolean(document.querySelector('[aria-modal=true], .modal-backdrop'))")) return true;
+      }
+      return false;
+    },
     beforeInstall: async () => undefined,
     quit: () => app.quit(),
     logError: (stage, error) => logger.warn({ stage, error }, 'Application update failed'),

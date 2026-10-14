@@ -1,6 +1,6 @@
 {
   "name": "site-runner",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "description": "Local-first browser automation desktop app",
   "author": "Site Runner Contributors",

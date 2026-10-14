@@ -37,7 +37,7 @@ interface Options {
   packaged: boolean;
   fetch?: typeof fetch;
   publicKey?: string;
-  isBusy(): boolean;
+  isBusy(): boolean | Promise<boolean>;
   beforeInstall(): Promise<void>;
   quit(): void;
   installer?: typeof launchInstaller;
@@ -418,7 +418,7 @@ export class UpdateService {
         !["ready", "error"].includes(this.state.phase)
       )
         return this.failure("install");
-      if (this.options.isBusy()) return this.failure("busy");
+      if (await this.options.isBusy()) return this.failure("busy");
       const current =
         this.options.platform === "darwin"
           ? path.resolve(path.dirname(this.options.executable), "../..")
@@ -455,7 +455,7 @@ export class UpdateService {
         kind = "permission";
         await mkdir(probe, { mode: 0o700 });
         await rm(probe, { recursive: true });
-        if (this.options.isBusy()) return this.failure("busy");
+        if (await this.options.isBusy()) return this.failure("busy");
         kind = "install";
         this.publish({ ...this.state, phase: "installing" });
         await this.options.beforeInstall();
