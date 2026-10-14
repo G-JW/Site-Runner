@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { expect, it } from 'vitest';
@@ -6,7 +7,7 @@ import { DataService } from '../src/main/services/data-service.js';
 import { exportConfiguration, importConfiguration, parseConfiguration } from '../src/main/configuration.js';
 
 it('exports portable configuration and imports additively with paused schedules and intact references', () => {
-  const root = mkdtempSync('/private/tmp/site-runner-configuration-'); const database = new AppDatabase(path.join(root, 'test.sqlite3'));
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-configuration-')); const database = new AppDatabase(path.join(root, 'test.sqlite3'));
   try {
     const data = new DataService(database.connection), profile = data.createProfile('Default');
     const folder = data.saveFolder({ name: 'Forums', schedule: { enabled: true, cron: '0 9 * * *' } });
@@ -29,7 +30,7 @@ it('exports portable configuration and imports additively with paused schedules 
 });
 
 it('takes a consistent private snapshot before upgrading an existing database', () => {
-  const root = mkdtempSync('/private/tmp/site-runner-upgrade-backup-'), file = path.join(root, 'test.sqlite3');
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-upgrade-backup-')), file = path.join(root, 'test.sqlite3');
   const database = new AppDatabase(file);
   new DataService(database.connection).createProfile('Preserved');
   // Simulate an older schema marker; remove only the v5 tables to replay that migration.

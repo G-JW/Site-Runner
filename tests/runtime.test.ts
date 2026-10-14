@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -10,7 +11,7 @@ import { RuntimeService } from '../src/main/services/runtime-service.js';
 const databases: AppDatabase[] = [];
 afterEach(() => databases.splice(0).forEach((db) => db.close()));
 function setup(executor: AutomationExecutor) {
-  const root = mkdtempSync('/private/tmp/site-runner-runtime-'), database = new AppDatabase(path.join(root, 'test.sqlite3')); databases.push(database);
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-runtime-')), database = new AppDatabase(path.join(root, 'test.sqlite3')); databases.push(database);
   const data = new DataService(database.connection), profiles = new ProfileService(data, path.join(root, 'profiles')), profile = profiles.create('Default');
   const sites = ['A', 'B'].map((name) => data.saveSite({ name, url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } }));
   return { data, sites, runner: new AutomationRunner(data, profiles, path.join(root, 'screenshots'), () => undefined, executor) };

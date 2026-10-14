@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -17,7 +18,7 @@ import type { SiteInput } from "../src/shared/types.js";
 const databases: AppDatabase[] = [];
 afterEach(() => databases.splice(0).forEach((database) => database.close()));
 function fixture() {
-  const root = mkdtempSync("/private/tmp/site-runner-lifecycle-");
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-lifecycle-'));
   const database = new AppDatabase(path.join(root, "db.sqlite3"));
   databases.push(database);
   const data = new DataService(database.connection),

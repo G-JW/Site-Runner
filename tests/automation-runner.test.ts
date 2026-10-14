@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -64,7 +65,7 @@ describe('AutomationRunner', () => {
   });
 
   it('bounds live log messages before publishing and retaining them in memory', async () => {
-    const root = mkdtempSync('/private/tmp/site-runner-log-bound-'), database = new AppDatabase(path.join(root, 'test.sqlite3')); databases.push(database);
+    const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-log-bound-')), database = new AppDatabase(path.join(root, 'test.sqlite3')); databases.push(database);
     const data = new DataService(database.connection), profiles = new ProfileService(data, path.join(root, 'profiles'));
     const site = data.saveSite({ name: 'Logs', url: 'https://example.com', enabled: true, script: null, browserProfileId: profiles.create('Default').id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } });
     const messages: string[] = [];

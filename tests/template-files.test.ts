@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { expect, it } from 'vitest';
@@ -20,7 +21,7 @@ it('round-trips bilingual templates without local IDs and rejects malformed file
 });
 
 it('imports additively with fresh IDs, unique names and no partial writes on invalid input', () => {
-  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-template-files-'), 'test.sqlite3'));
+  const database = new AppDatabase(path.join(mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-template-files-')), 'test.sqlite3'));
   try {
     const data = new DataService(database.connection);
     const before = data.listTemplates();

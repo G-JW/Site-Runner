@@ -14,7 +14,10 @@ import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
 import { UpdateService } from "../../dist/main/main/updates/update-service.js";
+import { AppDatabase } from "../../dist/main/main/database/database.js";
+import { DataService } from "../../dist/main/main/services/data-service.js";
 
 const script = fileURLToPath(import.meta.url);
 const worker = process.argv[2] === "--worker";
@@ -68,6 +71,26 @@ if (worker) {
   const userData = path.join(directory, "data"),
     receipt = path.join(userData, "updates/install-result.json");
   mkdirSync(userData);
+  const databasePath = path.join(userData, "site-runner.sqlite3");
+  const database = new AppDatabase(databasePath);
+  const data = new DataService(database.connection);
+  const profile = data.createProfile("Update fixture");
+  const savedTask = data.saveSite({
+    name: "Preserved task",
+    url: "https://example.com",
+    enabled: false,
+    script: null,
+    browserProfileId: profile.id,
+    timeoutMs: 30000,
+    schedule: { enabled: false, cron: "0 9 * * *" },
+  });
+  database.close();
+  const profilePath = path.join(userData, "profiles", profile.id);
+  mkdirSync(profilePath, { recursive: true });
+  writeFileSync(
+    path.join(profilePath, "fixture-session.txt"),
+    "synthetic login state",
+  );
   mkdirSync(path.join(directory, "Site Runner.app/Contents/MacOS"), {
     recursive: true,
   });
@@ -107,6 +130,21 @@ if (worker) {
       "synthetic user data",
     );
     assert.ok(Number.isInteger(restartPID));
+    const retained = new DatabaseSync(databasePath, { readOnly: true });
+    try {
+      assert.equal(
+        retained
+          .prepare("SELECT name FROM sites WHERE id = ?")
+          .get(savedTask.id).name,
+        "Preserved task",
+      );
+    } finally {
+      retained.close();
+    }
+    assert.equal(
+      readFileSync(path.join(profilePath, "fixture-session.txt"), "utf8"),
+      "synthetic login state",
+    );
     console.log(
       JSON.stringify({
         signedArtifact: "passed",

@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { expect, it, vi } from 'vitest';
@@ -13,7 +14,7 @@ vi.mock('node-cron', async (original) => {
 
 it('does not schedule disabled sites and delivers completed scheduled results', async () => {
   callbacks.length = 0;
-  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-schedule-'), 'test.sqlite3'));
+  const database = new AppDatabase(path.join(mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-schedule-')), 'test.sqlite3'));
   try {
     const data = new DataService(database.connection); const profile = data.createProfile('Default');
     const site = data.saveSite({ name: 'A', url: 'https://example.com', enabled: false, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: true, cron: '0 9 * * *' } });
@@ -31,7 +32,7 @@ it('does not schedule disabled sites and delivers completed scheduled results', 
 
 it('schedules folders and prevents an overlapping folder invocation', async () => {
   callbacks.length = 0;
-  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-folder-schedule-'), 'test.sqlite3'));
+  const database = new AppDatabase(path.join(mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-folder-schedule-')), 'test.sqlite3'));
   try {
     const data = new DataService(database.connection);
     const folder = data.saveFolder({ name: 'Daily', schedule: { enabled: true, cron: '0 9 * * *' } });
@@ -51,7 +52,7 @@ it('schedules folders and prevents an overlapping folder invocation', async () =
 
 it('waits for an in-flight scheduled notification and ignores callbacks after shutdown', async () => {
   callbacks.length = 0;
-  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-schedule-exit-'), 'test.sqlite3'));
+  const database = new AppDatabase(path.join(mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-schedule-exit-')), 'test.sqlite3'));
   try {
     const data = new DataService(database.connection), profile = data.createProfile('Default');
     const site = data.saveSite({ name: 'Active', url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: true, cron: '0 9 * * *' } });
@@ -67,7 +68,7 @@ it('waits for an in-flight scheduled notification and ignores callbacks after sh
 
 it('skips a site cron occurrence while that site is reserved by another batch', async () => {
   callbacks.length = 0;
-  const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-schedule-busy-'), 'test.sqlite3'));
+  const database = new AppDatabase(path.join(mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-schedule-busy-')), 'test.sqlite3'));
   try {
     const data = new DataService(database.connection), profile = data.createProfile('Default');
     data.saveSite({ name: 'Waiting', url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: true, cron: '0 9 * * *' } });

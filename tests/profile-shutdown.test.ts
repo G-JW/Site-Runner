@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { expect, it, vi } from 'vitest';
@@ -9,7 +10,7 @@ const mock = vi.hoisted(() => ({ launch: vi.fn() }));
 vi.mock('playwright', () => ({ chromium: { launchPersistentContext: mock.launch } }));
 
 it('waits for a profile browser opening during shutdown and closes it before returning', async () => {
-  const root = mkdtempSync('/private/tmp/site-runner-profile-exit-'), database = new AppDatabase(path.join(root, 'test.sqlite3'));
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-profile-exit-')), database = new AppDatabase(path.join(root, 'test.sqlite3'));
   try {
     const profiles = new ProfileService(new DataService(database.connection), path.join(root, 'profiles')), profile = profiles.create('Default');
     const close = vi.fn(async () => undefined); let ready!: () => void;

@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, symlinkSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -26,7 +27,7 @@ function run(id: string, finishedAt: string, screenshotPath: string | null = nul
   data.saveRun({ id, siteId, siteName: 'Site', startedAt: finishedAt, finishedAt, status: 'failed', message: null, error: 'test', lastUrl: null, screenshotPath, trigger: 'manual' }, [{ siteId, level: 'info', message: 'log', timestamp: finishedAt }]);
 }
 beforeEach(() => {
-  root = mkdtempSync('/private/tmp/site-runner-cleanup-'); database = new AppDatabase(path.join(root, 'test.sqlite3')); data = new DataService(database.connection);
+  root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-cleanup-')); database = new AppDatabase(path.join(root, 'test.sqlite3')); data = new DataService(database.connection);
   siteId = data.saveSite({ name: 'Site', url: 'https://example.com', enabled: true, script: null, browserProfileId: data.createProfile('Default').id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } }).id;
   clock = Date.parse('2026-10-04T12:00:00Z'); cleanup = new CleanupService(data, root, () => clock);
 });
@@ -48,7 +49,7 @@ it('previews without deleting and removes only expired managed data while preser
 });
 
 it('ignores directory and file symlinks and never deletes a stored external screenshot path', () => {
-  const outside = mkdtempSync('/private/tmp/site-runner-outside-'), external = path.join(outside, 'private.png'); writeFileSync(external, 'private');
+  const outside = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-outside-')), external = path.join(outside, 'private.png'); writeFileSync(external, 'private');
   mkdirSync(path.join(root, 'screenshots'), { recursive: true }); symlinkSync(outside, path.join(root, 'screenshots', '2025-01'));
   mkdirSync(path.join(root, 'screenshots', '2025-02')); symlinkSync(external, path.join(root, screenshot().replace('2025-01/', '2025-02/')));
   run('old', new Date(old).toISOString(), external);

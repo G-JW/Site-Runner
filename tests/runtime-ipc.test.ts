@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { expect, it, vi } from 'vitest';
@@ -16,7 +17,7 @@ const handlers = vi.hoisted(() => new Map<string, (...args: unknown[]) => unknow
 vi.mock('electron', () => ({ ipcMain: { handle: (name: string, fn: (...args: unknown[]) => unknown) => handlers.set(name, fn) }, BrowserWindow: { getAllWindows: () => [] }, dialog: {}, shell: {} }));
 
 it('rejects edits, deletes, profile use and overlapping manual runs for pending batch sites on the server', async () => {
-  handlers.clear(); const root = mkdtempSync('/private/tmp/site-runner-runtime-ipc-'), database = new AppDatabase(path.join(root, 'test.sqlite3'));
+  handlers.clear(); const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-runtime-ipc-')), database = new AppDatabase(path.join(root, 'test.sqlite3'));
   let finish!: () => void; const gate = new Promise<void>((resolve) => { finish = resolve; });
   try {
     const data = new DataService(database.connection), profiles = new ProfileService(data, path.join(root, 'profiles'));

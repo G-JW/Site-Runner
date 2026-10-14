@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -5,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { AppDatabase } from '../src/main/database/database.js';
 import { DataService } from '../src/main/services/data-service.js';
 
-function filename() { return path.join(mkdtempSync('/private/tmp/site-runner-folders-'), 'test.sqlite3'); }
+function filename() { return path.join(mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-folders-')), 'test.sqlite3'); }
 
 describe('site folders', () => {
   it('upgrades an existing version 1 database without losing sites, runs or templates', () => {

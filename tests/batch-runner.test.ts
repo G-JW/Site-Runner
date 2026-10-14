@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -29,7 +30,7 @@ describe('BatchRunner', () => {
   });
 
   it('stops starting remaining sites and waits for the final notification before shutdown resolves', async () => {
-    const database = new AppDatabase(path.join(mkdtempSync('/private/tmp/site-runner-batch-exit-'), 'test.sqlite3')); databases.push(database);
+    const database = new AppDatabase(path.join(mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-batch-exit-')), 'test.sqlite3')); databases.push(database);
     const data = new DataService(database.connection), profile = data.createProfile('Default');
     const sites = ['A', 'B'].map((name) => data.saveSite({ name, url: 'https://example.com', enabled: true, script: null, browserProfileId: profile.id, timeoutMs: 30000, schedule: { enabled: false, cron: '0 9 * * *' } }));
     let finish!: () => void, send!: () => void, notify!: () => void;

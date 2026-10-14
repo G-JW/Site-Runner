@@ -1,3 +1,4 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { mkdtempSync } from "node:fs";
 import path from "node:path";
 import { expect, it } from "vitest";
@@ -107,7 +108,7 @@ it("restores graphical workflows only when the script still matches, preserving 
 });
 
 it("persists appearance without a schema migration and reads older portable backups", () => {
-  const root = mkdtempSync("/private/tmp/site-runner-appearance-"),
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-appearance-')),
     file = path.join(root, "test.sqlite3");
   let database = new AppDatabase(file);
   try {

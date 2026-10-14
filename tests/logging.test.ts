@@ -1,10 +1,11 @@
+import { tmpdir as systemTemporaryDirectory } from "node:os";
 import { existsSync, lstatSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, it, vi } from 'vitest';
 import { createLogger } from '../src/main/logging.js';
 
 it('rotates during use, retains only three archives and keeps private valid JSON logs', () => {
-  const root = mkdtempSync('/private/tmp/site-runner-logs-');
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-logs-'));
   const logging = createLogger(root, { maxBytes: 256, archives: 3 });
   for (let index = 0; index < 30; index++) logging.logger.info(`entry ${index} ${'x'.repeat(90)}`);
   logging.close();
@@ -18,7 +19,7 @@ it('rotates during use, retains only three archives and keeps private valid JSON
 });
 
 it('rotates an existing oversized log on first write and bounds a single oversized message', () => {
-  const root = mkdtempSync('/private/tmp/site-runner-logs-'), file = path.join(root, 'site-runner.log');
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-logs-')), file = path.join(root, 'site-runner.log');
   writeFileSync(file, 'old'.repeat(200));
   const logging = createLogger(root, { maxBytes: 256, archives: 1 }); logging.logger.info('x'.repeat(1000)); logging.close();
   expect(readFileSync(file + '.1', 'utf8')).toBe('old'.repeat(200));
@@ -26,7 +27,7 @@ it('rotates an existing oversized log on first write and bounds a single oversiz
 });
 
 it('falls back to stderr for unusable log paths without following a symlink or breaking callers', () => {
-  const root = mkdtempSync('/private/tmp/site-runner-logs-'), external = path.join(root, 'external.txt'); writeFileSync(external, 'preserve'); symlinkSync(external, path.join(root, 'site-runner.log'));
+  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-logs-')), external = path.join(root, 'external.txt'); writeFileSync(external, 'preserve'); symlinkSync(external, path.join(root, 'site-runner.log'));
   const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
   try {
     const logging = createLogger(root); expect(() => logging.logger.info('result')).not.toThrow(); logging.close();
