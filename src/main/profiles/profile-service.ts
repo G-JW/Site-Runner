@@ -11,6 +11,7 @@ export class ProfileService {
   private readonly runQueues = new Map<string, Promise<void>>();
   private readonly opening = new Set<Promise<void>>();
   private closing = false;
+  hasOpenBrowsers(): boolean { return this.contexts.size > 0 || this.openingProfiles.size > 0 || this.recordingProfiles.size > 0; }
 
   private assertOpen(): void { if (this.closing) throw new Error('Application is closing'); }
 
@@ -73,18 +74,25 @@ export class ProfileService {
     rmSync(profilePath, { recursive: true, force: true });
   }
 
-  async open(id: string): Promise<void> {
+  async open(id: string, url?: string): Promise<void> {
     this.assertOpen();
-    const work = this.openProfile(id);
+    const work = this.openProfile(id, url);
     this.opening.add(work);
     void work.then(() => this.opening.delete(work), () => this.opening.delete(work));
     return work;
   }
 
-  private async openProfile(id: string): Promise<void> {
+  private async openProfile(id: string, url?: string): Promise<void> {
     this.assertNotRunning(id);
     this.assertNotRecording(id);
-    if (this.contexts.has(id) || this.openingProfiles.has(id)) return;
+    if (url && !['http:', 'https:'].includes(new URL(url).protocol)) throw new Error('Website URL must use HTTP or HTTPS');
+    if (this.openingProfiles.has(id)) throw new Error('Browser is opening; try again shortly');
+    const existing = this.contexts.get(id);
+    if (existing) {
+      const page = existing.pages()[0] ?? await existing.newPage();
+      if (url) await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.bringToFront(); return;
+    }
     this.openingProfiles.add(id);
     try {
     const profilePath = this.getProfilePath(id);
@@ -93,7 +101,9 @@ export class ProfileService {
     const context = await chromium.launchPersistentContext(profilePath, { headless: false });
     this.contexts.set(id, context);
     context.once('close', () => this.contexts.delete(id));
-    if (context.pages().length === 0) await context.newPage();
+    const page = context.pages()[0] ?? await context.newPage();
+    if (url) await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.bringToFront();
     } finally { this.openingProfiles.delete(id); }
   }
 

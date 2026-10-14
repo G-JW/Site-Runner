@@ -12,7 +12,6 @@ export function createNtfyProvider(config: Record<string, unknown>): Notificatio
       const headers: Record<string, string> = {
         Title: message.title,
         Priority: message.level === 'alert' ? 'high' : 'default',
-        Tags: message.level === 'alert' ? 'warning' : 'white_check_mark',
       };
       if (value.token) headers.Authorization = `Bearer ${value.token}`;
       const response = await fetch(endpoint, { method: 'POST', headers, body: message.body, signal: AbortSignal.timeout(15_000) });

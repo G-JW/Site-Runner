@@ -11,7 +11,7 @@ export class AppDatabase {
     this.connection.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
     const version = this.connection.prepare('PRAGMA user_version').get() as { user_version: number };
     try {
-      if (version.user_version > 0 && version.user_version < 5) {
+      if (version.user_version > 0 && version.user_version < 6) {
         const directory = path.join(path.dirname(databasePath), 'backups'); mkdirSync(directory, { recursive: true });
         const target = path.join(directory, `before-v${version.user_version}-${Date.now()}.sqlite3`);
         this.connection.prepare('VACUUM INTO ?').run(target); chmodSync(target, 0o600);
@@ -83,6 +83,13 @@ export class AppDatabase {
       CREATE TABLE notification_receipts (id TEXT PRIMARY KEY, channel_name TEXT NOT NULL, title TEXT NOT NULL,
         success INTEGER NOT NULL, error TEXT, created_at TEXT NOT NULL);
       PRAGMA user_version = 5;
+      COMMIT;
+    `);
+    if (version.user_version < 6) this.connection.exec(`
+      BEGIN;
+      ALTER TABLE sites ADD COLUMN schedule_mode TEXT CHECK(schedule_mode IN ('inherit', 'custom', 'manual'));
+      ALTER TABLE run_records ADD COLUMN outcome TEXT CHECK(outcome IN ('verified', 'unverified'));
+      PRAGMA user_version = 6;
       COMMIT;
     `);
   }

@@ -1,9 +1,14 @@
 {
   "name": "site-runner",
-  "version": "0.1.0",
+  "version": "0.3.6",
   "private": true,
   "description": "Local-first browser automation desktop app",
   "author": "Site Runner Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/G-JW/Site-Runner.git"
+  },
+  "homepage": "https://github.com/G-JW/Site-Runner",
   "main": "dist/main/main/index.js",
   "type": "module",
   "scripts": {
@@ -19,7 +24,9 @@
     "build": "pnpm build:main && pnpm build:renderer",
     "prepare:browsers": "cross-env PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers playwright install chromium",
     "package": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir --publish never",
-    "package:dist": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never"
+    "package:dist": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
+    "release:package": "pnpm prepare:browsers && pnpm build && node scripts/package-release.mjs",
+    "release:manifest": "node scripts/create-update-manifest.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "latest",
@@ -69,17 +76,26 @@
       "node_modules/@esbuild/**/*"
     ],
     "extraResources": [
-      { "from": ".playwright-browsers", "to": "playwright-browsers" }
+      {
+        "from": ".playwright-browsers",
+        "to": "playwright-browsers"
+      }
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": ["dir"]
+      "target": [
+        "dir"
+      ]
     },
     "win": {
-      "target": ["portable"]
+      "target": [
+        "portable"
+      ]
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Utility"
     }
   },

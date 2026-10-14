@@ -20,7 +20,9 @@ export function exportConfiguration(data: DataService): ConfigurationFile {
 function validSettings(value: AppSettings): AppSettings {
   if (!value || !Number.isInteger(value.defaultTimeoutMs) || value.defaultTimeoutMs < 1000 || value.defaultTimeoutMs > 300000 || !['en', 'zh-CN'].includes(value.language)) throw new Error('Invalid backup settings');
   for (const field of ['browserHeadless', 'notificationEnabled', 'notifyScheduledRuns'] as const) if (typeof value[field] !== 'boolean') throw new Error('Invalid backup settings');
-  return { defaultTimeoutMs: value.defaultTimeoutMs, browserHeadless: value.browserHeadless, notificationEnabled: value.notificationEnabled, notifyScheduledRuns: value.notifyScheduledRuns, language: value.language, cleanup: value.cleanup === undefined ? { ...defaultCleanupPolicy } : validateCleanupPolicy(value.cleanup) };
+  if (value.theme !== undefined && !['system', 'light', 'dark'].includes(value.theme)) throw new Error('Invalid backup theme');
+  if (value.density !== undefined && !['comfortable', 'compact'].includes(value.density)) throw new Error('Invalid backup density');
+  return { theme: value.theme ?? 'system', density: value.density ?? 'comfortable', defaultTimeoutMs: value.defaultTimeoutMs, browserHeadless: value.browserHeadless, notificationEnabled: value.notificationEnabled, notifyScheduledRuns: value.notifyScheduledRuns, language: value.language, cleanup: value.cleanup === undefined ? { ...defaultCleanupPolicy } : validateCleanupPolicy(value.cleanup) };
 }
 
 export function parseConfiguration(value: unknown): ConfigurationFile {
@@ -64,7 +66,7 @@ export function importConfiguration(data: DataService, value: unknown, applySett
     const folderNames = new Set(data.listFolders().map((folder) => folder.name.toLowerCase()));
     const folders = new Map(file.folders.map((folder) => [folder.key, data.saveFolder({ name: unique(folder.name, folderNames, 80), schedule: { ...folder.schedule, enabled: false } }).id]));
     const siteNames = new Set(data.listSites().map((site) => site.name.toLowerCase()));
-    file.sites.forEach((site) => data.saveSite({ ...site, name: unique(site.name, siteNames), browserProfileId: profiles.get(site.profileKey)!, folderId: site.folderKey === null ? null : folders.get(site.folderKey)!, enabled: false, schedule: { ...site.schedule, enabled: false } }));
+    file.sites.forEach((site) => data.saveSite({ ...site, name: unique(site.name, siteNames), browserProfileId: profiles.get(site.profileKey)!, folderId: site.folderKey === null ? null : folders.get(site.folderKey)!, enabled: false, schedule: { ...site.schedule, enabled: false, ...(site.schedule.mode === 'custom' ? { mode: 'manual' as const } : {}) } }));
     if (file.templates.length) data.importTemplates(file.templates);
     if (applySettings) data.updateSettings({ ...file.settings, cleanup: { ...file.settings.cleanup, automatic: false } });
     return { sites: file.sites.length, templates: file.templates.length };

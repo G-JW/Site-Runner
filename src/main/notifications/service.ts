@@ -21,8 +21,8 @@ export function buildBatchNotification(batch: BatchResult): NotificationMessage 
   const level = batch.failed > 0 ? 'alert' : 'normal';
   const failed = failures.length ? `\n\nFailed:\n${failures.map((result) => `- ${result.siteName}: ${shortError(result.error)}`).join('\n')}` : '';
   return {
-    title: batch.failed > 0 ? 'Site Runner · Attention needed' : 'Site Runner · All clear',
-    body: `Completed: ${new Date(batch.finishedAt).toLocaleString()}\n\nTotal: ${batch.total}\nSuccess: ${batch.success}\nFailed: ${batch.failed}${failed}`,
+    title: batch.stopped ? 'Site Runner - Batch stopped' : batch.failed > 0 ? 'Site Runner - Attention needed' : 'Site Runner - Execution finished',
+    body: `Completed: ${new Date(batch.finishedAt).toLocaleString()}\n\nTotal: ${batch.total}\nSuccess: ${batch.success}\nFailed: ${batch.failed}${batch.stopped ? `\nStopped after ${batch.total} of ${batch.planned ?? batch.total} tasks` : ''}${failed}`,
     level, timestamp: batch.finishedAt,
     batch: { total: batch.total, success: batch.success, failed: batch.failed, failedSites },
   };

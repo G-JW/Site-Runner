@@ -5,7 +5,7 @@ export type NotificationPolicy = 'all' | 'normal' | 'alert';
 export type ProviderType = 'ntfy' | 'webhook';
 export type AppLanguage = 'en' | 'zh-CN';
 
-export interface AppInfo { name: string; version: string; userDataPath: string }
+export interface AppInfo { name: string; version: string; userDataPath: string; platform?: string; executablePath?: string; cliAppPath?: string }
 export interface RecordingInput { url: string; profileId: string }
 export interface RecordingStatus { state: 'idle' | 'recording' | 'ready' | 'failed'; error: string | null }
 export interface ScriptTemplate {
@@ -13,8 +13,8 @@ export interface ScriptTemplate {
   instructions: Record<AppLanguage, string>; script: string | null;
 }
 export type ScriptTemplateInput = Omit<ScriptTemplate, 'id'> & { id?: string };
-export interface SiteSchedule { enabled: boolean; cron: string }
-export interface VisitOptions { stayMs: number; detectChallenges: boolean; check: 'none' | 'selector' | 'text'; value: string }
+export interface SiteSchedule { enabled: boolean; cron: string; mode?: 'inherit' | 'custom' | 'manual' }
+export interface VisitOptions { stayMs: number; detectChallenges: boolean }
 export interface SiteFolder { id: string; name: string; schedule: SiteSchedule }
 export interface Site {
   id: string; name: string; url: string; enabled: boolean; script: string | null;
@@ -31,7 +31,7 @@ export interface RunRecord {
 }
 export interface RunLogEntry { siteId: string; level: 'info' | 'warn' | 'error'; message: string; timestamp: string }
 export interface ActiveRun { siteId: string; siteName: string; profileId: string; trigger: RunTrigger; phase: 'queued' | 'running'; requestedAt: string }
-export interface ActiveBatch { id: string; siteIds: string[]; trigger: RunTrigger; total: number; completed: number; success: number; failed: number; currentSiteId: string | null; phase: 'running' | 'notifying' }
+export interface ActiveBatch { id: string; siteIds: string[]; trigger: RunTrigger; total: number; completed: number; success: number; failed: number; currentSiteId: string | null; phase: 'running' | 'notifying'; stopRequested?: boolean }
 export interface RuntimeSnapshot { revision: number; runs: ActiveRun[]; batches: ActiveBatch[] }
 export interface RunQuery { siteId?: string; status?: RunStatus; from?: string; to?: string; offset?: number }
 export interface NotificationReceipt { id: string; channelName: string; title: string; success: boolean; error: string | null; createdAt: string }
@@ -47,11 +47,13 @@ export interface SiteRunResult {
   startedAt: string; finishedAt: string; screenshotPath: string | null;
 }
 export interface BatchResult {
-  startedAt: string; finishedAt: string; total: number; success: number; failed: number; results: SiteRunResult[];
+  startedAt: string; finishedAt: string; total: number; success: number; failed: number; results: SiteRunResult[]; planned?: number; stopped?: boolean;
 }
 export interface AppSettings {
   defaultTimeoutMs: number; browserHeadless: boolean; notificationEnabled: boolean; notifyScheduledRuns: boolean;
   language: AppLanguage;
+  theme: 'system' | 'light' | 'dark';
+  density: 'comfortable' | 'compact';
   cleanup: CleanupPolicy;
 }
 export interface CleanupPolicy { automatic: boolean; historyDays: number; backupDays: number }
@@ -69,6 +71,13 @@ export interface NotificationMessage {
 }
 
 export interface SiteRunnerApi {
+  updates: {
+    state(): Promise<import('./updates.js').UpdateState>;
+    check(): Promise<import('./updates.js').UpdateState>;
+    download(): Promise<import('./updates.js').UpdateState>;
+    install(): Promise<import('./updates.js').UpdateState>;
+    onState(listener: (state: import('./updates.js').UpdateState) => void): () => void;
+  };
   app: { info(): Promise<AppInfo>; openDataFolder(): Promise<void>; onClosing(listener: () => void): () => void };
   sites: {
     list(): Promise<Site[]>; save(input: SiteInput): Promise<Site>; remove(id: string): Promise<void>;
@@ -88,9 +97,10 @@ export interface SiteRunnerApi {
   recorder: { start(input: RecordingInput): Promise<void>; status(): Promise<RecordingStatus>; finish(): Promise<string>; cancel(): Promise<void> };
   profiles: {
     list(): Promise<BrowserProfile[]>; create(name: string): Promise<BrowserProfile>;
-    remove(id: string): Promise<void>; open(id: string): Promise<void>;
+    remove(id: string): Promise<void>; open(id: string, url?: string): Promise<void>;
   };
   runs: {
+    stopBatch(id: string): Promise<void>; schedulePreview(cron: string): Promise<string | null>; nextSchedules(): Promise<Record<string, string | null>>;
     state(): Promise<RuntimeSnapshot>; onState(listener: (state: RuntimeSnapshot) => void): () => void;
     runSite(id: string): Promise<SiteRunResult>; runEnabledSites(): Promise<BatchResult>; runSites(ids: string[]): Promise<BatchResult>;
     list(siteId?: string): Promise<RunRecord[]>; openScreenshot(runId: string): Promise<string>;

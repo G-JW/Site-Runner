@@ -28,6 +28,7 @@ describe('NotificationService', () => {
 
   it('builds normal and alert summaries', () => {
     expect(buildBatchNotification(batch()).level).toBe('normal');
+    expect(buildBatchNotification(batch()).body).not.toMatch(/Verified|Unverified/);
     expect(buildBatchNotification(batch(1))).toMatchObject({ level: 'alert', batch: { failedSites: ['A'] } });
   });
 

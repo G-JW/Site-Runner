@@ -16,6 +16,9 @@ export class RuntimeService {
     };
     runner.onState(changed); for (const batch of batches) batch.onState(changed);
   }
+  stopBatch(id: string): void {
+    if (!this.batches.some((batch) => batch.stopBatch(id))) throw new Error('Batch has already finished');
+  }
   snapshot(): RuntimeSnapshot { return { revision: this.revision, runs: this.runner.getActiveRuns(), batches: this.batches.flatMap((batch) => batch.getActiveBatches()) }; }
   onState(listener: (state: RuntimeSnapshot) => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   isBusy(siteId: string): boolean { return busySiteIds(this.snapshot()).has(siteId); }

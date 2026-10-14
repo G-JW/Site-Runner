@@ -33,7 +33,7 @@ it('takes a consistent private snapshot before upgrading an existing database', 
   const database = new AppDatabase(file);
   new DataService(database.connection).createProfile('Preserved');
   // Simulate an older schema marker; remove only the v5 tables to replay that migration.
-  database.connection.exec('DROP TABLE run_logs; DROP TABLE notification_receipts; PRAGMA user_version = 4;'); database.close();
+  database.connection.exec('DROP TABLE run_logs; DROP TABLE notification_receipts; ALTER TABLE sites DROP COLUMN schedule_mode; ALTER TABLE run_records DROP COLUMN outcome; PRAGMA user_version = 4;'); database.close();
   const upgraded = new AppDatabase(file); upgraded.close();
   const files = readdirSync(path.join(root, 'backups')); expect(files).toHaveLength(1);
   expect(statSync(path.join(root, 'backups', files[0]!)).mode & 0o777).toBe(0o600);

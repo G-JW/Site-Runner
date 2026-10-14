@@ -18,7 +18,7 @@ export function parseSiteRules(value: unknown): SiteRule[] {
     if (!raw || typeof raw !== 'object' || typeof raw.enabled !== 'boolean' || !raw.schedule || typeof raw.schedule.enabled !== 'boolean' || typeof raw.schedule.cron !== 'string' || (raw.script !== null && typeof raw.script !== 'string')) {
       throw new Error('Invalid site rule');
     }
-    const site = validateSite({ ...(raw.visitOptions ? { visitOptions: raw.visitOptions } : {}), name: raw.name, url: raw.url, enabled: raw.enabled, script: raw.script, timeoutMs: raw.timeoutMs, schedule: { enabled: raw.schedule.enabled, cron: raw.schedule.cron }, browserProfileId: 'import-validation' });
+    const site = validateSite({ ...(raw.visitOptions ? { visitOptions: raw.visitOptions } : {}), name: raw.name, url: raw.url, enabled: raw.enabled, script: raw.script, timeoutMs: raw.timeoutMs, schedule: { ...raw.schedule }, browserProfileId: 'import-validation' });
     const { name, url, enabled, script, timeoutMs, schedule, visitOptions } = site;
     return { name, url, enabled, script, timeoutMs, schedule, ...(visitOptions ? { visitOptions } : {}) };
   });

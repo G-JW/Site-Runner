@@ -19,7 +19,7 @@ describe('Playwright automation execution', () => {
       screenshotPath: path.join(root, 'failure.png'), headless: true };
     const visit = await executeAutomation({ ...base, siteId: 'visit', script: null, profilePath: path.join(root, 'visit') }, () => undefined);
     const click = await executeAutomation({ ...base, siteId: 'click', script, profilePath: path.join(root, 'click') }, () => undefined);
-    expect(visit).toMatchObject({ status: 'success', message: 'Page loaded (no result assertion)' });
+    expect(visit).toMatchObject({ status: 'success', message: 'Page loaded' });
     expect(click).toMatchObject({ status: 'success', message: 'Automation completed' });
   });
 
@@ -36,14 +36,14 @@ describe('Playwright automation execution', () => {
     expect(readFileSync(screenshotPath).subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   });
 
-  it('checks visit content, rejects challenge pages and preserves script success messages', async () => {
+  it('ignores retired visit checks, rejects challenge pages and preserves script success messages', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'site-runner-visit-check-'));
     const execute = (id: string, markup: string, script: string | null, check: 'none' | 'text' = 'none', value = '') => executeAutomation({
       siteId: id, siteName: id, url: `data:text/html,${encodeURIComponent(markup)}`, script, timeoutMs: 1000,
-      visitOptions: { stayMs: 0, detectChallenges: true, check, value }, profilePath: path.join(root, id), screenshotPath: path.join(root, `${id}.png`), headless: true,
+      visitOptions: Object.assign({ stayMs: 0, detectChallenges: true }, { check, value }), profilePath: path.join(root, id), screenshotPath: path.join(root, `${id}.png`), headless: true,
     }, () => undefined);
-    expect(await execute('normal', '<h1>Account ready</h1>', null, 'text', 'Account ready')).toMatchObject({ status: 'success', message: 'Expected page content verified' });
-    expect(await execute('missing', '<h1>Log in</h1>', null, 'text', 'Account ready')).toMatchObject({ status: 'failed' });
+    expect(await execute('normal', '<h1>Account ready</h1>', null, 'text', 'Account ready')).toMatchObject({ status: 'success', message: 'Page visited' });
+    expect(await execute('missing', '<h1>Log in</h1>', null, 'text', 'Account ready')).toMatchObject({ status: 'success' });
     expect(await execute('challenge', '<title>Just a moment...</title><p>Checking browser</p>', null)).toMatchObject({ status: 'failed', error: expect.stringContaining('security challenge') });
     expect(await execute('message', '<h1>Normal</h1>', "export default async function run() { return { message: '今日已签到' }; }")).toMatchObject({ status: 'success', message: '今日已签到' });
   });

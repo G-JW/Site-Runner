@@ -25,12 +25,14 @@ export function validateSite(input: SiteInput): SiteInput {
   if (!Number.isInteger(input.timeoutMs) || input.timeoutMs < 1_000 || input.timeoutMs > 300_000) {
     throw new Error('Timeout must be between 1000 and 300000 milliseconds');
   }
+  if (input.schedule.mode && !['inherit', 'custom', 'manual'].includes(input.schedule.mode)) throw new Error('Invalid schedule mode');
+  if (input.schedule.mode && input.schedule.enabled !== (input.schedule.mode === 'custom')) throw new Error('Schedule mode and enabled state disagree');
   if (input.schedule.enabled && !cron.validate(input.schedule.cron)) throw new Error('Invalid cron expression');
   return {
     ...input, ...(input.visitOptions ? { visitOptions: validateVisitOptions(input.visitOptions) } : {}), name: requiredText(input.name, 'Name'), url,
     browserProfileId: requiredText(input.browserProfileId, 'Browser profile'),
     script: input.script?.trim() || null,
-    schedule: { enabled: Boolean(input.schedule.enabled), cron: requiredText(input.schedule.cron, 'Cron expression') },
+    schedule: { enabled: Boolean(input.schedule.enabled), cron: requiredText(input.schedule.cron, 'Cron expression'), ...(input.schedule.mode ? { mode: input.schedule.mode } : {}) },
   };
 }
 
@@ -158,15 +160,15 @@ export class DataService {
     const id = input.id ?? randomUUID();
     if (input.id) {
       const result = this.db.prepare(`UPDATE sites SET name = ?, url = ?, enabled = ?, script = ?,
-        browser_profile_id = ?, timeout_ms = ?, schedule_enabled = ?, schedule_cron = ?, folder_id = ?, visit_options_json = ?, updated_at = ? WHERE id = ?`)
+        browser_profile_id = ?, timeout_ms = ?, schedule_enabled = ?, schedule_cron = ?, folder_id = ?, visit_options_json = ?, schedule_mode = ?, updated_at = ? WHERE id = ?`)
         .run(input.name, input.url, Number(input.enabled), input.script, input.browserProfileId,
-          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, JSON.stringify(visitOptions), timestamp, id);
+          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, JSON.stringify(visitOptions), input.schedule.mode ?? null, timestamp, id);
       if (result.changes === 0) throw new Error('Site not found');
     } else {
       this.db.prepare(`INSERT INTO sites(id, name, url, enabled, script, browser_profile_id, timeout_ms,
-        schedule_enabled, schedule_cron, folder_id, visit_options_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        schedule_enabled, schedule_cron, folder_id, visit_options_json, schedule_mode, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(id, input.name, input.url, Number(input.enabled), input.script, input.browserProfileId,
-          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, JSON.stringify(visitOptions), timestamp, timestamp);
+          input.timeoutMs, Number(input.schedule.enabled), input.schedule.cron, folderId, JSON.stringify(visitOptions), input.schedule.mode ?? null, timestamp, timestamp);
     }
     return this.getSite(id);
   }
@@ -186,7 +188,7 @@ export class DataService {
         for (let index = 2; usedNames.has(name); index++) name = `${input.name} (${index})`;
         usedNames.add(name);
         return this.saveSite({ name, visitOptions: input.visitOptions ?? legacyVisitOptions, url: input.url, script: input.script, timeoutMs: input.timeoutMs, browserProfileId: input.browserProfileId,
-          enabled: false, schedule: { ...input.schedule, enabled: false } });
+          enabled: false, schedule: { ...input.schedule, enabled: false, ...(input.schedule.mode === 'custom' ? { mode: 'manual' as const } : {}) } });
       });
       this.db.exec('COMMIT');
       return sites;
@@ -279,6 +281,8 @@ export class DataService {
       notificationEnabled: values.notificationEnabled !== 'false',
       notifyScheduledRuns: values.notifyScheduledRuns === 'true',
       language: values.language === 'zh-CN' ? 'zh-CN' : 'en',
+      theme: values.theme === 'light' || values.theme === 'dark' ? values.theme : 'system',
+      density: values.density === 'compact' ? 'compact' : 'comfortable',
       cleanup: values.cleanup ? validateCleanupPolicy(JSON.parse(values.cleanup)) : { ...defaultCleanupPolicy },
     };
   }
@@ -289,6 +293,8 @@ export class DataService {
       throw new Error('Default timeout must be between 1000 and 300000 milliseconds');
     }
     if (current.language !== 'en' && current.language !== 'zh-CN') throw new Error('Unsupported language');
+    if (!['system', 'light', 'dark'].includes(current.theme)) throw new Error('Unsupported theme');
+    if (!['comfortable', 'compact'].includes(current.density)) throw new Error('Unsupported density');
     current.cleanup = validateCleanupPolicy(current.cleanup);
     const statement = this.db.prepare('INSERT OR REPLACE INTO settings(key, value) VALUES (?, ?)');
     for (const [key, value] of Object.entries(current)) statement.run(key, key === 'cleanup' ? JSON.stringify(value) : String(value));
@@ -358,9 +364,9 @@ export class DataService {
 
   private mapSite(row: Row): Site {
     return {
-      visitOptions: JSON.parse(String(row.visit_options_json)) as Site['visitOptions'], folderId: row.folder_id == null ? null : String(row.folder_id), id: String(row.id), name: String(row.name), url: String(row.url), enabled: asBoolean(row.enabled),
+      visitOptions: validateVisitOptions(JSON.parse(String(row.visit_options_json))), folderId: row.folder_id == null ? null : String(row.folder_id), id: String(row.id), name: String(row.name), url: String(row.url), enabled: asBoolean(row.enabled),
       script: row.script == null ? null : String(row.script), browserProfileId: String(row.browser_profile_id),
-      timeoutMs: Number(row.timeout_ms), schedule: { enabled: asBoolean(row.schedule_enabled), cron: String(row.schedule_cron) },
+      timeoutMs: Number(row.timeout_ms), schedule: { enabled: asBoolean(row.schedule_enabled), cron: String(row.schedule_cron), ...(row.schedule_mode ? { mode: row.schedule_mode as NonNullable<SiteSchedule['mode']> } : {}) },
       createdAt: String(row.created_at), updatedAt: String(row.updated_at),
       lastRun: row.run_id == null ? null : this.mapRun({
         id: row.run_id, site_id: row.id, site_name: row.name, started_at: row.run_started_at,
@@ -374,7 +380,7 @@ export class DataService {
     return {
       id: String(row.id), siteId: String(row.site_id), siteName: String(row.site_name),
       startedAt: String(row.started_at), finishedAt: String(row.finished_at), status: row.status as RunRecord['status'],
-      message: row.message == null ? null : String(row.message), error: row.error == null ? null : String(row.error),
+      message: row.message == null ? null : legacyRunMessage(String(row.message)), error: row.error == null ? null : String(row.error),
       lastUrl: row.last_url == null ? null : String(row.last_url),
       screenshotPath: row.screenshot_path == null ? null : String(row.screenshot_path), trigger: row.trigger as RunRecord['trigger'],
     };
@@ -387,5 +393,16 @@ export class DataService {
       config: JSON.parse(String(row.config_json)) as Record<string, unknown>,
       createdAt: String(row.created_at), updatedAt: String(row.updated_at),
     };
+  }
+}
+
+// Keep stored history intact while hiding retired application-generated result labels.
+function legacyRunMessage(message: string): string {
+  switch (message) {
+    case 'Automation completed; result not verified': return 'Automation completed';
+    case 'Page loaded (no result assertion)': return 'Page loaded';
+    case 'Page visited (login and business results not verified)': return 'Page visited';
+    case 'Expected page content verified': return 'Page visited';
+    default: return message;
   }
 }

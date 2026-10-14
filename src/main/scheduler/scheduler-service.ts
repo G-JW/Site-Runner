@@ -24,6 +24,21 @@ export class SchedulerService {
 
   private readonly runningFolders = new Set<string>();
 
+  nextSchedules(): Record<string, string | null> {
+    const next: Record<string, string | null> = {};
+    for (const site of this.data.listSites()) {
+      const task = site.schedule.enabled ? this.tasks.get(site.id) : site.schedule.mode !== 'manual' && site.folderId ? this.tasks.get(`folder:${site.folderId}`) : undefined;
+      next[site.id] = site.enabled ? task?.getNextRun()?.toISOString() ?? null : null;
+    }
+    return next;
+  }
+
+  preview(expression: string): string | null {
+    if (!validateCron(expression)) throw new Error('Invalid cron expression');
+    const task = cron.schedule(expression, () => {});
+    try { return task.getNextRun()?.toISOString() ?? null; } finally { task.destroy(); }
+  }
+
   start(): void { this.refreshAll(); }
 
   refreshAll(): void {

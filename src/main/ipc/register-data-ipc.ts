@@ -21,7 +21,9 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   ipcMain.handle('folders:list', () => data.listFolders());
   ipcMain.handle('folders:save', (_event, input: Parameters<DataService['saveFolder']>[0]) => { const folder = data.saveFolder(input); scheduler.refreshAll(); return folder; });
   ipcMain.handle('folders:remove', (_event, id: string) => { data.removeFolder(id); scheduler.refreshAll(); });
-  ipcMain.handle('folders:moveSites', (_event, ids: string[], folderId: string | null) => data.moveSites(ids, folderId));
+  ipcMain.handle('folders:moveSites', (_event, ids: string[], folderId: string | null) => { ids.forEach((id) => runtime.assertIdle(id)); data.moveSites(ids, folderId); scheduler.refreshAll(); });
+  ipcMain.handle('runs:nextSchedules', () => scheduler.nextSchedules());
+  ipcMain.handle('runs:schedulePreview', (_event, expression: string) => scheduler.preview(expression));
   ipcMain.handle('sites:exportRules', async (_event, ids: string[]) => {
     if (!Array.isArray(ids) || ids.length === 0) throw new Error('Select sites to export');
     const file = exportSiteRules([...new Set(ids)].map((id) => data.getSite(id)));
@@ -75,7 +77,7 @@ export function registerDataIpc(data: DataService, profiles: ProfileService, sch
   ipcMain.handle('profiles:create', (_event, name: string) => profiles.create(name));
   const assertProfileIdle = (id: string) => { if (data.listSites().some((site) => site.browserProfileId === id && runtime.isBusy(site.id))) throw new Error('This profile has running or waiting tasks'); };
   ipcMain.handle('profiles:remove', (_event, id: string) => { assertProfileIdle(id); profiles.remove(id); });
-  ipcMain.handle('profiles:open', (_event, id: string) => { assertProfileIdle(id); return profiles.open(id); });
+  ipcMain.handle('profiles:open', (_event, id: string, url?: string) => { assertProfileIdle(id); return profiles.open(id, url); });
   ipcMain.handle('runs:search', (_event, query) => data.searchRuns(query));
   ipcMain.handle('runs:detail', (_event, id: string) => data.runDetail(id));
   ipcMain.handle('notifications:receipts', () => data.listReceipts());

@@ -2,6 +2,17 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { SiteRunnerApi } from '../shared/types.js';
 
 const api: SiteRunnerApi = {
+  updates: {
+    state: () => ipcRenderer.invoke('updates:state'),
+    check: () => ipcRenderer.invoke('updates:check'),
+    download: () => ipcRenderer.invoke('updates:download'),
+    install: () => ipcRenderer.invoke('updates:install'),
+    onState: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof listener>[0]) => listener(state);
+      ipcRenderer.on('updates:state', handler);
+      return () => ipcRenderer.removeListener('updates:state', handler);
+    },
+  },
   cleanup: {
     preview: () => ipcRenderer.invoke('cleanup:preview') as ReturnType<SiteRunnerApi['cleanup']['preview']>,
     execute: (id) => ipcRenderer.invoke('cleanup:execute', id) as ReturnType<SiteRunnerApi['cleanup']['execute']>,
@@ -49,9 +60,12 @@ const api: SiteRunnerApi = {
     list: () => ipcRenderer.invoke('profiles:list') as ReturnType<SiteRunnerApi['profiles']['list']>,
     create: (name) => ipcRenderer.invoke('profiles:create', name) as ReturnType<SiteRunnerApi['profiles']['create']>,
     remove: (id) => ipcRenderer.invoke('profiles:remove', id) as ReturnType<SiteRunnerApi['profiles']['remove']>,
-    open: (id) => ipcRenderer.invoke('profiles:open', id) as ReturnType<SiteRunnerApi['profiles']['open']>,
+    open: (id, url) => ipcRenderer.invoke('profiles:open', id, url) as ReturnType<SiteRunnerApi['profiles']['open']>,
   },
   runs: {
+    stopBatch: (id) => ipcRenderer.invoke('runs:stopBatch', id),
+    nextSchedules: () => ipcRenderer.invoke('runs:nextSchedules'),
+    schedulePreview: (cron) => ipcRenderer.invoke('runs:schedulePreview', cron),
     state: () => ipcRenderer.invoke('runs:state') as ReturnType<SiteRunnerApi['runs']['state']>,
     onState: (listener) => {
       const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof listener>[0]) => listener(state);

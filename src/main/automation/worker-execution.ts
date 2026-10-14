@@ -23,7 +23,15 @@ export async function executeAutomation(request: AutomationRequest, emit: (entry
     page = context.pages()[0] ?? await context.newPage();
     const response = await page.goto(request.url, { waitUntil: 'domcontentloaded', timeout: request.timeoutMs });
     if (response && response.status() >= 400) throw new Error(`HTTP ${response.status()}`);
-    let message = request.script ? 'Automation completed' : 'Page loaded (no result assertion)';
+    const options = request.visitOptions ?? legacyVisitOptions;
+    if (!request.script && options.stayMs) await page.waitForTimeout(options.stayMs);
+    if (options.detectChallenges) {
+      const title = await page.title();
+      const challengeHeader = response?.headers()['cf-mitigated'] === 'challenge';
+      if (challengeHeader || /^(just a moment|attention required|security verification|verify you are human)/i.test(title.trim()) || await page.locator('#challenge-running, #challenge-stage').count() > 0)
+        throw new Error('Page blocked by a security challenge; normal content was not confirmed');
+    }
+    let message = request.script ? 'Automation completed' : 'Page loaded';
     if (request.script) {
       log('info', 'Running site script');
       const scriptMessage = await runTrustedScript(request.script, {
@@ -33,19 +41,7 @@ export async function executeAutomation(request: AutomationRequest, emit: (entry
       });
       if (scriptMessage) message = scriptMessage;
     } else {
-      const options = request.visitOptions ?? legacyVisitOptions;
-      if (options.stayMs) await page.waitForTimeout(options.stayMs);
-      if (options.detectChallenges) {
-        const title = await page.title();
-        const challengeHeader = response?.headers()['cf-mitigated'] === 'challenge';
-        if (challengeHeader || /^(just a moment|attention required|security verification|verify you are human)/i.test(title.trim()) || await page.locator('#challenge-running, #challenge-stage').count() > 0) throw new Error('Page blocked by a security challenge; normal content was not confirmed');
-      }
-      if (options.check !== 'none') {
-        const { expect } = await import('playwright/test');
-        const target = options.check === 'selector' ? page.locator(options.value) : page.getByText(options.value, { exact: true });
-        await expect(target, 'Expected page content was not visible').toBeVisible({ timeout: Math.min(request.timeoutMs, 15000) });
-        message = 'Expected page content verified';
-      } else if (options.stayMs || options.detectChallenges) message = 'Page visited (login and business results not verified)';
+      if (options.stayMs || options.detectChallenges) message = 'Page visited';
       log('info', 'URL loaded; no site script configured');
     }
     log('info', 'Run completed');

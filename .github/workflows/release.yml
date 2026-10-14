@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Verify version tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node --input-type=module -e "import fs from 'node:fs'; const version=JSON.parse(fs.readFileSync('package.json')).version; if(process.env.RELEASE_TAG !== 'v'+version) throw new Error('Run the release workflow from the matching version tag');"
+
+  build:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: darwin-arm64
+          - os: macos-15-intel
+            target: darwin-x64
+          - os: windows-latest
+            target: win32-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prepare:browsers
+      - run: pnpm build
+      - run: node scripts/package-release.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: update-${{ matrix.target }}
+          path: |
+            release/Site-Runner-*.zip
+            release/Site-Runner-*.exe
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: update-*
+          path: release
+          merge-multiple: true
+      - name: Compile public update configuration
+        run: |
+          mkdir -p dist/main/shared
+          sed -e '/^\/\//d' -e 's/ as const;//' src/shared/update-config.ts > dist/main/shared/update-config.js
+      - name: Sign update manifest
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          SITE_RUNNER_UPDATE_PRIVATE_KEY: ${{ secrets.SITE_RUNNER_UPDATE_PRIVATE_KEY }}
+        run: node scripts/create-update-manifest.mjs release
+      - name: Stage complete release before making it visible
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft > release/status.json 2>/dev/null; then
+            node -e "if (!require('./release/status.json').isDraft) throw new Error('This version is already published. Use a new version tag.');"
+          else
+            gh release create "$RELEASE_TAG" --draft --verify-tag --title "Site Runner $RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" release/Site-Runner-*.zip release/Site-Runner-*.exe release/site-runner-update.json --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest

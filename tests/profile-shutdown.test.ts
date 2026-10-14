@@ -14,7 +14,7 @@ it('waits for a profile browser opening during shutdown and closes it before ret
     const profiles = new ProfileService(new DataService(database.connection), path.join(root, 'profiles')), profile = profiles.create('Default');
     const close = vi.fn(async () => undefined); let ready!: () => void;
     const gate = new Promise<void>((resolve) => { ready = resolve; });
-    mock.launch.mockImplementation(async () => { await gate; return { close, once: vi.fn(), pages: () => [{}] }; });
+    mock.launch.mockImplementation(async () => { await gate; return { close, once: vi.fn(), pages: () => [{ bringToFront: async () => undefined }] }; });
     const opening = profiles.open(profile.id); await vi.waitFor(() => expect(mock.launch).toHaveBeenCalled());
     let finished = false; const shutdown = profiles.closeAll().then(() => { finished = true; });
     await expect(profiles.open(profile.id)).rejects.toThrow(/closing/); await expect(profiles.acquireForRun(profile.id)).rejects.toThrow(/closing/);

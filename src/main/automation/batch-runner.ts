@@ -29,6 +29,12 @@ export class BatchRunner {
     return work;
   }
 
+  stopBatch(id: string): boolean {
+    const state = this.states.get(id);
+    if (!state || state.phase !== 'running') return false;
+    state.stopRequested = true; this.changed(); return true;
+  }
+
   async shutdown(): Promise<void> {
     this.stopping = true;
     await Promise.allSettled([...this.active]);
@@ -42,7 +48,7 @@ export class BatchRunner {
     try {
       const results: SiteRunResult[] = [];
       for (const site of sites) {
-        if (this.stopping || this.runner.isStopping?.()) break;
+        if (this.stopping || this.runner.isStopping?.() || state.stopRequested) break;
         state.currentSiteId = site.id; this.changed();
         try {
           results.push(await this.runner.runSite(site.id, trigger, headless));
@@ -60,7 +66,7 @@ export class BatchRunner {
       const batch: BatchResult = {
         startedAt, finishedAt: new Date().toISOString(), total: results.length,
         success: results.filter((result) => result.status === 'success').length,
-        failed: results.filter((result) => result.status === 'failed').length, results,
+        failed: results.filter((result) => result.status === 'failed').length, results, planned: sites.length, stopped: results.length < sites.length,
       };
       if (batch.total && this.onComplete) { state.phase = 'notifying'; this.changed(); await this.onComplete(batch); }
       return batch;

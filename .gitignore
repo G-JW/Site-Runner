@@ -22,6 +22,14 @@ test-results/
 *.log
 .env.local
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite3-wal
+*.sqlite3-shm
 .DS_Store
 .vscode/
 .idea/

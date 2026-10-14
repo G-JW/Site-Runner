@@ -13,6 +13,7 @@ export function broadcastRunLog(entry: RunLogEntry): void {
 
 export function registerRunIpc(runner: AutomationRunner, batch: BatchRunner, runtime: RuntimeService, data: DataService): void {
   const assertAccepting = () => { if (runner.isStopping()) throw new Error('Application is closing; new tasks are not accepted'); };
+  ipcMain.handle('runs:stopBatch', (_event, id: string) => runtime.stopBatch(id));
   ipcMain.handle('runs:state', () => runtime.snapshot());
   runtime.onState((state) => {
     for (const window of BrowserWindow.getAllWindows()) if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('runs:state', state);

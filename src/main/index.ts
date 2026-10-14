@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeTheme, net } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getAppPaths } from './paths.js';
@@ -16,6 +16,7 @@ import { cliHelp, executeCliCommand, parseCliCommand, type CliCommand } from './
 import { RecorderService } from './recording/recorder-service.js';
 import { CleanupService } from './services/cleanup-service.js';
 import { RuntimeService } from './services/runtime-service.js';
+import { UpdateService } from './updates/update-service.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 let cliCommand: CliCommand | null = null;
@@ -57,14 +58,14 @@ if (app.isPackaged) {
   );
 }
 
-function createWindow(): BrowserWindow {
+function createWindow(theme: 'system' | 'light' | 'dark' = 'system'): BrowserWindow {
   const window = new BrowserWindow({
     width: 1320,
     height: 840,
     minWidth: 1040,
     minHeight: 680,
     title: 'Site Runner',
-    backgroundColor: '#f4f3ef',
+    backgroundColor: theme === 'light' || (theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#fafafa' : '#1e1e1e',
     webPreferences: {
       preload: path.join(currentDir, '../preload/index.cjs'),
       contextIsolation: true,
@@ -126,11 +127,27 @@ app.whenReady().then(async () => {
     await notifications.notifyBatch({ startedAt: result.startedAt, finishedAt: result.finishedAt, total: 1,
       success: result.status === 'success' ? 1 : 0, failed: result.status === 'failed' ? 1 : 0, results: [result] });
   }, async (folderId) => {
-    const ids = data.listSites().filter((site) => site.enabled && site.folderId === folderId && !runtime.isBusy(site.id)).map((site) => site.id);
+    const ids = data.listSites().filter((site) => site.enabled && site.folderId === folderId && !site.schedule.enabled && site.schedule.mode !== 'manual' && !runtime.isBusy(site.id)).map((site) => site.id);
     if (!ids.length) return;
     await scheduledBatch.runSites(ids, undefined, 'schedule');
   }, (id) => !runtime.isBusy(id));
   const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runtime.isBusy(site.id)));
+  const updates = new UpdateService({
+    currentVersion: app.getVersion(), platform: process.platform, arch: process.arch,
+    executable: process.execPath, userData: paths.userData, packaged: app.isPackaged,
+    ...(process.env.PORTABLE_EXECUTABLE_FILE ? { portablePath: process.env.PORTABLE_EXECUTABLE_FILE } : {}),
+    fetch: (url, options) => net.fetch(url as string, options),
+    isBusy: () => { const snapshot = runtime.snapshot(); return snapshot.runs.length > 0 || snapshot.batches.length > 0 || profiles.hasOpenBrowsers() || ['recording', 'ready'].includes(recorder.getStatus().state); },
+    beforeInstall: async () => undefined,
+    quit: () => app.quit(),
+    logError: (stage, error) => logger.warn({ stage, error }, 'Application update failed'),
+  });
+  await updates.initialize();
+  updates.onState((state) => { for (const window of BrowserWindow.getAllWindows()) { if (!window.isDestroyed()) window.webContents.send('updates:state', state); } });
+  ipcMain.handle('updates:state', () => updates.snapshot());
+  ipcMain.handle('updates:check', () => updates.check());
+  ipcMain.handle('updates:download', () => updates.download());
+  ipcMain.handle('updates:install', () => updates.install());
   ipcMain.handle('recorder:start', (_event, input) => { if (runner.isStopping()) throw new Error('Application is closing'); return recorder.start(input); });
   ipcMain.handle('recorder:status', () => recorder.getStatus());
   ipcMain.handle('recorder:finish', () => recorder.finish());
@@ -144,6 +161,9 @@ app.whenReady().then(async () => {
     name: 'Site Runner',
     version: app.getVersion(),
     userDataPath: getAppPaths().userData,
+    platform: process.platform,
+    executablePath: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath,
+    cliAppPath: app.isPackaged ? undefined : app.getAppPath(),
   }));
 
   let closing = false;
@@ -152,7 +172,7 @@ app.whenReady().then(async () => {
     if (closing) return;
     closing = true;
     cleanup.stop();
-    const finishing = [scheduler.shutdown(), batch.shutdown(), scheduledBatch.shutdown(), runner.shutdown(), recorder.cancel(), profiles.closeAll()];
+    const finishing = [scheduler.shutdown(), batch.shutdown(), scheduledBatch.shutdown(), runner.shutdown(), recorder.cancel(), profiles.closeAll(), updates.shutdown()];
     for (const window of BrowserWindow.getAllWindows()) {
       if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('app:closing');
     }
@@ -187,7 +207,17 @@ app.whenReady().then(async () => {
     return;
   }
 
-  const window = createWindow();
+  const window = createWindow(data.getSettings().theme);
+  window.webContents.once('did-finish-load', () => {
+    void (async () => {
+      for (let attempt = 0; attempt < 30; attempt++) {
+        const mounted = await window.webContents.executeJavaScript("Boolean(document.querySelector('[data-testid=nav-sites]') && document.querySelector('[data-testid=nav-settings]'))");
+        if (mounted) { await updates.confirmStartup(); return; }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      throw new Error('Updated renderer did not mount');
+    })().catch((error: unknown) => logger.error({ error }, 'Update startup confirmation failed'));
+  });
   if (process.argv.includes('--smoke-test')) {
     const rendererErrors: string[] = [];
     window.webContents.on('console-message', (details) => {
@@ -203,6 +233,8 @@ app.whenReady().then(async () => {
         await wait(1_000);
         const siteDialog = Boolean(document.querySelector('[data-testid="site-dialog"]'));
         document.querySelector('[data-testid="site-dialog"] .close')?.click();
+        document.querySelector('[data-testid="nav-settings"]')?.click();
+        await wait(100);
         document.querySelector('[data-testid="nav-templates"]')?.click();
         await wait(100);
         document.querySelector('[data-testid="template-multi-step"]')?.click();
@@ -215,6 +247,8 @@ app.whenReady().then(async () => {
           input.dispatchEvent(new Event('input', { bubbles: true }));
         };
         const fillSite = async (name) => {
+          document.querySelector('[data-testid="task-tab-website"]')?.click();
+          await wait(100);
           const inputs = document.querySelectorAll('[data-testid="site-dialog"] .form-grid input');
           setInput(inputs[0], name);
           await wait(50);
@@ -226,12 +260,17 @@ app.whenReady().then(async () => {
         await wait(200);
         const templateSite = (await window.siteRunner.sites.list()).find((site) => site.name === 'Template smoke');
         const templateCreated = templateSite?.script.includes("getByRole('dialog')");
+        document.querySelector('[data-testid="nav-settings"]')?.click();
+        await wait(100);
         document.querySelector('[data-testid="nav-templates"]')?.click();
         await wait(100);
         document.querySelector('[data-testid="template-verified-click"]')?.click();
         await wait(50);
         document.querySelector('[data-testid="create-from-template"]')?.click();
         await wait(300);
+        await fillSite('Visit smoke');
+        document.querySelector('[data-testid="task-tab-actions"]')?.click();
+        await wait(100);
         document.querySelector('[data-testid="choose-template"]')?.click();
         await wait(50);
         document.querySelector('[data-testid="apply-template"]')?.click();
@@ -246,6 +285,8 @@ app.whenReady().then(async () => {
         const templateCleared = visitSite?.script === null;
         if (templateSite) await window.siteRunner.sites.remove(templateSite.id);
         if (visitSite) await window.siteRunner.sites.remove(visitSite.id);
+        document.querySelector('[data-testid="nav-settings"]')?.click();
+        await wait(100);
         document.querySelector('[data-testid="nav-profiles"]')?.click();
         await wait(100);
         document.querySelector('[data-testid="new-profile"]')?.click();
@@ -296,7 +337,7 @@ app.whenReady().then(async () => {
 
   app.on('activate', () => {
     if (closing) return;
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) createWindow(data.getSettings().theme);
   });
   logger.info({ userData: paths.userData }, 'Site Runner started');
 }).catch((error: unknown) => {
