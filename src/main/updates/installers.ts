@@ -36,7 +36,11 @@ try {
   Copy-Item -LiteralPath ${quotePS(plan.staged)} -Destination $next
   $old = Get-Process -Id ${plan.pid} -ErrorAction SilentlyContinue
   if ($old) { $old | Wait-Process -Timeout 180 -ErrorAction Stop }
-  Move-Item -LiteralPath $current -Destination $backup
+  $moved = $false
+  for ($attempt = 0; $attempt -lt 60; $attempt++) {
+    try { Move-Item -LiteralPath $current -Destination $backup; $moved = $true; break } catch { Start-Sleep -Seconds 1 }
+  }
+  if (-not $moved) { throw 'The portable launcher is still locking the executable' }
   try { Move-Item -LiteralPath $next -Destination $current } catch { Move-Item -LiteralPath $backup -Destination $current; throw }
   Set-Content -LiteralPath $receipt -Value ${quotePS(pending)} -Encoding utf8
   $new = Start-Process -FilePath $current -PassThru
