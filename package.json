@@ -1,6 +1,6 @@
 {
   "name": "site-runner",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "private": true,
   "description": "Local-first browser automation desktop app",
   "author": "Site Runner Contributors",
@@ -63,6 +63,7 @@
   "build": {
     "appId": "com.siterunner.desktop",
     "productName": "Site Runner",
+    "afterPack": "scripts/after-pack.mjs",
     "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release"
@@ -84,6 +85,7 @@
       }
     ],
     "mac": {
+      "asar": false,
       "icon": "assets/branding/icon.icns",
       "category": "public.app-category.productivity",
       "target": [

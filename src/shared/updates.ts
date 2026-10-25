@@ -12,6 +12,7 @@ export type UpdateError =
   | "network"
   | "manifest"
   | "download"
+  | "prepare"
   | "permission"
   | "busy"
   | "install"

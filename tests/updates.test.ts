@@ -43,7 +43,7 @@ const envelope = (manifest: UpdateManifest) => {
   };
 };
 
-function fixture() {
+function fixture(platform: "win32" | "darwin" = "win32") {
   const directory = root(),
     userData = path.join(directory, "data"),
     executable = path.join(directory, "Runner's app.exe");
@@ -54,9 +54,9 @@ function fixture() {
     body = { bytes },
     busy = { value: false };
   const artifact = {
-    platform: "win32" as const,
+    platform,
     arch: "x64" as const,
-    name: "Site-Runner-0.3.7-win32-x64.exe",
+    name: `Site-Runner-0.3.7-${platform}-x64.${platform === "darwin" ? "zip" : "exe"}`,
     size: bytes.length,
     sha256: createHash("sha256").update(bytes).digest("hex"),
   };
@@ -84,7 +84,7 @@ function fixture() {
     quit = vi.fn();
   const service = new UpdateService({
     currentVersion: "0.3.6",
-    platform: "win32",
+    platform,
     arch: "x64",
     packaged: true,
     executable,
@@ -154,6 +154,18 @@ describe("signed update manifests", () => {
 });
 
 describe("update lifecycle", () => {
+  it.skipIf(process.platform !== "darwin")(
+    "distinguishes a verified but unextractable package from a corrupt download",
+    async () => {
+      const f = fixture("darwin");
+      await f.service.initialize();
+      await f.service.check();
+      const result = await f.service.download();
+      expect(result.error).toBe("prepare");
+      expect(readFileSync(f.executable, "utf8")).toBe("old app");
+      expect(f.installer).not.toHaveBeenCalled();
+    },
+  );
   it("coalesces checks, verifies downloads, retains user data and launches an installer only when explicitly requested", async () => {
     const f = fixture();
     await f.service.initialize();

@@ -40,7 +40,7 @@ export function UpdatesPanel({ onError }: { onError(error: unknown): void }) {
     state?.phase === "available" ||
     (state?.phase === "error" &&
       Boolean(state.version) &&
-      state.error === "download");
+      ["download", "prepare"].includes(state.error ?? ""));
   async function act() {
     setRequesting(true);
     try {

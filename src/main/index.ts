@@ -48,8 +48,7 @@ app.on('second-instance', (_event, argv) => {
 if (app.isPackaged) {
   process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.resourcesPath, 'playwright-browsers');
   process.env.ESBUILD_BINARY_PATH = path.join(
-    process.resourcesPath,
-    'app.asar.unpacked',
+    app.getAppPath().endsWith('.asar') ? `${app.getAppPath()}.unpacked` : app.getAppPath(),
     'node_modules',
     '@esbuild',
     `${process.platform}-${process.arch}`,
@@ -149,7 +148,7 @@ app.whenReady().then(async () => {
     },
     beforeInstall: async () => undefined,
     quit: () => app.quit(),
-    logError: (stage, error) => logger.warn({ stage, error }, 'Application update failed'),
+    logError: (stage, error) => logger.warn({ stage, err: error }, 'Application update failed'),
   });
   await updates.initialize();
   updates.onState((state) => { for (const window of BrowserWindow.getAllWindows()) { if (!window.isDestroyed()) window.webContents.send('updates:state', state); } });

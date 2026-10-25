@@ -1,19 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import {
-  access,
-  mkdir,
-  mkdtemp,
-  open,
-  readFile,
-  readdir,
-  realpath,
-  rename,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
 import path from "node:path";
+import { updateFileSystem } from "./filesystem.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
@@ -26,6 +14,19 @@ import { updateConfig } from "../../shared/update-config.js";
 import { verifyManifest } from "./manifest.js";
 import { launchInstaller, type InstallPlan } from "./installers.js";
 
+const {
+  access,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} = updateFileSystem;
 const execute = promisify(execFile);
 interface Options {
   currentVersion: string;
@@ -130,6 +131,19 @@ export class UpdateService {
   private failure(error: UpdateError): UpdateState {
     this.publish({ ...this.state, phase: "error", error });
     return this.snapshot();
+  }
+  private async discardStaging(directory: string): Promise<void> {
+    try {
+      await rm(directory, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 200,
+      });
+    } catch (error) {
+      // An obsolete cache must not prevent installing the newly verified bundle.
+      this.options.logError?.("cleanup", error);
+    }
   }
   private single(work: () => Promise<UpdateState>): Promise<UpdateState> {
     if (this.operation) return this.operation;
@@ -279,6 +293,7 @@ export class UpdateService {
         progress: 0,
         transferred: 0,
       });
+      let kind: UpdateError = "download";
       try {
         const response = await this.request(this.assetURL, {
           signal: AbortSignal.any([
@@ -326,6 +341,7 @@ export class UpdateService {
         }
         this.downloaded = path.join(this.directory, artifact.name);
         await rename(partial, this.downloaded);
+        kind = "prepare";
         const previous = this.staged;
         this.staged = await this.prepare(this.downloaded);
         if (
@@ -333,14 +349,14 @@ export class UpdateService {
           previous !== this.staged &&
           this.options.platform === "darwin"
         )
-          await rm(path.dirname(previous), { recursive: true, force: true });
+          await this.discardStaging(path.dirname(previous));
         this.publish({ ...this.state, phase: "ready", progress: 100 });
         return this.snapshot();
       } catch (error) {
-        this.options.logError?.("download", error);
+        this.options.logError?.(kind, error);
         await rm(partial, { force: true });
         this.staged = null;
-        return this.failure("download");
+        return this.failure(kind);
       } finally {
         this.controller = null;
       }
@@ -403,7 +419,7 @@ export class UpdateService {
       await assertInside(app);
       return app;
     } catch (error) {
-      await rm(destination, { recursive: true, force: true });
+      await this.discardStaging(destination);
       throw error;
     }
   }
@@ -443,10 +459,11 @@ export class UpdateService {
         )
           return this.failure("download");
         if (this.options.platform === "darwin") {
+          kind = "prepare";
           const previous = this.staged;
           this.staged = await this.prepare(this.downloaded);
           if (previous !== this.staged)
-            await rm(path.dirname(previous), { recursive: true, force: true });
+            await this.discardStaging(path.dirname(previous));
         }
         const probe = path.join(
           path.dirname(current),

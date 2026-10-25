@@ -42,6 +42,18 @@
 
 图标源资源位于 `assets/branding/`，修改后执行 `pnpm icons:generate`。构建前应提交 PNG、ICNS、ICO 和 SVG，确保各平台使用同一份像素网格。
 
+macOS 0.3.9 使用未封装成 ASAR 的应用布局，并在 `afterPack` 中删除未使用的 `default_app.asar`、拒绝残留 ASAR 文件。这是为尚未修复的 0.3.7/0.3.8 更新器保留的兼容布局；不能仅修复新版代码而让旧客户端仍然无法安装它。更新服务自身使用 Electron 的 `original-fs` 操作真实文件。
+
+发布构建在两个 macOS Runner 中运行 `tests/e2e/update-asar.mjs`，覆盖普通 Node 测试无法模拟的 Electron ASAR 文件系统。发布前还应使用真实旧版客户端副本运行以下测试；本地模式保持真实签名，只替换下载传输，线上模式实际访问 GitHub 并执行完整升级。全部测试使用隔离数据。
+
+```bash
+node node_modules/electron/cli.js tests/e2e/update-asar.mjs
+# 提前准备真实 0.3.7 应用副本，本地包和签名清单
+SITE_RUNNER_OLD_APP='/path/to/0.3.7/Site Runner.app' node tests/e2e/update-from-old-client.mjs --local
+# 发布后，真实 GitHub 下载、旧客户端按钮、替换、重启和数据保留
+SITE_RUNNER_OLD_APP='/path/to/0.3.7/Site Runner.app' node tests/e2e/update-from-old-client.mjs
+```
+
 ```bash
 pnpm release:package
 # 使用本地私钥文件生成清单，不输出私钥

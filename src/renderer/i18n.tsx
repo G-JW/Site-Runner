@@ -31,6 +31,8 @@ const en = {
     "The release metadata is missing or its signature is invalid. The installed app was not changed.",
   "updates.error.download":
     "Download or package verification failed. Retry the download.",
+  "updates.error.prepare":
+    "The verified package could not be unpacked or prepared. Check free disk space and retry. The installed app was not changed.",
   "updates.error.permission":
     "The application folder is not writable. Move the app out of the mounted disk image to a writable folder, then try again.",
   "updates.error.busy":
@@ -640,6 +642,8 @@ const zh: Record<TranslationKey, string> = {
   "updates.error.network": "无法连接 GitHub，请检查网络或代理后重试。",
   "updates.error.manifest": "发布信息缺失或签名校验失败，当前应用未被替换。",
   "updates.error.download": "下载或更新包校验失败，请重新下载。",
+  "updates.error.prepare":
+    "更新包已通过校验，但解压或准备失败。请检查磁盘空间后重试，当前应用未被替换。",
   "updates.error.permission":
     "应用所在目录不可写。请将应用从挂载的镜像移到可写目录，再尝试更新。",
   "updates.error.busy":
