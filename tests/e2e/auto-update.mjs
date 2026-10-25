@@ -39,7 +39,7 @@ if (worker) {
     return new Response(Readable.toWeb(createReadStream(archive)));
   };
   const updates = new UpdateService({
-    currentVersion: "0.3.5",
+    currentVersion: "0.3.7",
     platform: "darwin",
     arch: process.arch,
     packaged: true,

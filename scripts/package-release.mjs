@@ -62,7 +62,7 @@ if (process.platform === "darwin") {
     "--publish",
     "never",
   ]);
-  const source = path.join(directory, `Site Runner ${version}.exe`);
+  const source = path.join(directory, "Site Runner.exe");
   const artifact = path.join(directory, `Site-Runner-${version}-win32-x64.exe`);
   renameSync(source, artifact);
   console.log(`Release artifact: ${path.basename(artifact)}`);

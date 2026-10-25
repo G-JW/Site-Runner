@@ -22,6 +22,7 @@ import { Icon } from "./workspace/Icon";
 import { AutomationHelpPage } from "./pages/AutomationHelpPage";
 import { CommandPalette } from "./workspace/CommandPalette";
 import { navigation, type PageName } from "./workspace/navigation";
+import appIcon from "../../assets/branding/icon.svg";
 
 export function App() {
   const { t } = useI18n();
@@ -312,9 +313,13 @@ export function App() {
       >
         <div className="titlebar" inert={inactive}>
           <div className="titlebar-brand">
-            <span className="brand-mark">
-              <Icon name="play" size={14} />
-            </span>
+            <img
+              className="brand-mark"
+              src={appIcon}
+              alt=""
+              width={32}
+              height={32}
+            />
             <strong>Site Runner</strong>
             <span className="local-tag">LOCAL</span>
           </div>

@@ -1,0 +1,73 @@
+{
+  "grid": 32,
+  "artworkOffset": {
+    "x": 1,
+    "y": 1
+  },
+  "palette": {
+    ".": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "b": [
+      35,
+      37,
+      47,
+      255
+    ],
+    "p": [
+      180,
+      148,
+      237,
+      255
+    ],
+    "w": [
+      248,
+      243,
+      223,
+      255
+    ],
+    "g": [
+      174,
+      246,
+      60,
+      255
+    ]
+  },
+  "rows": [
+    "................................",
+    ".....bbbbbbbbbbbbbbbbbbbbbb.....",
+    "...bbbbbbbbbbbbbbbbbbbbbbbbbb...",
+    "..bbbbbbbbbbbbbbbbbbbbbbbbbbbb..",
+    "..bbbbbbbbbbbbbbbbbbbbbbbbbbbb..",
+    ".bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.",
+    ".bbbbbbbppppppppppppppppbbbbbbb.",
+    ".bbbbbbppppppppppppppppppbbbbbb.",
+    ".bbbbbpbbbbbbbbbbbbbbbbbbpbbbbb.",
+    ".bbbbbpbbwwbbwwbbwwbbbbbbpbbbbb.",
+    ".bbbbbpbbbbbbbbbbbbbbbbbbpbbbbb.",
+    ".bbbbbppppppppppppppppppppbbbbb.",
+    ".bbbbbpbbbbbbbbbbbbbbbbbbpbbbbb.",
+    ".bbbbbpbbbbbbbbbbbbbbbbbbpbbbbb.",
+    ".bbbbbpbbbbbwwwwwbbbbbbbbpbbbbb.",
+    ".bbbbbpbbbwwbbwbbwwbbbbbbbbbbbb.",
+    ".bbbbbpbbwbbwbwbbwbwbbbbbgbbbbb.",
+    ".bbbbbpbbwbbwbwbbwbwbbbbbggbbbb.",
+    ".bbbbbpbwbbbwbwbbwbbwbbbbgggbbb.",
+    ".bbbbbpbwwwwwwwwwwbbbbbbbggggbb.",
+    ".bbbbbpbwbbbwbwbbwggggggggggggb.",
+    ".bbbbbpbbwbbwbwbbwggggggggggggg.",
+    ".bbbbbpbbwbbwbwbbwggggggggggggb.",
+    ".bbbbbpbbbwwbbwbbwbbbbbbbggggbb.",
+    ".bbbbbpbbbbbwwwwwbbbbbbbbgggbbb.",
+    ".bbbbbbpppppppppppppppppbggbbbb.",
+    ".bbbbbbbppppppppppppppppbgbbbbb.",
+    "..bbbbbbbbbbbbbbbbbbbbbbbbbbbb..",
+    "..bbbbbbbbbbbbbbbbbbbbbbbbbbbb..",
+    "...bbbbbbbbbbbbbbbbbbbbbbbbbb...",
+    ".....bbbbbbbbbbbbbbbbbbbbbb.....",
+    "................................"
+  ]
+}

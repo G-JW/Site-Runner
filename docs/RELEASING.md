@@ -38,6 +38,10 @@
 
 ## 本地构建与验证
 
+应用名称保持 `Site Runner`。本地 macOS 应用为 `release/mac-arm64/Site Runner.app`（Intel 为 `release/mac/Site Runner.app`），Windows 便携版构建时使用 `Site Runner.exe`，不把版本号附加到应用名称。发布脚本仍将传输包命名为带版本的平台文件，供签名清单匹配。已有客户端安装更新时保留原来的安装路径；如果旧 `.app` 曾被手动加上版本号，可在更新完成并退出应用后改为 `Site Runner.app`。
+
+图标源资源位于 `assets/branding/`，修改后执行 `pnpm icons:generate`。构建前应提交 PNG、ICNS、ICO 和 SVG，确保各平台使用同一份像素网格。
+
 ```bash
 pnpm release:package
 # 使用本地私钥文件生成清单，不输出私钥

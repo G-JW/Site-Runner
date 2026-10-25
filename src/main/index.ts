@@ -65,6 +65,7 @@ function createWindow(theme: 'system' | 'light' | 'dark' = 'system'): BrowserWin
     minWidth: 1040,
     minHeight: 680,
     title: 'Site Runner',
+    icon: path.join(app.getAppPath(), 'assets/branding/icon.png'),
     backgroundColor: theme === 'light' || (theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#fafafa' : '#1e1e1e',
     webPreferences: {
       preload: path.join(currentDir, '../preload/index.cjs'),
@@ -215,6 +216,7 @@ app.whenReady().then(async () => {
     return;
   }
 
+  if (process.platform === 'darwin') app.dock?.setIcon(path.join(app.getAppPath(), 'assets/branding/icon.png'));
   const window = createWindow(data.getSettings().theme);
   window.webContents.once('did-finish-load', () => {
     void (async () => {

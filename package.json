@@ -1,6 +1,6 @@
 {
   "name": "site-runner",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "private": true,
   "description": "Local-first browser automation desktop app",
   "author": "Site Runner Contributors",
@@ -12,6 +12,7 @@
   "main": "dist/main/main/index.js",
   "type": "module",
   "scripts": {
+    "icons:generate": "node scripts/generate-app-icons.mjs",
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"tsc -p tsconfig.main.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist/main/main/index.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "start": "electron .",
     "lint": "eslint src tests --max-warnings 0",
@@ -69,6 +70,7 @@
     "files": [
       "dist/**/*",
       "node_modules/**/*",
+      "assets/branding/icon.png",
       "package.json"
     ],
     "asarUnpack": [
@@ -82,17 +84,21 @@
       }
     ],
     "mac": {
+      "icon": "assets/branding/icon.icns",
       "category": "public.app-category.productivity",
       "target": [
         "dir"
       ]
     },
     "win": {
+      "icon": "assets/branding/icon.ico",
+      "artifactName": "Site Runner.${ext}",
       "target": [
         "portable"
       ]
     },
     "linux": {
+      "icon": "assets/branding/icon.png",
       "target": [
         "AppImage"
       ],
