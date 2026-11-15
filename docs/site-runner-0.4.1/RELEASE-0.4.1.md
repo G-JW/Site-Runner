@@ -18,7 +18,7 @@
 
 发布前已用 GitHub 官方 0.3.9 Apple Silicon 安装包的客户端副本，实际点击更新按钮安装原密钥签名的本地 0.4.1 更新包，完成下载校验、解包清理、替换、GUI 重启；任务、脚本、语言、主题和登录目录保留。测试使用临时应用副本和合成数据，未操作正式账号。
 
-本地验证见 [upgrade-local-verification.json](upgrade-local-verification.json)。线上下载与安装的验证结果会补充在 [GitHub Release](https://github.com/G-JW/Site-Runner/releases/tag/v0.4.1) 说明中。
+本地验证见 [upgrade-local-verification.json](upgrade-local-verification.json)。正式发布后，官方 0.3.9 Apple Silicon 客户端也已从 GitHub 公开更新源成功下载、校验、安装并重启至 0.4.1；任务、脚本、设置与登录目录保留。线上结果见 [upgrade-github-verification.json](upgrade-github-verification.json) 和 [GitHub Release](https://github.com/G-JW/Site-Runner/releases/tag/v0.4.1)。
 
 ## 验证范围
 
