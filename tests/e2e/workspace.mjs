@@ -48,10 +48,42 @@ const original = data.saveSite({
   enabled: false,
   schedule: { enabled: false, cron: "0 9,17 * * 1,3,5" },
 });
-const legacy = data.saveSite({ name: "Legacy visit", url, browserProfileId: profile.id, script: null, timeoutMs: 10000, enabled: false, schedule: { enabled: false, cron: "0 9 * * *" } });
-database.connection.prepare("UPDATE sites SET visit_options_json = ? WHERE id = ?").run(JSON.stringify({ stayMs: 0, detectChallenges: false, check: "text", value: "Missing old result" }), legacy.id);
-data.saveRun({ id: "legacy-run", siteId: legacy.id, siteName: legacy.name, status: "success", message: "Page visited (login and business results not verified)", error: null, lastUrl: url, screenshotPath: null, trigger: "manual", startedAt: new Date().toISOString(), finishedAt: new Date().toISOString() });
-database.connection.prepare("UPDATE run_records SET outcome = 'unverified' WHERE id = ?").run("legacy-run");
+const legacy = data.saveSite({
+  name: "Legacy visit",
+  url,
+  browserProfileId: profile.id,
+  script: null,
+  timeoutMs: 10000,
+  enabled: false,
+  schedule: { enabled: false, cron: "0 9 * * *" },
+});
+database.connection
+  .prepare("UPDATE sites SET visit_options_json = ? WHERE id = ?")
+  .run(
+    JSON.stringify({
+      stayMs: 0,
+      detectChallenges: false,
+      check: "text",
+      value: "Missing old result",
+    }),
+    legacy.id,
+  );
+data.saveRun({
+  id: "legacy-run",
+  siteId: legacy.id,
+  siteName: legacy.name,
+  status: "success",
+  message: "Page visited (login and business results not verified)",
+  error: null,
+  lastUrl: url,
+  screenshotPath: null,
+  trigger: "manual",
+  startedAt: new Date().toISOString(),
+  finishedAt: new Date().toISOString(),
+});
+database.connection
+  .prepare("UPDATE run_records SET outcome = 'unverified' WHERE id = ?")
+  .run("legacy-run");
 data.saveFolder({ name: "Daily routines" });
 database.close();
 let app;
@@ -70,18 +102,27 @@ async function launch() {
 try {
   let page = await launch();
   const legacyRow = page.getByTestId(`site-row-${legacy.id}`);
-  await expect(legacyRow).toContainText("执行成功");
+  await expect(legacyRow).toContainText("已完成");
   await expect(page.locator("body")).not.toContainText("未验证");
-  await legacyRow.getByRole("button", { name: "运行", exact: true }).click();
-  await expect(page.getByTestId("run-detail-dialog")).toContainText("执行成功", { timeout: 20000 });
-  await expect(page.getByTestId("run-detail-dialog")).not.toContainText("verified");
-  await page.getByTestId("run-detail-dialog").locator(".modal-actions .primary").click();
+  await legacyRow.locator(".row-run").click();
+  await expect(page.getByTestId("run-detail-dialog")).toContainText(
+    "执行成功",
+    { timeout: 20000 },
+  );
+  await expect(page.getByTestId("run-detail-dialog")).not.toContainText(
+    "verified",
+  );
+  await page
+    .getByTestId("run-detail-dialog")
+    .locator(".modal-actions .primary")
+    .click();
 
   await page.getByTestId("nav-settings").click();
   await page.getByTestId("theme-select").selectOption("dark");
   await page.getByTestId("density-select").selectOption("compact");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+  await page.getByTestId("settings-category-execution").click();
   await page.getByTestId("settings-search").fill("超时");
   await expect(page.getByTestId("default-timeout")).toBeVisible();
   await expect(page.getByTestId("theme-select")).toHaveCount(0);
@@ -95,6 +136,7 @@ try {
     )
     .toBe(45000);
   await page.getByTestId("settings-search").fill("");
+  await page.getByTestId("settings-category-appearance").click();
   await page.screenshot({ path: path.join(root, "settings-dark.png") });
   await page.getByTestId("theme-select").selectOption("light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
@@ -103,10 +145,18 @@ try {
   await expect(page.getByTestId("theme-select")).toHaveValue("system");
   await page.bringToFront();
   await page.emulateMedia({ colorScheme: "dark" });
-  await expect.poll(() => page.evaluate(() => matchMedia("(prefers-color-scheme: dark)").matches)).toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(() => matchMedia("(prefers-color-scheme: dark)").matches),
+    )
+    .toBe(true);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.emulateMedia({ colorScheme: "light" });
-  await expect.poll(() => page.evaluate(() => matchMedia("(prefers-color-scheme: dark)").matches)).toBe(false);
+  await expect
+    .poll(() =>
+      page.evaluate(() => matchMedia("(prefers-color-scheme: dark)").matches),
+    )
+    .toBe(false);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.getByTestId("theme-select").selectOption("dark");
 
@@ -170,7 +220,7 @@ try {
     mode: "custom",
   });
   const row = page.getByTestId(`site-row-${visual.id}`);
-  await row.getByRole("button", { name: "编辑", exact: true }).click();
+  await row.locator(".task-name-button").click();
   await page.getByTestId("task-tab-actions").click();
   await expect(page.getByTestId("flow-step")).toHaveCount(3);
   await expect(page.getByTestId("flow-message")).toHaveValue(
@@ -178,7 +228,7 @@ try {
   );
   await page.screenshot({ path: path.join(root, "workflow-dark.png") });
   await dialog.getByRole("button", { name: "取消", exact: true }).click();
-  await row.getByRole("button", { name: "运行", exact: true }).click();
+  await row.locator(".row-run").click();
   await expect
     .poll(
       () =>
@@ -192,16 +242,14 @@ try {
     )
     .toBe("Check-in completed");
   await expect(page.getByTestId("active-tasks")).toHaveCount(0);
-  await expect(page.getByTestId("run-detail-dialog")).toContainText(
-    "执行成功",
-  );
+  await expect(page.getByTestId("run-detail-dialog")).toContainText("执行成功");
   await page
     .getByTestId("run-detail-dialog")
     .locator(".modal-actions .primary")
     .click();
   await page
     .getByTestId(`site-row-${original.id}`)
-    .getByRole("button", { name: "编辑", exact: true })
+    .locator(".task-name-button")
     .click();
   await page.getByTestId("task-tab-actions").click();
   await expect(
@@ -265,7 +313,7 @@ try {
   );
   expect(recorded.script).toContain(url);
   const recordedRow = page.getByTestId(`site-row-${recorded.id}`);
-  await recordedRow.getByRole("button", { name: "运行", exact: true }).click();
+  await recordedRow.locator(".row-run").click();
   await expect(page.getByTestId("run-detail-dialog")).toContainText(
     "执行成功",
     { timeout: 20000 },
@@ -348,6 +396,7 @@ try {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await page.getByTestId("nav-settings").click();
+  await page.getByTestId("settings-category-execution").click();
   await expect(page.getByTestId("default-timeout")).toHaveValue("45000");
   expect(errors).toEqual([]);
   console.log(

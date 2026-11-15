@@ -1,5 +1,38 @@
 import type { ReactNode } from "react";
 const paths = {
+  check: <path d="m5 12 4 4L19 6" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="m12 3 10 18H2L12 3Z" />
+      <path d="M12 9v4m0 4h.01" />
+    </>
+  ),
+  filter: (
+    <>
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2" fill="var(--surface)" />
+      <circle cx="15" cy="17" r="2" fill="var(--surface)" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </>
+  ),
+  select: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="m8 12 3 3 5-6" />
+    </>
+  ),
   panel: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

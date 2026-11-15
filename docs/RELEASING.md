@@ -16,14 +16,14 @@
 
 ## 发布新版本
 
-1. 修改 `package.json` 的稳定版本，例如 `0.3.7`，提交变更。仅支持 `主版本.次版本.修订号`。
+1. 修改 `package.json` 的稳定版本，例如 `0.4.1`，提交变更。仅支持 `主版本.次版本.修订号`。
 2. 执行 `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`。
 3. 推送代码和匹配版本标签：
 
    ```bash
    git push origin main
-   git tag v0.3.7
-   git push origin v0.3.7
+   git tag v0.4.1
+   git push origin v0.4.1
    ```
 
 4. `.github/workflows/release.yml` 先验证版本和代码，再分别构建三种平台包。所有构建成功后，由独立发布作业签署清单、上传到草稿 Release，最后公开完整 Release。
@@ -42,16 +42,16 @@
 
 图标源资源位于 `assets/branding/`，修改后执行 `pnpm icons:generate`。构建前应提交 PNG、ICNS、ICO 和 SVG，确保各平台使用同一份像素网格。
 
-macOS 0.3.9 使用未封装成 ASAR 的应用布局，并在 `afterPack` 中删除未使用的 `default_app.asar`、拒绝残留 ASAR 文件。这是为尚未修复的 0.3.7/0.3.8 更新器保留的兼容布局；不能仅修复新版代码而让旧客户端仍然无法安装它。更新服务自身使用 Electron 的 `original-fs` 操作真实文件。
+macOS 0.3.9 及 0.4.1 沿用未封装成 ASAR 的应用布局，并在 `afterPack` 中删除未使用的 `default_app.asar`、拒绝残留 ASAR 文件。这是为尚未修复的 0.3.7/0.3.8 更新器保留的兼容布局；不能仅修复新版代码而让旧客户端仍然无法安装它。更新服务自身使用 Electron 的 `original-fs` 操作真实文件。
 
 发布构建在两个 macOS Runner 中运行 `tests/e2e/update-asar.mjs`，覆盖普通 Node 测试无法模拟的 Electron ASAR 文件系统。发布前还应使用真实旧版客户端副本运行以下测试；本地模式保持真实签名，只替换下载传输，线上模式实际访问 GitHub 并执行完整升级。全部测试使用隔离数据。
 
 ```bash
 node node_modules/electron/cli.js tests/e2e/update-asar.mjs
-# 提前准备真实 0.3.7 应用副本，本地包和签名清单
-SITE_RUNNER_OLD_APP='/path/to/0.3.7/Site Runner.app' node tests/e2e/update-from-old-client.mjs --local
+# 提前准备真实 0.3.9 应用副本，本地包和签名清单
+SITE_RUNNER_OLD_VERSION=0.3.9 SITE_RUNNER_OLD_APP='/path/to/0.3.9/Site Runner.app' node tests/e2e/update-from-old-client.mjs --local
 # 发布后，真实 GitHub 下载、旧客户端按钮、替换、重启和数据保留
-SITE_RUNNER_OLD_APP='/path/to/0.3.7/Site Runner.app' node tests/e2e/update-from-old-client.mjs
+SITE_RUNNER_OLD_VERSION=0.3.9 SITE_RUNNER_OLD_APP='/path/to/0.3.9/Site Runner.app' node tests/e2e/update-from-old-client.mjs
 ```
 
 ```bash

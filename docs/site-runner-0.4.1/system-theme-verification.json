@@ -1,0 +1,10 @@
+{
+  "version": "0.4.1",
+  "defaultSystemTheme": "passed",
+  "electronThemeChanges": "passed",
+  "manualOverride": "passed",
+  "rendererReload": "passed",
+  "applicationRestart": "passed",
+  "rendererErrors": [],
+  "systemPreferencesModified": false
+}

@@ -1,3 +1,4 @@
+import { maxConcurrency } from "../../shared/concurrency";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   AppInfo,
@@ -9,7 +10,7 @@ import type {
   ScriptTemplateInput,
 } from "../../shared/types";
 import { PageHeader } from "../components/PageHeader";
-import type { PageName } from "../workspace/navigation";
+import { navigation, type PageName } from "../workspace/navigation";
 import { ConfigurationPanel } from "../components/ConfigurationPanel";
 import { NotificationsPage } from "./NotificationsPage";
 import { SiteRulesDialog } from "../components/SiteRulesDialog";
@@ -84,7 +85,9 @@ export function SettingsPage({
   const { apply } = useAppearance();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [timeout, setTimeoutDraft] = useState("30000");
-  const [category, setCategory] = useState<Category>(initialCategory);
+  const [category, setCategory] = useState<Category>(
+    initialCategory === "all" ? "appearance" : initialCategory,
+  );
   const [query, setQuery] = useState("");
   const [saveState, setSaveState] = useState<"saved" | "saving" | "saveError">(
     "saved",
@@ -148,10 +151,7 @@ export function SettingsPage({
   const search = query.trim().toLowerCase();
   const matches = (...values: string[]) =>
     !search || values.join(" ").toLowerCase().includes(search);
-  const show = (group: Category) =>
-    category === "all"
-      ? group === "appearance" || group === "execution"
-      : category === group;
+  const show = (group: Category) => category === group;
   const rows: Array<{
     category: Category;
     title: string;
@@ -258,6 +258,35 @@ export function SettingsPage({
         },
         {
           category: "execution",
+          title: t("settings.concurrency"),
+          description: t("settings.concurrencyDescription"),
+          control: (
+            <select
+              data-testid="concurrency-select"
+              aria-label={t("settings.concurrency")}
+              value={settings.maxConcurrency}
+              onChange={(event) =>
+                void update({ maxConcurrency: Number(event.target.value) })
+              }
+            >
+              {Array.from(
+                { length: maxConcurrency },
+                (_, index) => index + 1,
+              ).map((count) => (
+                <option key={count} value={count}>
+                  {t(
+                    count === 1
+                      ? "settings.concurrencySerial"
+                      : "settings.concurrencyCount",
+                    { count },
+                  )}
+                </option>
+              ))}
+            </select>
+          ),
+        },
+        {
+          category: "execution",
           title: t("settings.headless"),
           description: t("settings.headlessDescription"),
           control: (
@@ -312,7 +341,9 @@ export function SettingsPage({
   const dataVisible =
     show("data") && matches(t("settings.localData"), info?.userDataPath ?? "");
   const updateVisible =
-    category === "all" && matches(t("updates.title"), t("updates.note"));
+    initialCategory === "all" &&
+    category === "all" &&
+    matches(t("updates.title"), t("updates.note"));
 
   const visible = rows.filter(
     (row) =>
@@ -338,25 +369,46 @@ export function SettingsPage({
               ? "nav.notifications"
               : "settings.title",
         )}
-        actions={
-          initialCategory === "all" ? (
-            <button
-              className="secondary"
-              onClick={() => onNavigate("automation")}
-            >
-              <Icon name="terminal" size={16} />
-              {t("nav.automation")}
-            </button>
-          ) : undefined
-        }
         description={t(
           initialCategory === "data"
             ? "settings.backupScope"
             : initialCategory === "notifications"
               ? "notifications.description"
-              : "settings.description",
+              : "v2.settingsDescription",
         )}
       />
+      {initialCategory === "all" && (
+        <section className="settings-tools" aria-label={t("v2.tools")}>
+          {navigation
+            .filter((item) =>
+              [
+                "templates",
+                "profiles",
+                "notifications",
+                "data",
+                "automation",
+              ].includes(item.id),
+            )
+            .map((item) => (
+              <button
+                key={item.id}
+                data-testid={`nav-${item.id}`}
+                onClick={() => onNavigate(item.id)}
+              >
+                <span className="settings-tool-icon">
+                  <Icon name={item.icon} size={18} />
+                </span>
+                <span>
+                  <strong>{t(item.label)}</strong>
+                  <small>
+                    {t(`v2.tool.${item.id}` as Parameters<typeof t>[0])}
+                  </small>
+                </span>
+                <Icon name="chevron" size={14} />
+              </button>
+            ))}
+        </section>
+      )}
       <div className="settings-search">
         <Icon name="search" />
         <input
@@ -373,7 +425,7 @@ export function SettingsPage({
       <div className="settings-layout">
         <div className="settings-tabs" hidden={initialCategory !== "all"}>
           <nav className="settings-categories" aria-label={t("nav.settings")}>
-            {(["all", "appearance", "execution"] as const).map((group) => (
+            {(["appearance", "execution", "all"] as const).map((group) => (
               <button
                 key={group}
                 data-testid={`settings-category-${group}`}
@@ -381,7 +433,7 @@ export function SettingsPage({
                 aria-current={category === group ? "page" : undefined}
                 onClick={() => setCategory(group)}
               >
-                {t(`settings.${group}`)}
+                {t(group === "all" ? "v2.about" : `settings.${group}`)}
               </button>
             ))}
           </nav>

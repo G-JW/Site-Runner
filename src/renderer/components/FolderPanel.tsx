@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Popover } from "../workspace/Popover";
 import { Icon } from "../workspace/Icon";
 import type { Site, SiteFolder } from "../../shared/types";
 import { useI18n } from "../i18n";
@@ -82,17 +83,19 @@ export function FolderPanel({
     <>
       <aside className="panel folder-panel">
         <div className="folder-heading">
-          <strong>{t("folders.title")}</strong>
+          <strong>{t("v2.groups")}</strong>
           <button
             data-testid="add-folder"
-            className="text-button"
+            className="icon-button"
+            aria-label={t("folders.add")}
+            title={t("folders.add")}
             onClick={() => {
               setEditing("new");
               setName("");
               setSchedule({ enabled: false, cron: "0 9 * * *" });
             }}
           >
-            {t("folders.add")}
+            <Icon name="plus" size={14} />
           </button>
         </div>
         {item("all", t("folders.all"), sites.length)}
@@ -108,7 +111,12 @@ export function FolderPanel({
               folder.name,
               sites.filter((site) => site.folderId === folder.id).length,
             )}
-            <div className="folder-item-actions">
+            <Popover
+              className="folder-menu"
+              title={`${t("v2.manageFolder")} · ${folder.name}`}
+              testId={`folder-menu-${folder.id}`}
+              label={<Icon name="more" size={15} />}
+            >
               <button
                 aria-label={`${t("folders.edit")} ${folder.name}`}
                 onClick={() => {
@@ -120,12 +128,13 @@ export function FolderPanel({
                 {t("folders.edit")}
               </button>
               <button
+                className="danger-ghost"
                 aria-label={`${t("common.delete")} ${folder.name}`}
                 onClick={() => setPendingDelete(folder)}
               >
                 {t("common.delete")}
               </button>
-            </div>
+            </Popover>
           </div>
         ))}
       </aside>

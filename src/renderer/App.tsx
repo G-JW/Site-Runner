@@ -21,7 +21,7 @@ import { busySiteIds } from "../shared/runtime";
 import { Icon } from "./workspace/Icon";
 import { AutomationHelpPage } from "./pages/AutomationHelpPage";
 import { CommandPalette } from "./workspace/CommandPalette";
-import { navigation, type PageName } from "./workspace/navigation";
+import { primaryNavigation, type PageName } from "./workspace/navigation";
 import appIcon from "../../assets/branding/icon.svg";
 
 export function App() {
@@ -302,66 +302,29 @@ export function App() {
   };
   const hasActiveRuns = runtime.runs.length > 0 || runtime.batches.length > 0;
 
-  useEffect(() => {
-    if (hasActiveRuns) queueMicrotask(() => setOutputOpen(true));
-  }, [hasActiveRuns]);
-
   return (
     <SidebarContext.Provider value={{ target: sidebarTarget, page }}>
       <div
         className={`app-shell workbench ${sidebarOpen ? "" : "sidebar-hidden"}`}
       >
-        <div className="titlebar" inert={inactive}>
-          <div className="titlebar-brand">
-            <img
-              className="brand-mark"
-              src={appIcon}
-              alt=""
-              width={32}
-              height={32}
-            />
-            <strong>Site Runner</strong>
-            <span className="local-tag">LOCAL</span>
-          </div>
-          <button
-            className="command-center"
-            data-testid="open-command-palette"
-            onClick={() => setCommandOpen(true)}
-          >
-            <Icon name="search" size={14} />
-            <span>{t("workbench.search")}</span>
-            <kbd>⌘ / Ctrl K</kbd>
-          </button>
-          <div className="titlebar-actions">
-            <button
-              className="icon-button"
-              data-testid="toggle-sidebar"
-              aria-label={t("workbench.toggleSidebar")}
-              title={t("workbench.toggleSidebar")}
-              aria-pressed={sidebarOpen}
-              onClick={toggleSidebar}
-            >
-              <Icon name="panel" size={17} />
-            </button>
-            <button
-              className="icon-button"
-              data-testid="toggle-output"
-              aria-label={t("workbench.showOutput")}
-              title={t("workbench.showOutput")}
-              aria-pressed={outputOpen}
-              onClick={toggleOutput}
-            >
-              <Icon name="terminal" size={17} />
-            </button>
-          </div>
-        </div>
         <aside
           className="sidebar explorer"
           inert={inactive}
           aria-label={t("navigation.title")}
         >
+          <div className="sidebar-brand">
+            <img
+              className="brand-mark"
+              src={appIcon}
+              alt=""
+              width={30}
+              height={30}
+            />
+            <strong>Site Runner</strong>
+            <span className="version-tag">{info?.version ?? "…"}</span>
+          </div>
           <nav className="feature-nav" aria-label={t("navigation.title")}>
-            {navigation.map((item) => (
+            {primaryNavigation.map((item) => (
               <button
                 key={item.id}
                 className={page === item.id ? "active" : ""}
@@ -369,11 +332,7 @@ export function App() {
                 aria-label={t(item.label)}
                 title={!sidebarOpen ? t(item.label) : undefined}
                 aria-current={page === item.id ? "page" : undefined}
-                onClick={() => {
-                  if (item.id === "settings")
-                    setSettingsRevision((value) => value + 1);
-                  navigate(item.id);
-                }}
+                onClick={() => navigate(item.id)}
               >
                 <Icon name={item.icon} size={18} />
                 <span className="nav-label">{t(item.label)}</span>
@@ -393,21 +352,87 @@ export function App() {
               className="sidebar-output"
               onClick={toggleOutput}
               aria-label={t("workbench.output")}
-              title={!sidebarOpen ? t("workbench.output") : undefined}
+              title={t("workbench.output")}
               aria-pressed={outputOpen}
             >
-              <Icon name="terminal" size={18} />
+              <Icon name="terminal" size={17} />
               <span className="nav-label">{t("workbench.output")}</span>
               {busy.size > 0 && <span className="status-dot working" />}
             </button>
-            <div className="sidebar-foot">
-              <span className="status-dot" />
-              <span className="nav-label">{t("app.local")}</span>
-              <span className="nav-label">v{info?.version ?? "—"}</span>
+            <button
+              className={`sidebar-settings ${!["sites", "history"].includes(page) ? "active" : ""}`}
+              data-testid="nav-settings"
+              aria-label={t("nav.settings")}
+              title={t("nav.settings")}
+              aria-current={
+                !["sites", "history"].includes(page) ? "page" : undefined
+              }
+              onClick={() => {
+                setSettingsRevision((value) => value + 1);
+                navigate("settings");
+              }}
+            >
+              <Icon name="settings" size={17} />
+              <span className="nav-label">{t("nav.settings")}</span>
+            </button>
+            <div
+              className="sidebar-foot"
+              title={`${t("app.local")} · v${info?.version ?? "—"}`}
+            >
+              <span
+                className={`status-dot ${hasActiveRuns ? "working" : ""}`}
+              />
+              <span className="nav-label">
+                {t(hasActiveRuns ? "workspace.busy" : "v2.local", {
+                  count: runtime.runs.length,
+                })}
+              </span>
             </div>
           </div>
         </aside>
         <div className="workspace-main" inert={inactive}>
+          <div className="workspace-topbar">
+            <button
+              className="icon-button"
+              data-testid="toggle-sidebar"
+              aria-label={t("workbench.toggleSidebar")}
+              title={t("workbench.toggleSidebar")}
+              aria-pressed={sidebarOpen}
+              onClick={toggleSidebar}
+            >
+              <Icon name="panel" size={17} />
+            </button>
+            <div className="breadcrumb">
+              <span>{t("v2.workspace")}</span>
+              <Icon name="chevron" size={12} />
+              <strong>
+                {t(
+                  ["sites", "history"].includes(page)
+                    ? `nav.${page}`
+                    : "nav.settings",
+                )}
+              </strong>
+            </div>
+            <button
+              className="command-center"
+              data-testid="open-command-palette"
+              onClick={() => setCommandOpen(true)}
+            >
+              <Icon name="search" size={15} />
+              <span>{t("v2.quickSearch")}</span>
+              <kbd>{info?.platform === "darwin" ? "⌘ K" : "Ctrl K"}</kbd>
+            </button>
+            <button
+              className="icon-button"
+              data-testid="toggle-output"
+              aria-label={t("workbench.showOutput")}
+              title={t("workbench.showOutput")}
+              aria-pressed={outputOpen}
+              onClick={toggleOutput}
+            >
+              <Icon name="terminal" size={17} />
+            </button>
+          </div>
           <main id="main-content">
             <section
               className="workspace-page"
@@ -424,7 +449,7 @@ export function App() {
                 aria-label={t(`nav.${page}`)}
                 key={page}
               >
-                {["templates", "profiles"].includes(page) && (
+                {page !== "settings" && (
                   <button
                     className="text-button settings-back"
                     onClick={() => navigate("settings")}
@@ -439,7 +464,7 @@ export function App() {
           {hasActiveRuns && !outputOpen && (
             <div className="running-strip">
               <span className="status-dot working" />
-              <span>{t("workspace.busy", { count: busy.size })}</span>
+              <span>{t("workspace.busy", { count: runtime.runs.length })}</span>
               <button className="text-button" onClick={toggleOutput}>
                 {t("workbench.showOutput")}
                 <Icon name="arrowDown" size={12} />
@@ -456,23 +481,6 @@ export function App() {
             onError={showError}
           />
         </div>
-        <footer className="status-bar" inert={inactive}>
-          <span>
-            <span className={`status-dot ${busy.size ? "working" : ""}`} />
-            {t(busy.size ? "workspace.busy" : "workspace.ready", {
-              count: busy.size,
-            })}
-          </span>
-          <span>
-            <span>{t("overview.configured", { count: sites.length })}</span>
-            <span className="status-divider" />
-            <span>
-              {t("overview.profiles")} {profiles.length}
-            </span>
-            <span className="status-divider" />
-            <span>{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
-          </span>
-        </footer>
         {commandOpen && !inactive && (
           <CommandPalette
             sites={sites}

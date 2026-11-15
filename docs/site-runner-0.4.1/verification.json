@@ -1,0 +1,83 @@
+{
+  "version": "0.4.1",
+  "platform": "macOS Apple Silicon",
+  "checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unitTests": {
+      "files": 31,
+      "tests": 105,
+      "status": "passed"
+    },
+    "productionBuild": "passed",
+    "macArm64Package": "passed"
+  },
+  "package": "release/mac-arm64/Site Runner.app",
+  "workbench": {
+    "viewRetention": "passed",
+    "selectionScope": "passed",
+    "taskSearch": "passed",
+    "draftProtection": "passed",
+    "singleMainView": "passed",
+    "recordingNavigationGuard": "passed",
+    "crossPageOutput": "passed",
+    "layoutPersistence": "passed",
+    "simplifiedNavigation": "passed",
+    "progressiveDisclosure": "passed",
+    "centeredEditor": "passed",
+    "systemAutomationGuide": "passed",
+    "createCommand": "passed",
+    "minimumWindowBilingual": "passed",
+    "rendererErrors": []
+  },
+  "systemTheme": {
+    "version": "0.4.1",
+    "defaultSystemTheme": "passed",
+    "electronThemeChanges": "passed",
+    "manualOverride": "passed",
+    "rendererReload": "passed",
+    "applicationRestart": "passed",
+    "rendererErrors": [],
+    "systemPreferencesModified": false
+  },
+  "parallel": {
+    "version": "0.4.1",
+    "sharedProfileParallelism": "passed",
+    "maxObservedConcurrency": 3,
+    "configuredLimitEnforced": "passed",
+    "isolatedPages": "passed",
+    "cookiesAndLocalStorage": "passed",
+    "outOfOrderProgress": "passed",
+    "failureIsolation": "passed",
+    "stopActiveTasks": "passed",
+    "settingsPersistence": "passed",
+    "serialOption": "passed",
+    "blockedWorkerIsolation": "passed",
+    "rendererErrors": []
+  },
+  "upgradeFromPublished039": {
+    "oldVersion": "0.3.9",
+    "version": "0.4.1",
+    "localTransport": true,
+    "actualOldClientGUI": "passed",
+    "downloadVerification": "passed",
+    "stagedBundleCleanup": "passed",
+    "realGUIRestart": "passed",
+    "taskPreservation": "passed",
+    "loginDirectoryPreservation": "passed",
+    "legacyAsarCacheCleanup": "passed",
+    "scriptPreservation": "passed",
+    "settingsPreservation": "passed"
+  },
+  "capture": {
+    "dimensions": {
+      "width": 1320,
+      "height": 812
+    },
+    "version": "0.4.1",
+    "syntheticData": true
+  },
+  "syntheticDataOnly": true,
+  "formalUserDataModified": false,
+  "windowsDeviceTested": false
+}

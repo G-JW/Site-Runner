@@ -1,4 +1,4 @@
-// Exercise the actual 0.3.7 GUI, including Electron filesystem behavior.
+// Exercise an actual old-client GUI, including Electron filesystem behavior.
 // --local uses a locally signed package; the default uses public GitHub Releases.
 import { _electron, expect } from "playwright/test";
 import { execFileSync } from "node:child_process";
@@ -19,10 +19,11 @@ import { AppDatabase } from "../../dist/main/main/database/database.js";
 import { DataService } from "../../dist/main/main/services/data-service.js";
 
 const local = process.argv.includes("--local");
+const oldVersion = process.env.SITE_RUNNER_OLD_VERSION ?? "0.3.9";
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 const source = path.resolve(
   process.env.SITE_RUNNER_OLD_APP ??
-    ".runtime/v037-client-check/Site Runner.app",
+    ".runtime/v039-public-client/Site Runner.app",
 );
 const root = mkdtempSync(path.join(os.tmpdir(), "site-runner-old-client-ui-"));
 const current = path.join(root, "Site Runner.app"),
@@ -34,12 +35,16 @@ mkdirSync(userData);
 const databasePath = path.join(userData, "site-runner.sqlite3");
 const database = new AppDatabase(databasePath),
   data = new DataService(database.connection);
+data.updateSettings({ language: "zh-CN", theme: "dark" });
+database.connection
+  .prepare("DELETE FROM settings WHERE key = ?")
+  .run("maxConcurrency");
 const profile = data.createProfile("Preserved login fixture");
 const task = data.saveSite({
   name: "Preserved update task",
   url: "https://example.com",
   enabled: false,
-  script: null,
+  script: 'export default async function run() { return "Preserved script"; }',
   browserProfileId: profile.id,
   timeoutMs: 30000,
   schedule: { enabled: false, cron: "0 9 * * *" },
@@ -55,7 +60,18 @@ mkdirSync(path.dirname(profileMarker), { recursive: true });
 writeFileSync(profileMarker, "synthetic login state");
 const stale = path.join(userData, "updates/staged-legacy/app.asar");
 mkdirSync(path.dirname(stale), { recursive: true });
-copyFileSync(path.join(current, "Contents/Resources/default_app.asar"), stale);
+const asarFixture = [
+  path.join(current, "Contents/Resources/default_app.asar"),
+  path.resolve(
+    ".runtime/v037-client-check/Site Runner.app/Contents/Resources/default_app.asar",
+  ),
+].find(existsSync);
+if (asarFixture) copyFileSync(asarFixture, stale);
+else
+  writeFileSync(
+    path.join(userData, "updates/staged-legacy/cache-marker.txt"),
+    "legacy cache",
+  );
 let app,
   restartPID,
   succeeded = false;
@@ -67,7 +83,7 @@ try {
   const page = await app.firstWindow();
   await expect(page.getByTestId("nav-settings")).toBeVisible();
   const info = await page.evaluate(() => window.siteRunner.app.info());
-  assert.equal(info.version, "0.3.7");
+  assert.equal(info.version, oldVersion);
   if (local) {
     const envelope = JSON.parse(
       readFileSync("release/site-runner-update.json", "utf8"),
@@ -140,6 +156,22 @@ try {
       retained.prepare("SELECT name FROM sites WHERE id = ?").get(task.id).name,
       task.name,
     );
+    assert.equal(
+      retained.prepare("SELECT script FROM sites WHERE id = ?").get(task.id)
+        .script,
+      task.script,
+    );
+    assert.equal(
+      retained.prepare("SELECT value FROM settings WHERE key = ?").get("theme")
+        .value,
+      "dark",
+    );
+    assert.equal(
+      retained
+        .prepare("SELECT value FROM settings WHERE key = ?")
+        .get("language").value,
+      "zh-CN",
+    );
   } finally {
     retained.close();
   }
@@ -159,10 +191,15 @@ try {
     realGUIRestart: "passed",
     taskPreservation: "passed",
     loginDirectoryPreservation: "passed",
-    legacyAsarCacheCleanup: "passed",
+    legacyAsarCacheCleanup: asarFixture ? "passed" : "not applicable",
+    scriptPreservation: "passed",
+    settingsPreservation: "passed",
   };
   writeFileSync(
-    path.join(output, local ? "local.json" : "github.json"),
+    path.join(
+      output,
+      `${oldVersion}-to-${version}-${local ? "local" : "github"}.json`,
+    ),
     JSON.stringify(report, null, 2) + "\n",
   );
   console.log(JSON.stringify(report));

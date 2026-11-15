@@ -17,7 +17,9 @@ export function ActiveTasksPanel({
       !state.batches.some(
         (batch) =>
           batch.phase === "running" &&
-          batch.siteIds.slice(batch.completed).includes(run.siteId),
+          (
+            batch.pendingSiteIds ?? batch.siteIds.slice(batch.completed)
+          ).includes(run.siteId),
       ),
   );
   return (
@@ -67,9 +69,14 @@ export function ActiveTasksPanel({
           <small>
             {batch.phase === "notifying"
               ? t("runtime.notifying")
-              : batch.currentSiteId
-                ? `${sites.find((site) => site.id === batch.currentSiteId)?.name ?? t("common.unknown")} · ${t(state.runs.find((run) => run.siteId === batch.currentSiteId)?.phase === "queued" ? "runtime.queued" : "common.running")}`
-                : t("runtime.waiting")}
+              : (batch.activeSiteIds?.length ?? 0) > 1
+                ? t("runtime.parallel", {
+                    count: batch.activeSiteIds!.length,
+                    limit: batch.concurrency ?? batch.activeSiteIds!.length,
+                  })
+                : batch.currentSiteId
+                  ? `${sites.find((site) => site.id === batch.currentSiteId)?.name ?? t("common.unknown")} · ${t(state.runs.find((run) => run.siteId === batch.currentSiteId)?.phase === "queued" ? "runtime.queued" : "common.running")}`
+                  : t("runtime.waiting")}
           </small>
         </div>
       ))}

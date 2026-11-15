@@ -37,6 +37,7 @@ export function OutputPanel({
       className={`output-panel ${open ? "expanded" : ""}`}
       aria-label={t("workbench.output")}
       data-testid="output-panel"
+      hidden={!open}
     >
       <div className="output-toolbar">
         <button

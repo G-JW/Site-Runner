@@ -18,11 +18,14 @@ import type { SiteInput } from "../src/shared/types.js";
 const databases: AppDatabase[] = [];
 afterEach(() => databases.splice(0).forEach((database) => database.close()));
 function fixture() {
-  const root = mkdtempSync(path.join(systemTemporaryDirectory(), 'site-runner-lifecycle-'));
+  const root = mkdtempSync(
+    path.join(systemTemporaryDirectory(), "site-runner-lifecycle-"),
+  );
   const database = new AppDatabase(path.join(root, "db.sqlite3"));
   databases.push(database);
-  const data = new DataService(database.connection),
-    profile = data.createProfile("Default");
+  const data = new DataService(database.connection);
+  data.updateSettings({ maxConcurrency: 1 });
+  const profile = data.createProfile("Default");
   const input: SiteInput = {
     name: "Task",
     url: "https://example.com",
@@ -211,12 +214,46 @@ describe("task lifecycle", () => {
   });
   it("normalizes saved and imported legacy checks and preserves history and user messages", () => {
     const { data, input } = fixture();
-    const site = data.saveSite({ ...input, visitOptions: Object.assign({ stayMs: 0, detectChallenges: false }, { check: "text", value: "" }) });
+    const site = data.saveSite({
+      ...input,
+      visitOptions: Object.assign(
+        { stayMs: 0, detectChallenges: false },
+        { check: "text", value: "" },
+      ),
+    });
     expect(site.visitOptions).toEqual({ stayMs: 0, detectChallenges: false });
-    const legacyRule = Object.assign({}, exportSiteRules([site]).sites[0], { visitOptions: { stayMs: 0, detectChallenges: false, check: "selector", value: "#missing" } });
-    expect(parseSiteRules({ format: "site-runner-sites", version: 1, sites: [legacyRule] })[0]?.visitOptions).toEqual({ stayMs: 0, detectChallenges: false });
-    for (const [id, message] of [["default", "Page visited (login and business results not verified)"], ["custom", "My task completed"]]) {
-      data.saveRun({ id: id!, siteId: site.id, siteName: site.name, startedAt: "2026-10-01T00:00:00Z", finishedAt: "2026-10-01T00:01:00Z", status: "success", message: message!, error: null, lastUrl: site.url, screenshotPath: null, trigger: "manual" });
+    const legacyRule = Object.assign({}, exportSiteRules([site]).sites[0], {
+      visitOptions: {
+        stayMs: 0,
+        detectChallenges: false,
+        check: "selector",
+        value: "#missing",
+      },
+    });
+    expect(
+      parseSiteRules({
+        format: "site-runner-sites",
+        version: 1,
+        sites: [legacyRule],
+      })[0]?.visitOptions,
+    ).toEqual({ stayMs: 0, detectChallenges: false });
+    for (const [id, message] of [
+      ["default", "Page visited (login and business results not verified)"],
+      ["custom", "My task completed"],
+    ]) {
+      data.saveRun({
+        id: id!,
+        siteId: site.id,
+        siteName: site.name,
+        startedAt: "2026-10-01T00:00:00Z",
+        finishedAt: "2026-10-01T00:01:00Z",
+        status: "success",
+        message: message!,
+        error: null,
+        lastUrl: site.url,
+        screenshotPath: null,
+        trigger: "manual",
+      });
     }
     expect(data.getRun("default").message).toBe("Page visited");
     expect(data.getRun("custom").message).toBe("My task completed");
@@ -225,25 +262,61 @@ describe("task lifecycle", () => {
   });
   it("presents ordinary execution results without verification metadata", () => {
     expect(resultKind({ status: "success" })).toBe("success");
-    expect(resultKind(Object.assign({ status: "success" as const }, { outcome: "unverified" }))).toBe("success");
-    expect(resultKind(Object.assign({ status: "failed" as const }, { outcome: "verified" }))).toBe("failed");
+    expect(
+      resultKind(
+        Object.assign(
+          { status: "success" as const },
+          { outcome: "unverified" },
+        ),
+      ),
+    ).toBe("success");
+    expect(
+      resultKind(
+        Object.assign({ status: "failed" as const }, { outcome: "verified" }),
+      ),
+    ).toBe("failed");
     expect(resultKind(null)).toBe("idle");
   });
   it("ignores legacy post-run checks while retaining explicit script failures", async () => {
     const { root } = fixture();
     const base = {
-      siteId: "task", siteName: "Task",
-      url: "data:text/html,<p>Waiting</p>", timeoutMs: 600, headless: true,
+      siteId: "task",
+      siteName: "Task",
+      url: "data:text/html,<p>Waiting</p>",
+      timeoutMs: 600,
+      headless: true,
       screenshotPath: path.join(root, "failure.png"),
-      visitOptions: { stayMs: 0, detectChallenges: false, check: "selector" as const, value: "#missing" },
+      visitOptions: {
+        stayMs: 0,
+        detectChallenges: false,
+        check: "selector" as const,
+        value: "#missing",
+      },
     };
-    for (const [id, script] of [["visit", null], ["script", 'export default async function run() { return "done"; }']] as const) {
-      const result = await executeAutomation({ ...base, script, profilePath: path.join(root, id) }, () => {});
+    for (const [id, script] of [
+      ["visit", null],
+      ["script", 'export default async function run() { return "done"; }'],
+    ] as const) {
+      const result = await executeAutomation(
+        { ...base, script, profilePath: path.join(root, id) },
+        () => {},
+      );
       expect(result.status).toBe("success");
       expect(result).not.toHaveProperty("outcome");
     }
-    const failed = await executeAutomation({ ...base, script: 'export default async function run() { throw new Error("Explicit check failed"); }', profilePath: path.join(root, "failure") }, () => {});
-    expect(failed).toMatchObject({ status: "failed", error: expect.stringContaining("Explicit check failed") });
+    const failed = await executeAutomation(
+      {
+        ...base,
+        script:
+          'export default async function run() { throw new Error("Explicit check failed"); }',
+        profilePath: path.join(root, "failure"),
+      },
+      () => {},
+    );
+    expect(failed).toMatchObject({
+      status: "failed",
+      error: expect.stringContaining("Explicit check failed"),
+    });
     expect(failed.screenshotPath).toBeTruthy();
   });
 });

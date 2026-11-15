@@ -1,4 +1,8 @@
-import type { RunLogEntry, SiteRunResult, VisitOptions } from '../../shared/types.js';
+import type {
+  RunLogEntry,
+  SiteRunResult,
+  VisitOptions,
+} from "../../shared/types.js";
 
 export interface AutomationRequest {
   siteId: string;
@@ -10,6 +14,7 @@ export interface AutomationRequest {
   screenshotPath: string;
   headless: boolean;
   visitOptions?: VisitOptions;
+  sharedBrowser?: { endpoint: string; pageUrl: string };
 }
 
 export interface AutomationExecutionResult extends SiteRunResult {
@@ -17,5 +22,5 @@ export interface AutomationExecutionResult extends SiteRunResult {
 }
 
 export type AutomationWorkerMessage =
-  | { type: 'log'; entry: RunLogEntry }
-  | { type: 'result'; result: AutomationExecutionResult };
+  | { type: "log"; entry: RunLogEntry }
+  | { type: "result"; result: AutomationExecutionResult };

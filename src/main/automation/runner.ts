@@ -1,19 +1,38 @@
-import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-import { Worker } from 'node:worker_threads';
-import type { ActiveRun, RunLogEntry, RunRecord, RunTrigger, SiteRunResult } from '../../shared/types.js';
-import type { ProfileService } from '../profiles/profile-service.js';
-import type { DataService } from '../services/data-service.js';
-import type { AutomationExecutionResult, AutomationRequest, AutomationWorkerMessage } from './types.js';
+import {
+  ConcurrencyLimiter,
+  RunCancelledError,
+} from "./concurrency-limiter.js";
+import { randomUUID } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
+import { Worker } from "node:worker_threads";
+import type {
+  ActiveRun,
+  RunLogEntry,
+  RunRecord,
+  RunTrigger,
+  SiteRunResult,
+} from "../../shared/types.js";
+import type { ProfileService } from "../profiles/profile-service.js";
+import type { DataService } from "../services/data-service.js";
+import type {
+  AutomationExecutionResult,
+  AutomationRequest,
+  AutomationWorkerMessage,
+} from "./types.js";
 
-export type AutomationExecutor = (request: AutomationRequest, emit: (entry: RunLogEntry) => void) => Promise<AutomationExecutionResult>;
+export type AutomationExecutor = (
+  request: AutomationRequest,
+  emit: (entry: RunLogEntry) => void,
+) => Promise<AutomationExecutionResult>;
 
 export class AutomationRunner {
   private readonly runningSites = new Map<string, ActiveRun>();
   private readonly listeners = new Set<() => void>();
   private readonly active = new Set<Promise<SiteRunResult>>();
   private stopping = false;
+  private readonly limiter: ConcurrencyLimiter;
+  private readonly sharedBrowser: boolean;
 
   constructor(
     private readonly data: DataService,
@@ -21,99 +40,244 @@ export class AutomationRunner {
     private readonly screenshotsRoot: string,
     private readonly emit: (entry: RunLogEntry) => void,
     private readonly executor: AutomationExecutor = runInWorker,
-  ) {}
+  ) {
+    this.limiter = new ConcurrencyLimiter(
+      () => data.getSettings().maxConcurrency,
+    );
+    // A custom executor owns its browser lifecycle; the built-in worker uses pooled pages.
+    this.sharedBrowser = executor === runInWorker;
+  }
 
-  isRunning(siteId: string): boolean { return this.runningSites.has(siteId); }
-  getActiveRuns(): ActiveRun[] { return [...this.runningSites.values()].map((run) => ({ ...run })); }
-  onState(listener: () => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
-  private changed(): void { for (const listener of this.listeners) listener(); }
-  isStopping(): boolean { return this.stopping; }
+  isRunning(siteId: string): boolean {
+    return this.runningSites.has(siteId);
+  }
+  getActiveRuns(): ActiveRun[] {
+    return [...this.runningSites.values()].map((run) => ({ ...run }));
+  }
+  onState(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+  private changed(): void {
+    for (const listener of this.listeners) listener();
+  }
+  isStopping(): boolean {
+    return this.stopping;
+  }
 
   async shutdown(): Promise<void> {
     this.stopping = true;
     await Promise.allSettled([...this.active]);
   }
 
-  async runSite(siteId: string, trigger: RunTrigger, headless?: boolean): Promise<SiteRunResult> {
-    if (this.stopping) throw new Error('Application is closing; new tasks are not accepted');
-    const work = this.performRun(siteId, trigger, headless);
+  async runSite(
+    siteId: string,
+    trigger: RunTrigger,
+    headless?: boolean,
+    canStart?: () => boolean,
+    signal?: AbortSignal,
+  ): Promise<SiteRunResult> {
+    if (this.stopping)
+      throw new Error("Application is closing; new tasks are not accepted");
+    const work = this.performRun(siteId, trigger, headless, canStart, signal);
     this.active.add(work);
-    void work.then(() => this.active.delete(work), () => this.active.delete(work));
+    void work.then(
+      () => this.active.delete(work),
+      () => this.active.delete(work),
+    );
     return work;
   }
 
-  private async performRun(siteId: string, trigger: RunTrigger, headless?: boolean): Promise<SiteRunResult> {
-    if (this.runningSites.has(siteId)) throw new Error('This site is already running');
+  private async performRun(
+    siteId: string,
+    trigger: RunTrigger,
+    headless?: boolean,
+    canStart?: () => boolean,
+    signal?: AbortSignal,
+  ): Promise<SiteRunResult> {
+    if (this.runningSites.has(siteId))
+      throw new Error("This site is already running");
     const site = this.data.getSite(siteId);
     this.profiles.assertNotRecording(site.browserProfileId);
     const timestamp = new Date();
-    this.runningSites.set(siteId, { siteId, siteName: site.name, profileId: site.browserProfileId, trigger, phase: 'queued', requestedAt: timestamp.toISOString() });
+    this.runningSites.set(siteId, {
+      siteId,
+      siteName: site.name,
+      profileId: site.browserProfileId,
+      trigger,
+      phase: "queued",
+      requestedAt: timestamp.toISOString(),
+    });
     this.changed();
     const month = timestamp.toISOString().slice(0, 7);
-    const fileStamp = timestamp.toISOString().replaceAll(':', '-').replaceAll('.', '-');
-    const screenshotPath = path.join(this.screenshotsRoot, month, `${site.id}-${fileStamp}.png`);
+    const fileStamp = timestamp
+      .toISOString()
+      .replaceAll(":", "-")
+      .replaceAll(".", "-");
+    const screenshotPath = path.join(
+      this.screenshotsRoot,
+      month,
+      `${site.id}-${fileStamp}.png`,
+    );
     const logs: RunLogEntry[] = [];
     const captureLog = (entry: RunLogEntry) => {
       const message = String(entry.message);
-      const bounded = { ...entry, message: message.length > 4000 ? message.slice(0, 3999) + '…' : message };
-      logs.push(bounded); if (logs.length > 1000) logs.shift(); this.emit(bounded);
+      const bounded = {
+        ...entry,
+        message: message.length > 4000 ? message.slice(0, 3999) + "…" : message,
+      };
+      logs.push(bounded);
+      if (logs.length > 1000) logs.shift();
+      this.emit(bounded);
     };
-    let releaseProfile: (() => void) | undefined;
+    let releaseProfile: (() => void | Promise<void>) | undefined;
+    let releaseSlot: (() => void) | undefined;
     try {
       let result: AutomationExecutionResult;
       try {
+        releaseSlot = await this.limiter.acquire(signal);
+        if (canStart && !canStart() && !this.stopping)
+          throw new RunCancelledError();
+        if (this.stopping)
+          throw new Error(
+            "Queued run cancelled because the application is closing",
+          );
         const settings = this.data.getSettings();
         mkdirSync(path.dirname(screenshotPath), { recursive: true });
-        releaseProfile = await this.profiles.acquireForRun(site.browserProfileId);
-        if (this.stopping) throw new Error('Queued run cancelled because the application is closing');
-        this.runningSites.get(siteId)!.phase = 'running'; this.changed();
-        result = await this.executor({
-          siteId: site.id, siteName: site.name, url: site.url, script: site.script,
-          timeoutMs: site.timeoutMs, profilePath: this.profiles.getProfilePath(site.browserProfileId),
-          visitOptions: site.visitOptions,
-          screenshotPath, headless: headless ?? settings.browserHeadless,
-        }, captureLog);
+        let sharedBrowser: { endpoint: string; pageUrl: string } | undefined;
+        if (this.sharedBrowser && settings.maxConcurrency > 1) {
+          const lease = await this.profiles.acquireSharedForRun(
+            site.browserProfileId,
+            headless ?? settings.browserHeadless,
+          );
+          releaseProfile = lease.release;
+          sharedBrowser = { endpoint: lease.endpoint, pageUrl: lease.pageUrl };
+        } else
+          releaseProfile = await this.profiles.acquireForRun(
+            site.browserProfileId,
+          );
+        if (canStart && !canStart() && !this.stopping)
+          throw new RunCancelledError();
+        if (this.stopping)
+          throw new Error(
+            "Queued run cancelled because the application is closing",
+          );
+        this.runningSites.get(siteId)!.phase = "running";
+        this.changed();
+        result = await this.executor(
+          {
+            siteId: site.id,
+            siteName: site.name,
+            url: site.url,
+            script: site.script,
+            timeoutMs: site.timeoutMs,
+            profilePath: this.profiles.getProfilePath(site.browserProfileId),
+            visitOptions: site.visitOptions,
+            ...(sharedBrowser ? { sharedBrowser } : {}),
+            screenshotPath,
+            headless: headless ?? settings.browserHeadless,
+          },
+          captureLog,
+        );
       } catch (error) {
-        const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
-        const entry = { siteId, level: 'error' as const, message, timestamp: new Date().toISOString() };
+        if (error instanceof RunCancelledError) throw error;
+        const message =
+          error instanceof Error
+            ? (error.stack ?? error.message)
+            : String(error);
+        const entry = {
+          siteId,
+          level: "error" as const,
+          message,
+          timestamp: new Date().toISOString(),
+        };
         captureLog(entry);
         result = {
-          siteId, siteName: site.name, status: 'failed', message: null, error: message,
-          startedAt: timestamp.toISOString(), finishedAt: new Date().toISOString(),
-          screenshotPath: null, lastUrl: null,
+          siteId,
+          siteName: site.name,
+          status: "failed",
+          message: null,
+          error: message,
+          startedAt: timestamp.toISOString(),
+          finishedAt: new Date().toISOString(),
+          screenshotPath: null,
+          lastUrl: null,
         };
       }
       const record: RunRecord = {
-        id: randomUUID(), siteId: site.id, siteName: site.name, startedAt: result.startedAt,
-        finishedAt: result.finishedAt, status: result.status, message: result.message,
-        error: result.error, lastUrl: result.lastUrl, screenshotPath: result.screenshotPath, trigger,
+        id: randomUUID(),
+        siteId: site.id,
+        siteName: site.name,
+        startedAt: result.startedAt,
+        finishedAt: result.finishedAt,
+        status: result.status,
+        message: result.message,
+        error: result.error,
+        lastUrl: result.lastUrl,
+        screenshotPath: result.screenshotPath,
+        trigger,
       };
       this.data.saveRun(record, logs);
       return result;
     } finally {
-      releaseProfile?.();
-      this.runningSites.delete(siteId);
-      this.changed();
+      try {
+        await releaseProfile?.();
+      } finally {
+        releaseSlot?.();
+        this.runningSites.delete(siteId);
+        this.changed();
+      }
     }
   }
 }
 
-export function runInWorker(request: AutomationRequest, emit: (entry: RunLogEntry) => void): Promise<AutomationExecutionResult> {
+export function runInWorker(
+  request: AutomationRequest,
+  emit: (entry: RunLogEntry) => void,
+): Promise<AutomationExecutionResult> {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./automation-worker.js', import.meta.url), { workerData: request });
+    const worker = new Worker(
+      new URL("./automation-worker.js", import.meta.url),
+      { workerData: request },
+    );
     let settled = false;
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      void worker.terminate().then(() => reject(new Error(`Run exceeded ${request.timeoutMs}ms`)), reject);
+      void worker
+        .terminate()
+        .then(
+          () => reject(new Error(`Run exceeded ${request.timeoutMs}ms`)),
+          reject,
+        );
     }, request.timeoutMs + 5_000);
-    worker.on('message', (message: AutomationWorkerMessage) => {
-      if (message.type === 'log') emit(message.entry);
-      if (message.type === 'result') {
-        settled = true; clearTimeout(timer); resolve(message.result);
+    worker.on("message", (message: AutomationWorkerMessage) => {
+      if (message.type === "log") emit(message.entry);
+      if (message.type === "result") {
+        settled = true;
+        clearTimeout(timer);
+        resolve(message.result);
       }
     });
-    worker.once('error', (error) => { if (!settled) { settled = true; clearTimeout(timer); reject(error); } });
-    worker.once('exit', (code) => { if (!settled) { settled = true; clearTimeout(timer); reject(new Error(`Automation worker exited with code ${code} without a result`)); } });
+    worker.once("error", (error) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      }
+    });
+    worker.once("exit", (code) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(
+          new Error(
+            `Automation worker exited with code ${code} without a result`,
+          ),
+        );
+      }
+    });
   });
 }

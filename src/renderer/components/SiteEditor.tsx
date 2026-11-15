@@ -246,7 +246,7 @@ export function SiteEditor({
           <div
             className="task-stage-tabs"
             role="tablist"
-            aria-orientation="vertical"
+            aria-orientation="horizontal"
             aria-label={t("task.edit")}
           >
             {stages.map((item, index) => (
@@ -263,7 +263,14 @@ export function SiteEditor({
                 tabIndex={stage === item ? 0 : -1}
                 onKeyDown={(event) => {
                   if (
-                    !["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)
+                    ![
+                      "ArrowUp",
+                      "ArrowDown",
+                      "ArrowLeft",
+                      "ArrowRight",
+                      "Home",
+                      "End",
+                    ].includes(event.key)
                   )
                     return;
                   event.preventDefault();
@@ -273,7 +280,10 @@ export function SiteEditor({
                       : event.key === "End"
                         ? stages.length - 1
                         : (index +
-                            (event.key === "ArrowDown" ? 1 : -1) +
+                            (event.key === "ArrowDown" ||
+                            event.key === "ArrowRight"
+                              ? 1
+                              : -1) +
                             stages.length) %
                           stages.length;
                   const next = stages[nextIndex]!;
@@ -286,7 +296,6 @@ export function SiteEditor({
                 <span>{index + 1}</span>
                 <div>
                   <strong>{t(`task.step.${item}`)}</strong>
-                  <small>{t(`workbench.step.${item}`)}</small>
                 </div>
               </button>
             ))}
@@ -300,7 +309,7 @@ export function SiteEditor({
             <fieldset disabled={saving || opening}>
               {stage === "website" && (
                 <>
-                  <p className="section-description">{t("task.websiteNote")}</p>
+                  <p className="section-description">{t("v2.newTaskNote")}</p>
                   <div className="form-grid">
                     <label>
                       {t("editor.name")}

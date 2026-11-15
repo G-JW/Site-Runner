@@ -24,3 +24,8 @@ export const allNavigation = [
 export const navigation = allNavigation.filter(
   (item) => item.id !== "overview",
 );
+
+// Everyday navigation; utilities are available from Settings and command search.
+export const primaryNavigation = navigation.filter(
+  (item) => item.id === "sites" || item.id === "history",
+);

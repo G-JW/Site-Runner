@@ -113,7 +113,29 @@ try {
   const page = await app.firstWindow();
   page.on("pageerror", (error) => errors.push(error.message));
   await expect(page.getByTestId("site-row-" + tasks[0].id)).toBeVisible();
-  await page.screenshot({ path: path.join(output, "tasks-dark.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: path.join(output, "tasks-dark.png"),
+  });
+
+  expect(await page.locator(".feature-nav > button").count()).toBe(2);
+  await expect(page.getByTestId("nav-settings")).toBeVisible();
+  await expect(page.locator(".status-bar")).toHaveCount(0);
+  await expect(page.getByTestId("output-panel")).toBeHidden();
+  await expect(page.getByTestId("select-all-sites")).toHaveCount(0);
+  await expect(page.getByTestId("site-status-filter")).toBeHidden();
+  await page.getByTestId("task-filters").click();
+  await expect(page.getByTestId("site-status-filter")).toBeVisible();
+  await page.getByTestId("site-status-filter").press("Escape");
+  await expect(page.getByTestId("site-status-filter")).toBeHidden();
+  await expect(page.getByTestId("task-filters")).toBeFocused();
+  await page.getByTestId("select-tasks").click();
+
+  async function navigate(section) {
+    if (!["sites", "history", "settings"].includes(section))
+      await page.getByTestId("nav-settings").click();
+    await page.getByTestId(`nav-${section}`).click();
+  }
 
   // View state survives navigation. A hidden selection never expands execution scope.
   await page.getByTestId(`folder-${daily.id}`).click();
@@ -141,13 +163,23 @@ try {
   await page.locator(".command-palette").getByRole("combobox").press("Enter");
   const dialog = page.getByTestId("site-dialog");
   await expect(dialog.getByTestId("task-name")).toHaveValue("项目门户巡检");
-  const workspaceBounds = await page.locator(".workspace-main").boundingBox();
   const editorBounds = await dialog.boundingBox();
-  expect(Math.abs(editorBounds.x - workspaceBounds.x)).toBeLessThan(2);
-  expect(Math.abs(editorBounds.width - workspaceBounds.width)).toBeLessThan(2);
+  const viewport =
+    page.viewportSize() ??
+    (await page.evaluate(() => ({ width: innerWidth, height: innerHeight })));
+  expect(editorBounds.x).toBeGreaterThan(20);
+  expect(editorBounds.x + editorBounds.width).toBeLessThan(viewport.width - 20);
+  expect(editorBounds.y + editorBounds.height).toBeLessThan(viewport.height);
+  await expect(page.locator(".task-stage-tabs")).toHaveAttribute(
+    "aria-orientation",
+    "horizontal",
+  );
   await page.getByTestId("task-tab-actions").click();
   await expect(page.getByTestId("flow-step")).toHaveCount(2);
-  await page.screenshot({ path: path.join(output, "editor-dark.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: path.join(output, "editor-dark.png"),
+  });
   await page.getByTestId("task-tab-actions").press("ArrowDown");
   await expect(page.getByTestId("task-tab-trial")).toHaveAttribute(
     "aria-selected",
@@ -174,7 +206,7 @@ try {
     "automation",
     "sites",
   ]) {
-    await page.getByTestId(`nav-${section}`).click();
+    await navigate(section);
     await expect(page.locator(".workspace-tabs")).toHaveCount(0);
     await expect(page.locator("main > .workspace-page:visible")).toHaveCount(1);
     await expect(
@@ -185,8 +217,8 @@ try {
   // System guide uses actual paths, stable IDs, editable time and both OS examples.
   await expect(page.locator(".activity-bar")).toHaveCount(0);
   await expect(page.locator(".explorer-workspace")).toHaveCount(0);
-  await expect(page.locator(".feature-nav > button")).toHaveCount(8);
-  await page.getByTestId("nav-automation").click();
+  await expect(page.locator(".feature-nav > button")).toHaveCount(2);
+  await navigate("automation");
   await expect(page.getByTestId("automation-data")).toHaveValue(root);
   const info = await page.evaluate(() => window.siteRunner.app.info());
   await expect(page.getByTestId("automation-executable")).toHaveValue(
@@ -212,10 +244,13 @@ try {
   );
   await page.getByRole("tab", { name: "macOS", exact: true }).click();
   await expect(page.getByTestId("automation-data")).toHaveValue(root);
-  await page.screenshot({ path: path.join(output, "automation-dark.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: path.join(output, "automation-dark.png"),
+  });
 
   // Leaving a live template recording would lose its controls; finish/cancel first.
-  await page.getByTestId("nav-templates").click();
+  await navigate("templates");
   await page.getByTestId("recording-url").fill(url);
   await page.getByTestId("start-recording").click();
   await expect(page.getByTestId("finish-recording")).toBeEnabled({
@@ -240,6 +275,8 @@ try {
     (id) => window.siteRunner.runs.runSite(id),
     tasks[0].id,
   );
+  await expect(page.locator(".running-strip")).toBeVisible();
+  await page.getByTestId("toggle-output").click();
   await expect(page.getByTestId("active-tasks")).toBeVisible();
   await page.getByTestId("nav-history").click();
   await expect(page.getByTestId("active-tasks")).toBeVisible();
@@ -251,26 +288,38 @@ try {
     "开发者社区签到",
   );
   await page.getByTestId("nav-sites").click();
-  await page.screenshot({ path: path.join(output, "tasks-output-dark.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: path.join(output, "tasks-output-dark.png"),
+  });
 
   // Layout controls and shortcuts restore their preferences after a renderer reload.
   await page.getByTestId("toggle-sidebar").click();
   await expect(page.locator(".app-shell")).toHaveClass(/sidebar-hidden/);
-  await expect(page.getByTestId("nav-automation")).toBeVisible();
+  await expect(page.getByTestId("nav-settings")).toBeVisible();
   await page.reload();
   await expect(page.locator(".app-shell")).toHaveClass(/sidebar-hidden/);
-  await expect(page.getByTestId("nav-automation")).toBeVisible();
+  await expect(page.getByTestId("nav-settings")).toBeVisible();
   await page.getByTestId("toggle-sidebar").click();
   await expect(page.locator(".app-shell")).not.toHaveClass(/sidebar-hidden/);
   await page.getByTestId("toggle-output").click();
   await page.getByTestId("nav-settings").click();
   await page.getByTestId("theme-select").selectOption("light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await page.screenshot({ path: path.join(output, "settings-light.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: path.join(output, "settings-light.png"),
+  });
   await page.getByTestId("nav-sites").click();
-  await page.screenshot({ path: path.join(output, "tasks-light.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: path.join(output, "tasks-light.png"),
+  });
   await page.getByTestId("open-command-palette").click();
-  await page.screenshot({ path: path.join(output, "command-light.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: path.join(output, "command-light.png"),
+  });
   await page.locator(".command-palette").getByRole("combobox").fill("创建任务");
   await page.locator(".command-palette").getByRole("combobox").press("Enter");
   await expect(page.getByTestId("site-dialog")).toBeVisible();
@@ -296,7 +345,7 @@ try {
       "data",
       "automation",
     ]) {
-      await page.getByTestId(`nav-${section}`).click();
+      await navigate(section);
       expect(
         await page
           .locator("main")
@@ -308,6 +357,7 @@ try {
           .evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
       ).toBe(true);
       await page.screenshot({
+        animations: "disabled",
         path: path.join(output, `${section}-${language}-1040.png`),
       });
     }
@@ -322,10 +372,11 @@ try {
         .getByTestId("site-dialog")
         .evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
     ).toBe(true);
-    const smallWorkspace = await page.locator(".workspace-main").boundingBox();
     const smallEditor = await page.getByTestId("site-dialog").boundingBox();
-    expect(Math.abs(smallEditor.width - smallWorkspace.width)).toBeLessThan(2);
+    expect(smallEditor.x).toBeGreaterThanOrEqual(28);
+    expect(smallEditor.x + smallEditor.width).toBeLessThanOrEqual(1040 - 28);
     await page.screenshot({
+      animations: "disabled",
       path: path.join(output, `editor-${language}-1040.png`),
     });
     await page
@@ -346,7 +397,9 @@ try {
     recordingNavigationGuard: "passed",
     crossPageOutput: "passed",
     layoutPersistence: "passed",
-    completeSidebar: "passed",
+    simplifiedNavigation: "passed",
+    progressiveDisclosure: "passed",
+    centeredEditor: "passed",
     systemAutomationGuide: "passed",
     createCommand: "passed",
     minimumWindowBilingual: "passed",

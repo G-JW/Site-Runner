@@ -65,7 +65,7 @@ function createWindow(theme: 'system' | 'light' | 'dark' = 'system'): BrowserWin
     minHeight: 680,
     title: 'Site Runner',
     icon: path.join(app.getAppPath(), 'assets/branding/icon.png'),
-    backgroundColor: theme === 'light' || (theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#fafafa' : '#1e1e1e',
+    backgroundColor: theme === 'light' || (theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#ffffff' : '#1a1e1f',
     webPreferences: {
       preload: path.join(currentDir, '../preload/index.cjs'),
       contextIsolation: true,

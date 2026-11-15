@@ -38,7 +38,11 @@ const url = `http://127.0.0.1:${server.address().port}`;
 const database = new AppDatabase(path.join(root, "site-runner.sqlite3"));
 const data = new DataService(database.connection),
   profile = data.createProfile("Fixture");
-data.updateSettings({ language: "zh-CN", browserHeadless: true });
+data.updateSettings({
+  maxConcurrency: 1,
+  language: "zh-CN",
+  browserHeadless: true,
+});
 const folder = data.saveFolder({ name: "Daily" }),
   other = data.saveFolder({ name: "Other" });
 function site(name, folderId, enabled = true) {
@@ -98,6 +102,8 @@ try {
   const page = await app.firstWindow();
   page.on("pageerror", (error) => rendererErrors.push(error.message));
   await page.getByTestId("nav-sites").click();
+  await page.getByTestId("toggle-output").click();
+  await page.getByTestId("task-filters").click();
   const rows = page.locator(".sites-table .table-row");
   const filter = page.getByTestId("site-status-filter"),
     sort = page.getByTestId("site-sort");
@@ -110,9 +116,13 @@ try {
     ["notRun", 2],
     ["active", 0],
   ]) {
+    if (!(await filter.isVisible()))
+      await page.getByTestId("task-filters").click();
     await filter.selectOption(value);
     await expect(rows).toHaveCount(count);
   }
+  if (!(await filter.isVisible()))
+    await page.getByTestId("task-filters").click();
   await filter.selectOption("all");
   await sort.selectOption("name");
   await expect(rows.first()).toContainText("Alpha");
@@ -120,10 +130,14 @@ try {
   await expect(rows.first()).toContainText("Elsewhere");
   await sort.selectOption("default");
   await page.getByTestId(`folder-${folder.id}`).click();
+  if (!(await filter.isVisible()))
+    await page.getByTestId("task-filters").click();
   await filter.selectOption("failed");
   await expect(rows).toHaveCount(2);
+  if (!(await page.getByTestId("run-scope").isVisible()))
+    await page.getByTestId("task-filters").click();
   await page.getByTestId("run-scope").selectOption("failed");
-  await expect(page.getByTestId("run-tasks")).toHaveText("运行 1 个任务");
+  await expect(page.getByTestId("run-tasks")).toContainText("重试失败1");
   await page.getByTestId("run-tasks").click();
   await expect(page.getByTestId("active-batch")).toContainText("0/1");
   await expect(page.getByTestId("run-tasks")).toBeDisabled();
@@ -142,18 +156,28 @@ try {
   );
   expect(firstRun.map((run) => run.siteId)).toEqual([delta.id]);
 
+  if (!(await filter.isVisible()))
+    await page.getByTestId("task-filters").click();
   await filter.selectOption("all");
+  if (!(await page.getByTestId("select-all-sites").isVisible()))
+    await page.getByTestId("select-tasks").click();
   for (const item of [alpha, beta, disabled])
     await page.getByTestId(`site-row-${item.id}`).getByRole("checkbox").check();
+  if (!(await page.getByTestId("run-scope").isVisible()))
+    await page.getByTestId("task-filters").click();
   await page.getByTestId("run-scope").selectOption("selected");
-  await expect(page.getByTestId("run-tasks")).toHaveText("运行 2 个任务");
+  await expect(page.getByTestId("run-tasks")).toContainText("运行所选2");
   await page.getByTestId("site-search").fill("Alpha");
   await expect(page.getByTestId("run-tasks")).toBeDisabled(); // Hidden selections cannot run.
   await page.getByTestId("site-search").fill("");
+  if (!(await page.getByTestId("select-all-sites").isVisible()))
+    await page.getByTestId("select-tasks").click();
   for (const item of [alpha, beta, disabled])
     await page.getByTestId(`site-row-${item.id}`).getByRole("checkbox").check();
   await page.getByTestId("run-tasks").click();
   await expect(page.getByTestId("active-batch")).toContainText("0/2");
+  if (!(await filter.isVisible()))
+    await page.getByTestId("task-filters").click();
   await filter.selectOption("active");
   await expect(rows).toHaveCount(2);
   await expect(page.getByTestId("run-tasks")).toBeDisabled();
@@ -174,15 +198,23 @@ try {
   );
   expect(batchRuns.every((run) => run.status === "success")).toBe(true);
 
+  if (!(await filter.isVisible()))
+    await page.getByTestId("task-filters").click();
   await filter.selectOption("disabled");
   await expect(page.getByTestId("run-tasks")).toBeDisabled();
+  if (!(await page.getByTestId("select-all-sites").isVisible()))
+    await page.getByTestId("select-tasks").click();
   await page.getByTestId("select-all-sites").check();
   await expect(page.getByTestId("run-tasks")).toBeDisabled();
+  if (!(await filter.isVisible()))
+    await page.getByTestId("task-filters").click();
   await filter.selectOption("all");
   await page.getByTestId("folder-ungrouped").click();
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText(unfiled.name);
   await page.getByTestId("folder-all").click();
+  if (!(await page.getByTestId("run-scope").isVisible()))
+    await page.getByTestId("task-filters").click();
   await page.getByTestId("run-scope").selectOption("selected");
   for (const item of [alpha, beta])
     await page.getByTestId(`site-row-${item.id}`).getByRole("checkbox").check();
@@ -191,10 +223,13 @@ try {
   );
   await page.getByTestId("run-tasks").click();
   await page
-    .getByRole("button", { name: "完成当前任务后停止", exact: true })
+    .getByRole("button", { name: "完成进行中的任务后停止", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "将在当前任务结束后停止", exact: true }),
+    page.getByRole("button", {
+      name: "将在进行中的任务结束后停止",
+      exact: true,
+    }),
   ).toBeDisabled();
   await expect(page.getByTestId("active-tasks")).toHaveCount(0, {
     timeout: 20000,
@@ -213,10 +248,16 @@ try {
   await page.getByTestId("nav-settings").click();
   await page.getByTestId("language-select").selectOption("en");
   await page.getByTestId("nav-sites").click();
+  // Selection is intentionally retained across navigation; Done clears it explicitly.
+  await page.getByTestId("select-tasks").click();
+  if (!(await page.getByTestId("run-scope").isVisible()))
+    await page.getByTestId("task-filters").click();
   await page.getByTestId("run-scope").selectOption("selected");
-  await expect(page.getByTestId("run-tasks")).toHaveText("Run 0 tasks");
+  await expect(page.getByTestId("run-tasks")).toContainText("Run selected0");
+  if (!(await page.getByTestId("run-scope").isVisible()))
+    await page.getByTestId("task-filters").click();
   await page.getByTestId("run-scope").selectOption("failed");
-  await expect(page.getByTestId("run-tasks")).toHaveText("Run 1 tasks");
+  await expect(page.getByTestId("run-tasks")).toContainText("Retry failed1");
   await app.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows()[0];
     window.setSize(window.getMinimumSize()[0], 800);
