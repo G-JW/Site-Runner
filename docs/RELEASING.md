@@ -65,3 +65,12 @@ node tests/e2e/auto-update.mjs
 `scripts/package-release.mjs` 生成 `Site-Runner-<version>-darwin-<arch>.zip` 或 `Site-Runner-<version>-win32-x64.exe`。`scripts/create-update-manifest.mjs` 为每个包流式计算 SHA-256 并生成 `site-runner-update.json`；它会核对本地/CI 私钥是否匹配嵌入的公钥，不匹配时拒绝签名。
 
 更新缓存位于 userData 的 `updates/`，启动确认后自动清除包与暂存文件；`install-result.json` 记录安装结果。若无法访问 GitHub，软件更新会显示网络错误，可以在配置好电脑网络或代理后重试。
+
+
+## 0.4.4 起的浏览器与本地归档
+
+安装包不携带独立自动化 Chromium；常规打包命令不再调用 prepare:browsers。浏览器由应用按需下载到用户数据目录或选择系统 Chrome/Edge。开发和浏览器测试仍可使用 pnpm prepare:browsers。
+
+历史安装包不再长期保存在项目 release/ 中。需要旧客户端升级验证时，从 [历史版本索引](releases/HISTORY.md) 中下载到临时测试目录，验证结束后清理。history/v* 页面是历史预发布，不能设为最新版；它们不参与正式更新源。
+
+本地维护记录、清理清单位于 .runtime/maintenance，旧日志与验证资料位于 .runtime/archive；签名私钥仍位于原来的 .runtime/update-private-key.pem，不移动、不提交。

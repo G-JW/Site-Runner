@@ -17,6 +17,7 @@
 | 0.4.1 | 正式发布记录 | [下载页面](https://github.com/G-JW/Site-Runner/releases/tag/v0.4.1) |
 | 0.4.2 | 历史安装包归档 | [下载页面](https://github.com/G-JW/Site-Runner/releases/tag/history/v0.4.2) |
 | 0.4.3 | 正式发布记录 | [下载页面](https://github.com/G-JW/Site-Runner/releases/tag/v0.4.3) |
+| 0.4.4 | 正式发布记录 | [下载页面](https://github.com/G-JW/Site-Runner/releases/tag/v0.4.4) |
 | 2.0.0 | 历史安装包归档 | [下载页面](https://github.com/G-JW/Site-Runner/releases/tag/history/v2.0.0) |
 | 2.0.1 | 历史安装包归档 | [下载页面](https://github.com/G-JW/Site-Runner/releases/tag/history/v2.0.1) |
 
