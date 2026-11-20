@@ -25,7 +25,8 @@ export class RunBrowserPool {
     private readonly profiles: Pick<
       ProfileService,
       "acquireForRun" | "getProfilePath"
-    >,
+    > &
+      Partial<Pick<ProfileService, "getLaunchOptions">>,
   ) {}
   isBusy(): boolean {
     return this.sessions.size > 0;
@@ -84,7 +85,12 @@ export class RunBrowserPool {
       const { chromium } = await import("playwright");
       context = await chromium.launchPersistentContext(
         this.profiles.getProfilePath(id),
-        { headless, channel: "chromium" },
+        {
+          headless,
+          ...(this.profiles.getLaunchOptions
+            ? await this.profiles.getLaunchOptions()
+            : { channel: "chromium" }),
+        },
       );
       // Playwright's local named pipe preserves the full API and is never exposed on a public port.
       const { endpoint } = await context.browser()!.bind(`Site Runner ${id}`);

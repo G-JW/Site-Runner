@@ -1,3 +1,4 @@
+import type { BrowserService } from "../browsers/browser-service.js";
 import { RunBrowserPool, type RunBrowserLease } from "./run-browser-pool.js";
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
@@ -64,13 +65,23 @@ export class ProfileService {
   constructor(
     private readonly data: DataService,
     private readonly profilesRoot: string,
+    private readonly browsers?: BrowserService,
   ) {
     mkdirSync(profilesRoot, { recursive: true });
   }
 
   getProfilePath(id: string): string {
     this.data.getProfile(id);
-    return path.join(this.profilesRoot, id);
+    return (
+      this.browsers?.profilePath(this.profilesRoot, id) ??
+      path.join(this.profilesRoot, id)
+    );
+  }
+
+  async getLaunchOptions() {
+    return this.browsers
+      ? this.browsers.launchOptions()
+      : { channel: "chromium" };
   }
 
   assertNotRecording(id: string): void {
@@ -109,6 +120,11 @@ export class ProfileService {
     const profilePath = this.getProfilePath(id);
     this.data.removeProfile(id);
     rmSync(profilePath, { recursive: true, force: true });
+    for (const suffix of ["", "-chrome", "-msedge"])
+      rmSync(path.join(this.profilesRoot, id + suffix), {
+        recursive: true,
+        force: true,
+      });
   }
 
   async open(id: string, url?: string): Promise<void> {
@@ -143,7 +159,7 @@ export class ProfileService {
       mkdirSync(profilePath, { recursive: true });
       const { chromium } = await import("playwright");
       const context = await chromium.launchPersistentContext(profilePath, {
-        channel: "chromium",
+        ...(await this.getLaunchOptions()),
         headless: false,
       });
       this.contexts.set(id, context);

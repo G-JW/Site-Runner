@@ -1,3 +1,4 @@
+import type { BrowserService } from "../browsers/browser-service.js";
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import { exportSiteRules, parseSiteRules } from "../site-rules.js";
@@ -27,6 +28,7 @@ export function registerDataIpc(
   notifications: NotificationService,
   cleanup: CleanupService,
   runtime: RuntimeService,
+  browsers?: BrowserService,
 ): void {
   ipcMain.handle("cleanup:preview", () => cleanup.preview());
   ipcMain.handle("cleanup:execute", (_event, id: string) =>
@@ -238,6 +240,16 @@ export function registerDataIpc(
   ipcMain.handle(
     "settings:importConfiguration",
     (_event, file: unknown, applySettings: boolean) => {
+      if (
+        applySettings &&
+        (browsers?.isInstalling() ||
+          profiles.hasOpenBrowsers() ||
+          runtime.snapshot().runs.length > 0 ||
+          runtime.snapshot().batches.length > 0)
+      )
+        throw new Error(
+          "Close browsers and running tasks before restoring settings",
+        );
       const result = importConfiguration(data, file, applySettings === true);
       scheduler.refreshAll();
       publishSettings();
@@ -245,6 +257,16 @@ export function registerDataIpc(
     },
   );
   ipcMain.handle("settings:update", (_event, patch) => {
+    if (
+      "browserSource" in patch &&
+      (browsers?.isInstalling() ||
+        profiles.hasOpenBrowsers() ||
+        runtime.snapshot().runs.length > 0 ||
+        runtime.snapshot().batches.length > 0)
+    )
+      throw new Error(
+        "Close running tasks, login browsers and recording before switching browser source",
+      );
     const settings = data.updateSettings(patch);
     if ("dailyRunEnabled" in patch || "dailyRunTime" in patch)
       scheduler.refreshAll();

@@ -58,7 +58,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm prepare:browsers
       - run: pnpm build
       - run: node scripts/package-release.mjs
       - name: Verify ASAR cleanup inside Electron

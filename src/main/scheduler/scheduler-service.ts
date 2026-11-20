@@ -40,6 +40,7 @@ export class SchedulerService {
     private readonly runFolder?: (folderId: string) => Promise<void>,
     private readonly canRun: (siteId: string) => boolean = () => true,
     private readonly runDaily?: (catchUp?: boolean) => Promise<void>,
+    private readonly canRunDaily: () => boolean = () => true,
   ) {}
 
   private readonly runningFolders = new Set<string>();
@@ -101,7 +102,12 @@ export class SchedulerService {
   }
 
   private runDailyOnce(catchUp = false, day = localDay()): void {
-    if (this.runningDaily || !this.data.claimDailyRun(day)) return;
+    if (
+      !this.canRunDaily() ||
+      this.runningDaily ||
+      !this.data.claimDailyRun(day)
+    )
+      return;
     this.runningDaily = true;
     this.track(
       Promise.resolve()

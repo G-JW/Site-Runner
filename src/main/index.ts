@@ -1,3 +1,5 @@
+import { BrowserService } from "./browsers/browser-service.js";
+import { browserInstaller } from "./browsers/browser-download.js";
 import { ranOnDay } from "../shared/daily-schedule.js";
 import { MenuBar } from "./menu-bar.js";
 import { app, BrowserWindow, ipcMain, nativeTheme, net } from "electron";
@@ -68,8 +70,8 @@ app.on("second-instance", (_event, argv) => {
 });
 if (app.isPackaged) {
   process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(
-    process.resourcesPath,
-    "playwright-browsers",
+    app.getPath("userData"),
+    "browsers",
   );
   process.env.ESBUILD_BINARY_PATH = path.join(
     app.getAppPath().endsWith(".asar")
@@ -80,6 +82,13 @@ if (app.isPackaged) {
     `${process.platform}-${process.arch}`,
     "bin",
     process.platform === "win32" ? "esbuild.exe" : "esbuild",
+  );
+}
+
+if (!app.isPackaged && !process.env.PLAYWRIGHT_BROWSERS_PATH) {
+  process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(
+    app.getAppPath(),
+    ".playwright-browsers",
   );
 }
 
@@ -125,7 +134,20 @@ app
     const database = new AppDatabase(paths.database);
     const data = new DataService(database.connection);
     const cleanup = new CleanupService(data, paths.userData);
-    const profiles = new ProfileService(data, paths.profiles);
+    const browsers: BrowserService = new BrowserService(
+      data,
+      process.env.PLAYWRIGHT_BROWSERS_PATH!,
+      browserInstaller(process.env.PLAYWRIGHT_BROWSERS_PATH!),
+      () =>
+        profiles.hasOpenBrowsers() ||
+        runtime.snapshot().runs.length > 0 ||
+        runtime.snapshot().batches.length > 0,
+    );
+    const profiles: ProfileService = new ProfileService(
+      data,
+      paths.profiles,
+      browsers,
+    );
     const runner = new AutomationRunner(
       data,
       profiles,
@@ -136,10 +158,12 @@ app
       },
     );
     const notifications = new NotificationService(data);
+    await browsers.status();
     if (cliCommand) {
       let exitCode = 1;
       try {
         if (cliCommand.action.startsWith("run-")) {
+          await browsers.launchOptions();
           try {
             cleanup.runAutomatic();
           } catch (error) {
@@ -216,6 +240,7 @@ app
         if (ids.length)
           await scheduledBatch.runSites(ids, undefined, "schedule");
       },
+      () => browsers.readySync(),
     );
     const recorder = new RecorderService(
       profiles,
@@ -241,6 +266,7 @@ app
       isBusy: async () => {
         const snapshot = runtime.snapshot();
         if (
+          browsers.isInstalling() ||
           snapshot.runs.length > 0 ||
           snapshot.batches.length > 0 ||
           profiles.hasOpenBrowsers() ||
@@ -283,7 +309,23 @@ app
     ipcMain.handle("recorder:finish", () => recorder.finish());
     ipcMain.handle("recorder:cancel", () => recorder.cancel());
     if (data.listProfiles().length === 0) profiles.create("Default");
-    registerDataIpc(data, profiles, scheduler, notifications, cleanup, runtime);
+    ipcMain.handle("browser:status", () => browsers.status());
+    ipcMain.handle("browser:install", () => browsers.install());
+    ipcMain.handle("browser:cancel", () => browsers.cancel());
+    browsers.onState((state) => {
+      for (const target of BrowserWindow.getAllWindows())
+        if (!target.isDestroyed())
+          target.webContents.send("browser:state", state);
+    });
+    registerDataIpc(
+      data,
+      profiles,
+      scheduler,
+      notifications,
+      cleanup,
+      runtime,
+      browsers,
+    );
     registerRunIpc(runner, batch, runtime, data);
     scheduler.start();
     cleanup.start();
@@ -306,6 +348,7 @@ app
       cleanup.stop();
       const finishing = [
         scheduler.shutdown(),
+        browsers.shutdown(),
         batch.shutdown(),
         scheduledBatch.shutdown(),
         runner.shutdown(),
@@ -414,6 +457,7 @@ app
           if (ids.length) await batch.runSites(ids);
         },
         () =>
+          !browsers.readySync() ||
           closing ||
           runtime.snapshot().runs.length > 0 ||
           runtime.snapshot().batches.length > 0,

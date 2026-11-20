@@ -230,6 +230,19 @@ const api: SiteRunnerApi = {
         SiteRunnerApi["notifications"]["test"]
       >,
   },
+  browser: {
+    status: () => ipcRenderer.invoke("browser:status"),
+    install: () => ipcRenderer.invoke("browser:install"),
+    cancel: () => ipcRenderer.invoke("browser:cancel"),
+    onState: (listener) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        state: Parameters<typeof listener>[0],
+      ) => listener(state);
+      ipcRenderer.on("browser:state", handler);
+      return () => ipcRenderer.removeListener("browser:state", handler);
+    },
+  },
   settings: {
     onChanged: (listener) => {
       const handler = (

@@ -594,6 +594,10 @@ export class DataService {
       ),
     );
     return {
+      browserSource:
+        values.browserSource === "chrome" || values.browserSource === "msedge"
+          ? values.browserSource
+          : "managed",
       dailyRunEnabled: values.dailyRunEnabled !== "false",
       dailyCatchUpEnabled: values.dailyCatchUpEnabled !== "false",
       dailyRunTime: validateDailyRunTime(
@@ -621,6 +625,8 @@ export class DataService {
 
   updateSettings(patch: Partial<AppSettings>): AppSettings {
     const current = { ...this.getSettings(), ...patch };
+    if (!["managed", "chrome", "msedge"].includes(current.browserSource))
+      throw new Error("Unsupported browser source");
     if (typeof current.dailyCatchUpEnabled !== "boolean")
       throw new Error("Invalid catch-up switch");
     if (typeof current.dailyRunEnabled !== "boolean")

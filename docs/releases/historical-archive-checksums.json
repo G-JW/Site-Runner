@@ -1,0 +1,62 @@
+{
+  "0.3.0": {
+    "tag": "history/v0.3.0",
+    "size": 437544684,
+    "sha256": "4a1b6d7f3edbc1df3369c2f54ce7678815ecbf4628487089c43bed1a1086f5e2",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.3.0"
+  },
+  "0.3.1": {
+    "tag": "history/v0.3.1",
+    "size": 437544874,
+    "sha256": "37f92c552b481b6c696ece0049af5abb3c105a63a6c8c10753c9f5c472900fb0",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.3.1"
+  },
+  "0.3.2": {
+    "tag": "history/v0.3.2",
+    "size": 437544804,
+    "sha256": "857344989b089ea05e1d2dbf83136c92f927cce7c26ca8264580cef2ef356ff8",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.3.2"
+  },
+  "0.3.3": {
+    "tag": "history/v0.3.3",
+    "size": 437551776,
+    "sha256": "8d0eef1cdd4515385da90571eff27864591d53aeac908c8dee0546da0a0dea04",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.3.3"
+  },
+  "0.3.4": {
+    "tag": "history/v0.3.4",
+    "size": 437550988,
+    "sha256": "b5f4f9e6d3e02668d7112e91e1757d720b3288a5dc166b2d5c042595fe2b8294",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.3.4"
+  },
+  "0.3.5": {
+    "tag": "history/v0.3.5",
+    "size": 437559529,
+    "sha256": "018822eccfe9bc7f91454130f2b3784bbbec9fbb5744eb618c4dcd2973cd908b",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.3.5"
+  },
+  "0.3.6": {
+    "tag": "history/v0.3.6",
+    "size": 437534100,
+    "sha256": "0fe06e2aeb985618c179eef2506e1cc8fb0cbfe6f087d84a754b2524c585e405",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.3.6"
+  },
+  "0.4.2": {
+    "tag": "history/v0.4.2",
+    "size": 440500685,
+    "sha256": "a45820aba50c0e11a5facd433d85f5eff799aa8cee905380901be94d2779acb3",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v0.4.2"
+  },
+  "2.0.0": {
+    "tag": "history/v2.0.0",
+    "size": 440478590,
+    "sha256": "af1ec4c0adf481a3481d291eb8cb43908c8cc37b91075231a8ca698cb4aacd08",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v2.0.0"
+  },
+  "2.0.1": {
+    "tag": "history/v2.0.1",
+    "size": 440492192,
+    "sha256": "9d12ac58c32d5498b493234a79992e00cb3ac2df7ae8eb308760548196710a04",
+    "url": "https://github.com/G-JW/Site-Runner/releases/tag/history/v2.0.1"
+  }
+}

@@ -1521,3 +1521,86 @@ kbd {
     gap: 6px;
   }
 }
+
+.browser-setup-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 0 0 18px;
+  border: 1px solid var(--border);
+  background: var(--selected);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.browser-setup-notice .text-button {
+  margin-left: auto;
+}
+.browser-dialog {
+  width: 600px;
+  max-height: 85vh;
+  overflow: auto;
+}
+.browser-settings {
+  min-width: 0;
+  width: 100%;
+}
+.setting-row:has(.browser-settings) {
+  display: block;
+}
+.setting-row:has(.browser-settings) > div:first-child {
+  margin-bottom: 18px;
+}
+.browser-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 0 12px;
+}
+.browser-source-row select {
+  width: 280px;
+  max-width: 70%;
+}
+.browser-state {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 12px 0;
+}
+.browser-state.ready {
+  color: var(--success);
+}
+.browser-note {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 16px 0 4px;
+}
+.browser-download-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.browser-settings progress {
+  width: 100%;
+  margin-top: 14px;
+}
+.browser-progress,
+.browser-error {
+  font:
+    12px/1.6 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 10px;
+  background: var(--surface-alt);
+  color: var(--muted);
+  border-radius: 6px;
+  margin: 14px 0;
+}
+.browser-error {
+  color: var(--danger);
+}
+.browser-dialog > .browser-settings {
+  padding: 0 26px 22px;
+}

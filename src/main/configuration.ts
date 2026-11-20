@@ -87,6 +87,7 @@ function validSettings(value: AppSettings): AppSettings {
   )
     throw new Error("Invalid catch-up switch");
   return {
+    browserSource: "managed",
     dailyRunEnabled: value.dailyRunEnabled ?? false,
     dailyCatchUpEnabled: value.dailyCatchUpEnabled ?? false,
     dailyRunTime: validateDailyRunTime(

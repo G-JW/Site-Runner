@@ -277,3 +277,28 @@ it("checks missed work on startup but does not launch catch-up merely when refre
     vi.useRealTimers();
   }
 });
+
+it("does not consume today's schedule while the browser is missing, allowing catch-up once ready", async () => {
+  const { data } = setup();
+  data.updateSettings({ dailyRunTime: "01:00", dailyCatchUpEnabled: true });
+  let ready = false;
+  const runDaily = vi.fn(async () => undefined);
+  const scheduler = new SchedulerService(
+    data,
+    { runSite: vi.fn() },
+    undefined,
+    undefined,
+    undefined,
+    runDaily,
+    () => ready,
+  );
+  const now = new Date(2026, 10, 21, 2, 0);
+  scheduler.catchUp(now);
+  await Promise.resolve();
+  expect(runDaily).not.toHaveBeenCalled();
+  ready = true;
+  scheduler.catchUp(now);
+  await Promise.resolve();
+  expect(runDaily).toHaveBeenCalledOnce();
+  await scheduler.shutdown();
+});

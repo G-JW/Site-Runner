@@ -1,3 +1,4 @@
+import { BrowserSettingsPanel } from "../components/BrowserSettingsPanel";
 import { maxConcurrency } from "../../shared/concurrency";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
@@ -225,6 +226,12 @@ export function SettingsPage({
               <option value="zh-CN">{t("settings.chinese")}</option>
             </select>
           ),
+        },
+        {
+          category: "execution",
+          title: t("browser.title"),
+          description: t("browser.description"),
+          control: <BrowserSettingsPanel onError={onError} />,
         },
         {
           category: "execution",

@@ -9,6 +9,25 @@ import {
 import type { AppLanguage } from "../shared/types";
 
 const en = {
+  "browser.title": "Browser",
+  "browser.description": "Use a managed Chromium or an installed browser.",
+  "browser.source": "Browser source",
+  "browser.managed": "Managed Chromium (recommended)",
+  "browser.chrome": "Installed Google Chrome",
+  "browser.edge": "Installed Microsoft Edge",
+  "browser.notInstalled": "Not installed",
+  "browser.ready": "Browser ready",
+  "browser.notReady": "Browser not ready",
+  "browser.downloading": "Downloading Chromium…",
+  "browser.download": "Download Chromium",
+  "browser.retry": "Retry download",
+  "browser.managedNote":
+    "Downloaded once to your local data folder and reused across app updates. Existing Chromium login environments are retained. A new browser revision may require another download.",
+  "browser.localNote":
+    "Uses separate Site Runner login environments. Your everyday browser profile is not used; sign in once here. Switching browser brands may require signing in again. Your Chromium environment stays intact.",
+  "browser.setupNote": "Choose or download a browser before running tasks.",
+  "browser.configure": "Configure browser",
+
   "daily.title": "Daily schedule",
   "daily.catchUp": "Catch up when opening the app",
   "daily.catchUpNote":
@@ -675,6 +694,25 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  "browser.title": "浏览器",
+  "browser.description": "选择应用管理的 Chromium 或本机浏览器。",
+  "browser.source": "浏览器来源",
+  "browser.managed": "应用管理的 Chromium（推荐）",
+  "browser.chrome": "本机 Google Chrome",
+  "browser.edge": "本机 Microsoft Edge",
+  "browser.notInstalled": "未安装",
+  "browser.ready": "浏览器已就绪",
+  "browser.notReady": "浏览器尚未就绪",
+  "browser.downloading": "正在下载 Chromium…",
+  "browser.download": "一键下载 Chromium",
+  "browser.retry": "重试下载",
+  "browser.managedNote":
+    "浏览器下载到本地数据目录，应用更新时继续复用。保留原有 Chromium 登录环境；浏览器版本更新时可能需要重新下载。",
+  "browser.localNote":
+    "使用 Site Runner 独立登录环境，不接管日常浏览器的默认配置，首次使用需在此登录。切换浏览器品牌可能需要重新登录；原 Chromium 环境保留。",
+  "browser.setupNote": "请先配置浏览器，再运行任务。",
+  "browser.configure": "配置浏览器",
+
   "daily.title": "定时执行",
   "daily.catchUp": "打开应用时补跑今日任务",
   "daily.catchUpNote":

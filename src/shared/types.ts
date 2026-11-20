@@ -165,7 +165,17 @@ export interface BatchResult {
   planned?: number;
   stopped?: boolean;
 }
+export type BrowserSource = "managed" | "chrome" | "msedge";
+export interface BrowserRuntimeStatus {
+  source: BrowserSource;
+  ready: boolean;
+  installed: Record<BrowserSource, boolean>;
+  phase: "idle" | "downloading" | "error";
+  message: string;
+  cacheDirectory: string;
+}
 export interface AppSettings {
+  browserSource: BrowserSource;
   dailyRunEnabled: boolean;
   dailyCatchUpEnabled: boolean;
   dailyRunTime: string;
@@ -301,6 +311,12 @@ export interface SiteRunnerApi {
     remove(id: string): Promise<void>;
     test(id: string): Promise<void>;
     receipts(): Promise<NotificationReceipt[]>;
+  };
+  browser: {
+    status(): Promise<BrowserRuntimeStatus>;
+    install(): Promise<BrowserRuntimeStatus>;
+    cancel(): Promise<void>;
+    onState(listener: (status: BrowserRuntimeStatus) => void): () => void;
   };
   settings: {
     onChanged(listener: (settings: AppSettings) => void): () => void;

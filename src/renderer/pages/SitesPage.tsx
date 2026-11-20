@@ -1,3 +1,4 @@
+import { BrowserSetupNotice } from "../components/BrowserSettingsPanel";
 import { DailyScheduleButton } from "../components/DailyScheduleButton";
 import { useEffect, useState } from "react";
 import type {
@@ -62,6 +63,7 @@ export function SitesPage({
   onError(error: unknown): void;
 }) {
   const { language, t } = useI18n();
+  const [browserReady, setBrowserReady] = useState(false);
   const [creating, setCreating] = useState(false);
   async function createTask() {
     if (creating) return;
@@ -190,6 +192,7 @@ export function SitesPage({
         ? failedIds
         : enabledIds;
   const cannotRun =
+    !browserReady ||
     !runIds.length ||
     batchRunning ||
     runtime.batches.length > 0 ||
@@ -400,6 +403,7 @@ export function SitesPage({
           </>
         }
       />
+      <BrowserSetupNotice onError={onError} onReadyChange={setBrowserReady} />
       {!!sites.length && (
         <div
           className="daily-strip"
@@ -882,7 +886,7 @@ export function SitesPage({
                           data-testid={`run-site-${site.id}`}
                           title={t("sites.run")}
                           aria-label={`${t("sites.run")} ${site.name}`}
-                          disabled={running.has(site.id)}
+                          disabled={!browserReady || running.has(site.id)}
                           onClick={() => void run(site)}
                         >
                           <Icon name="play" size={15} />

@@ -1,6 +1,6 @@
 {
   "name": "site-runner",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "description": "Local-first browser automation desktop app",
   "author": "Site Runner Contributors",
@@ -24,9 +24,9 @@
     "build:renderer": "vite build",
     "build": "pnpm build:main && pnpm build:renderer",
     "prepare:browsers": "cross-env PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers playwright install --no-shell chromium",
-    "package": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir --publish never",
-    "package:dist": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
-    "release:package": "pnpm prepare:browsers && pnpm build && node scripts/package-release.mjs",
+    "package": "pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir --publish never",
+    "package:dist": "pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
+    "release:package": "pnpm build && node scripts/package-release.mjs",
     "release:manifest": "node scripts/create-update-manifest.mjs"
   },
   "dependencies": {
@@ -78,12 +78,6 @@
     "asarUnpack": [
       "node_modules/esbuild/**/*",
       "node_modules/@esbuild/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": ".playwright-browsers",
-        "to": "playwright-browsers"
-      }
     ],
     "mac": {
       "asar": false,
