@@ -1,5 +1,7 @@
+import { DailyScheduleButton } from "../components/DailyScheduleButton";
 import { useEffect, useState } from "react";
 import type {
+  AppSettings,
   BatchResult,
   BrowserProfile,
   RunRecord,
@@ -97,6 +99,8 @@ export function SitesPage({
   const [moving, setMoving] = useState(false);
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchSummary, setBatchSummary] = useState<BatchResult | null>(null);
+  const [dailySettings, setDailySettings] = useState<AppSettings | null>(null);
+  const [scheduleRevision, setScheduleRevision] = useState(0);
   const [nextRuns, setNextRuns] = useState<Record<string, string | null>>({});
   const [detail, setDetail] = useState<Awaited<
     ReturnType<SiteRunnerApi["runs"]["detail"]>
@@ -235,9 +239,20 @@ export function SitesPage({
   useEffect(() => {
     void window.siteRunner.settings
       .get()
-      .then((settings) => setDefaultTimeoutMs(settings.defaultTimeoutMs))
+      .then((settings) => {
+        setDefaultTimeoutMs(settings.defaultTimeoutMs);
+        setDailySettings(settings);
+      })
       .catch(onError);
   }, [onError]);
+  useEffect(
+    () =>
+      window.siteRunner.settings.onChanged((settings) => {
+        setDailySettings(settings);
+        setScheduleRevision((value) => value + 1);
+      }),
+    [],
+  );
   useEffect(() => {
     let disposed = false;
     const load = () =>
@@ -253,7 +268,7 @@ export function SitesPage({
       disposed = true;
       clearInterval(timer);
     };
-  }, [sites, folders, runs, onError]);
+  }, [sites, folders, runs, onError, scheduleRevision]);
   async function toggle(site: Site) {
     try {
       await window.siteRunner.sites.save({ ...site, enabled: !site.enabled });
@@ -351,9 +366,9 @@ export function SitesPage({
               : (folders.find((folder) => folder.id === activeFolder)?.name ??
                 t("sites.title"))
         }
-        description={t("v2.tasksDescription")}
         actions={
           <>
+            <DailyScheduleButton onError={onError} />
             <button
               data-testid="add-site"
               className={sites.length ? "secondary" : "primary"}
@@ -732,7 +747,13 @@ export function SitesPage({
                 </div>
               ) : (
                 visibleSites.map((site) => {
-                  const schedule = effectiveSchedule(site, folders);
+                  const schedule =
+                    dailySettings?.dailyRunEnabled && site.enabled
+                      ? {
+                          source: "daily" as const,
+                          cron: dailySettings.dailyRunTime,
+                        }
+                      : effectiveSchedule(site, folders);
                   const kind = resultKind(site.lastRun);
                   return (
                     <div
@@ -807,9 +828,11 @@ export function SitesPage({
                         </span>
                         {schedule && site.enabled && (
                           <small title={schedule.cron}>
-                            {schedule.source === "inherit"
-                              ? t("tasks.inherit", { name: schedule.name! })
-                              : schedule.cron}
+                            {schedule.source === "daily"
+                              ? t("daily.title")
+                              : schedule.source === "inherit"
+                                ? t("tasks.inherit", { name: schedule.name! })
+                                : schedule.cron}
                           </small>
                         )}
                       </div>
@@ -905,13 +928,6 @@ export function SitesPage({
                 })
               )}
             </section>
-            <div className="list-footnote">
-              <Icon name="clock" size={13} />
-              <span>{t("v2.scheduleFootnote")}</span>
-              <span className="list-timezone">
-                {Intl.DateTimeFormat().resolvedOptions().timeZone}
-              </span>
-            </div>
           </div>
         </div>
       )}

@@ -148,6 +148,7 @@ export function SettingsPage({
       onError(error);
     }
   }
+  useEffect(() => window.siteRunner.settings.onChanged(setSettings), []);
   const search = query.trim().toLowerCase();
   const matches = (...values: string[]) =>
     !search || values.join(" ").toLowerCase().includes(search);
@@ -223,6 +224,49 @@ export function SettingsPage({
               <option value="en">{t("settings.english")}</option>
               <option value="zh-CN">{t("settings.chinese")}</option>
             </select>
+          ),
+        },
+        {
+          category: "execution",
+          title: t("daily.enabled"),
+          description: t("daily.note"),
+          control: (
+            <Switch
+              label={t("daily.enabled")}
+              checked={settings.dailyRunEnabled}
+              onChange={(checked) => void update({ dailyRunEnabled: checked })}
+            />
+          ),
+        },
+        {
+          category: "execution",
+          title: t("daily.catchUp"),
+          description: t("daily.catchUpNote"),
+          control: (
+            <Switch
+              label={t("daily.catchUp")}
+              checked={settings.dailyCatchUpEnabled}
+              onChange={(checked) =>
+                void update({ dailyCatchUpEnabled: checked })
+              }
+            />
+          ),
+        },
+        {
+          category: "execution",
+          title: t("daily.time"),
+          description: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          control: (
+            <input
+              aria-label={t("daily.time")}
+              data-testid="daily-run-time"
+              type="time"
+              value={settings.dailyRunTime}
+              onChange={(event) => {
+                if (event.target.value)
+                  void update({ dailyRunTime: event.target.value });
+              }}
+            />
           ),
         },
         {

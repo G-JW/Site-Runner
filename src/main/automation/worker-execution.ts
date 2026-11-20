@@ -39,6 +39,7 @@ export async function executeAutomation(
       if (!page) throw new Error("Task browser page is no longer available");
     } else {
       context = await chromium.launchPersistentContext(request.profilePath, {
+        channel: "chromium",
         headless: request.headless,
       });
       page = context.pages()[0] ?? (await context.newPage());

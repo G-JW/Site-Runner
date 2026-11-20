@@ -143,6 +143,7 @@ export class ProfileService {
       mkdirSync(profilePath, { recursive: true });
       const { chromium } = await import("playwright");
       const context = await chromium.launchPersistentContext(profilePath, {
+        channel: "chromium",
         headless: false,
       });
       this.contexts.set(id, context);

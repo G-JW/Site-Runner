@@ -1,4 +1,8 @@
 import {
+  defaultDailyRunTime,
+  validateDailyRunTime,
+} from "../../shared/daily-schedule.js";
+import {
   defaultConcurrency,
   validateConcurrency,
 } from "../../shared/concurrency.js";
@@ -570,6 +574,19 @@ export class DataService {
     return this.mapRun(row);
   }
 
+  claimDailyRun(day: string): boolean {
+    const last = this.db
+      .prepare("SELECT value FROM settings WHERE key = 'dailyLastRunDay'")
+      .get() as Row | undefined;
+    if (last?.value === day) return false;
+    this.db
+      .prepare(
+        "INSERT OR REPLACE INTO settings(key, value) VALUES ('dailyLastRunDay', ?)",
+      )
+      .run(day);
+    return true;
+  }
+
   getSettings(): AppSettings {
     const values = Object.fromEntries(
       (this.db.prepare("SELECT key, value FROM settings").all() as Row[]).map(
@@ -577,6 +594,11 @@ export class DataService {
       ),
     );
     return {
+      dailyRunEnabled: values.dailyRunEnabled !== "false",
+      dailyCatchUpEnabled: values.dailyCatchUpEnabled !== "false",
+      dailyRunTime: validateDailyRunTime(
+        values.dailyRunTime ?? defaultDailyRunTime,
+      ),
       maxConcurrency:
         values.maxConcurrency === undefined
           ? defaultConcurrency
@@ -599,6 +621,11 @@ export class DataService {
 
   updateSettings(patch: Partial<AppSettings>): AppSettings {
     const current = { ...this.getSettings(), ...patch };
+    if (typeof current.dailyCatchUpEnabled !== "boolean")
+      throw new Error("Invalid catch-up switch");
+    if (typeof current.dailyRunEnabled !== "boolean")
+      throw new Error("Invalid daily schedule switch");
+    current.dailyRunTime = validateDailyRunTime(current.dailyRunTime);
     current.maxConcurrency = validateConcurrency(current.maxConcurrency);
     if (
       !Number.isInteger(current.defaultTimeoutMs) ||

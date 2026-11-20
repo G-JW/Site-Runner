@@ -166,6 +166,9 @@ export interface BatchResult {
   stopped?: boolean;
 }
 export interface AppSettings {
+  dailyRunEnabled: boolean;
+  dailyCatchUpEnabled: boolean;
+  dailyRunTime: string;
   maxConcurrency: number;
   defaultTimeoutMs: number;
   browserHeadless: boolean;
@@ -300,6 +303,7 @@ export interface SiteRunnerApi {
     receipts(): Promise<NotificationReceipt[]>;
   };
   settings: {
+    onChanged(listener: (settings: AppSettings) => void): () => void;
     get(): Promise<AppSettings>;
     update(settings: Partial<AppSettings>): Promise<AppSettings>;
     exportConfiguration(): Promise<boolean>;

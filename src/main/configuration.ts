@@ -1,4 +1,8 @@
 import {
+  defaultDailyRunTime,
+  validateDailyRunTime,
+} from "../shared/daily-schedule.js";
+import {
   defaultConcurrency,
   validateConcurrency,
 } from "../shared/concurrency.js";
@@ -72,7 +76,22 @@ function validSettings(value: AppSettings): AppSettings {
     !["comfortable", "compact"].includes(value.density)
   )
     throw new Error("Invalid backup density");
+  if (
+    value.dailyRunEnabled !== undefined &&
+    typeof value.dailyRunEnabled !== "boolean"
+  )
+    throw new Error("Invalid daily schedule switch");
+  if (
+    value.dailyCatchUpEnabled !== undefined &&
+    typeof value.dailyCatchUpEnabled !== "boolean"
+  )
+    throw new Error("Invalid catch-up switch");
   return {
+    dailyRunEnabled: value.dailyRunEnabled ?? false,
+    dailyCatchUpEnabled: value.dailyCatchUpEnabled ?? false,
+    dailyRunTime: validateDailyRunTime(
+      value.dailyRunTime ?? defaultDailyRunTime,
+    ),
     maxConcurrency:
       value.maxConcurrency === undefined
         ? defaultConcurrency
@@ -232,6 +251,7 @@ export function importConfiguration(
     if (applySettings)
       data.updateSettings({
         ...file.settings,
+        dailyRunEnabled: false,
         cleanup: { ...file.settings.cleanup, automatic: false },
       });
     return { sites: file.sites.length, templates: file.templates.length };

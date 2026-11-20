@@ -3,16 +3,16 @@
   --bg: #ffffff;
   --surface: #ffffff;
   --surface-alt: #f7f8f8;
-  --sidebar: #f5f6f6;
-  --text: #242b2b;
-  --muted: #707b7a;
-  --subtle: #889391;
-  --border: #e7ebea;
-  --hover: #edf0ef;
-  --selected: #e2eeea;
-  --accent: #247565;
-  --focus: #278c77;
-  --button: #277d69;
+  --sidebar: #f5f7fb;
+  --text: #253044;
+  --muted: #748198;
+  --subtle: #8793a5;
+  --border: #e5eaf2;
+  --hover: #edf2fa;
+  --selected: #eaf1ff;
+  --accent: #3475db;
+  --focus: #3475db;
+  --button: #3475db;
   --button-text: #fff;
   --success: #36806b;
   --success-bg: #edf5f0;
@@ -20,10 +20,10 @@
   --danger-bg: #fcf2e9;
   --code-bg: #f7f8f8;
   --shadow: 0 16px 64px #1b35351a;
-  --explorer-width: 210px;
+  --explorer-width: 220px;
   --row-padding: 18px;
   --nav-padding: 9px;
-  font-size: 13px;
+  font-size: 14px;
 }
 :root[data-theme="dark"] {
   --bg: #1a1e1f;
@@ -35,11 +35,11 @@
   --subtle: #7e8b87;
   --border: #303738;
   --hover: #272f2e;
-  --selected: #243c34;
-  --accent: #92cfb8;
-  --focus: #83c9b2;
-  --button: #9ad8c0;
-  --button-text: #17362b;
+  --selected: #25354f;
+  --accent: #92b9fa;
+  --focus: #92b9fa;
+  --button: #91b9fc;
+  --button-text: #182b4b;
   --success: #92cfb8;
   --success-bg: #243a31;
   --danger: #e6b57e;
@@ -943,7 +943,7 @@ kbd {
 }
 .settings-panel h2 {
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
 }
 .settings-back {
   font-size: 11px;
@@ -1428,4 +1428,96 @@ kbd {
 
 :root[data-density="compact"] .workbench .sites-table .table-row {
   min-height: 60px;
+}
+
+/* A: quiet native workspace. Navigation and task actions carry the hierarchy. */
+.workspace-topbar {
+  height: 48px;
+  padding: 0 24px;
+}
+.workbench main {
+  padding: 24px 34px 32px;
+}
+.workbench h1 {
+  margin-bottom: 0;
+  font-size: 28px;
+}
+.sidebar-brand {
+  height: 84px;
+}
+.sidebar .feature-nav button,
+.sidebar-settings,
+.sidebar-output {
+  font-size: 13px;
+  border-radius: 8px;
+}
+.header-actions {
+  max-width: none;
+  flex-wrap: wrap;
+}
+.workbench .sites-table .table-head {
+  font-size: 12px;
+  border-radius: 8px;
+}
+.workbench .sites-table .table-row {
+  min-height: 78px;
+  font-size: 13px;
+}
+.workbench .sites-table .table-row:hover {
+  background: var(--selected);
+}
+.task-avatar {
+  background: #eaf0fc;
+  color: #6484bc;
+}
+:root[data-theme="dark"] .task-avatar {
+  background: #29364b;
+  color: #a1bbdf;
+}
+.daily-schedule-button.enabled {
+  color: var(--accent);
+  background: var(--selected);
+  border-color: transparent;
+}
+.daily-schedule-dialog {
+  width: 430px;
+}
+.daily-enable,
+.daily-time {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 22px 0;
+  font-size: 14px;
+}
+.daily-enable input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+}
+.daily-time input {
+  width: 140px;
+}
+.daily-note {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.daily-zone {
+  display: block;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.daily-schedule-dialog .modal-actions {
+  margin-top: 24px;
+}
+@media (max-width: 1150px) {
+  .workbench main {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .header-actions {
+    gap: 6px;
+  }
 }

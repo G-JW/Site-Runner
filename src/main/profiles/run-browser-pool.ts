@@ -84,7 +84,7 @@ export class RunBrowserPool {
       const { chromium } = await import("playwright");
       context = await chromium.launchPersistentContext(
         this.profiles.getProfilePath(id),
-        { headless },
+        { headless, channel: "chromium" },
       );
       // Playwright's local named pipe preserves the full API and is never exposed on a public port.
       const { endpoint } = await context.browser()!.bind(`Site Runner ${id}`);

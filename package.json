@@ -1,6 +1,6 @@
 {
   "name": "site-runner",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "private": true,
   "description": "Local-first browser automation desktop app",
   "author": "Site Runner Contributors",
@@ -23,21 +23,17 @@
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
     "build": "pnpm build:main && pnpm build:renderer",
-    "prepare:browsers": "cross-env PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers playwright install chromium",
+    "prepare:browsers": "cross-env PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers playwright install --no-shell chromium",
     "package": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir --publish never",
     "package:dist": "pnpm prepare:browsers && pnpm build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
     "release:package": "pnpm prepare:browsers && pnpm build && node scripts/package-release.mjs",
     "release:manifest": "node scripts/create-update-manifest.mjs"
   },
   "dependencies": {
-    "@monaco-editor/react": "latest",
     "esbuild": "latest",
-    "monaco-editor": "latest",
     "node-cron": "latest",
     "pino": "latest",
-    "playwright": "latest",
-    "react": "latest",
-    "react-dom": "latest"
+    "playwright": "latest"
   },
   "devDependencies": {
     "@eslint/js": "latest",
@@ -58,7 +54,11 @@
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest",
-    "wait-on": "latest"
+    "wait-on": "latest",
+    "@monaco-editor/react": "latest",
+    "monaco-editor": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   },
   "build": {
     "appId": "com.siterunner.desktop",
@@ -72,6 +72,7 @@
       "dist/**/*",
       "node_modules/**/*",
       "assets/branding/icon.png",
+      "assets/branding/trayTemplate*.png",
       "package.json"
     ],
     "asarUnpack": [

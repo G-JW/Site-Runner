@@ -1,23 +1,31 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, net } from 'electron';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { getAppPaths } from './paths.js';
-import { AppDatabase } from './database/database.js';
-import { registerDataIpc } from './ipc/register-data-ipc.js';
-import { DataService } from './services/data-service.js';
-import { ProfileService } from './profiles/profile-service.js';
-import { AutomationRunner } from './automation/runner.js';
-import { broadcastRunLog, registerRunIpc } from './ipc/register-run-ipc.js';
-import { BatchRunner } from './automation/batch-runner.js';
-import { SchedulerService } from './scheduler/scheduler-service.js';
-import { NotificationService } from './notifications/service.js';
-import { createLogger } from './logging.js';
-import { cliHelp, executeCliCommand, parseCliCommand, type CliCommand } from './cli.js';
-import { RecorderService } from './recording/recorder-service.js';
-import { CleanupService } from './services/cleanup-service.js';
-import { RuntimeService } from './services/runtime-service.js';
-import { UpdateService } from './updates/update-service.js';
+import { ranOnDay } from "../shared/daily-schedule.js";
+import { MenuBar } from "./menu-bar.js";
+import { app, BrowserWindow, ipcMain, nativeTheme, net } from "electron";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { getAppPaths } from "./paths.js";
+import { AppDatabase } from "./database/database.js";
+import { registerDataIpc } from "./ipc/register-data-ipc.js";
+import { DataService } from "./services/data-service.js";
+import { ProfileService } from "./profiles/profile-service.js";
+import { AutomationRunner } from "./automation/runner.js";
+import { broadcastRunLog, registerRunIpc } from "./ipc/register-run-ipc.js";
+import { BatchRunner } from "./automation/batch-runner.js";
+import { SchedulerService } from "./scheduler/scheduler-service.js";
+import { NotificationService } from "./notifications/service.js";
+import { createLogger } from "./logging.js";
+import {
+  cliHelp,
+  executeCliCommand,
+  parseCliCommand,
+  type CliCommand,
+} from "./cli.js";
+import { RecorderService } from "./recording/recorder-service.js";
+import { CleanupService } from "./services/cleanup-service.js";
+import { RuntimeService } from "./services/runtime-service.js";
+import { UpdateService } from "./updates/update-service.js";
 
+let revealWindow: (() => void) | undefined;
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 let cliCommand: CliCommand | null = null;
 try {
@@ -26,48 +34,72 @@ try {
   console.error(error instanceof Error ? error.message : String(error));
   app.exit(2);
 }
-if (cliCommand?.action === 'help') {
+if (cliCommand?.action === "help") {
   console.log(cliHelp);
   app.exit(0);
 }
-const userDataOverride = cliCommand?.userData ?? process.env.SITE_RUNNER_USER_DATA;
-if (userDataOverride) app.setPath('userData', path.resolve(userDataOverride));
+const userDataOverride =
+  cliCommand?.userData ?? process.env.SITE_RUNNER_USER_DATA;
+if (userDataOverride) app.setPath("userData", path.resolve(userDataOverride));
 if (!app.requestSingleInstanceLock()) {
-  console.error('Another Site Runner instance is using this data directory. Close it before running this command.');
+  console.error(
+    "Another Site Runner instance is using this data directory. Close it before running this command.",
+  );
   app.exit(3);
 }
 if (cliCommand) {
   app.disableHardwareAcceleration();
-  if (process.platform === 'darwin') app.setActivationPolicy('prohibited');
+  if (process.platform === "darwin") app.setActivationPolicy("prohibited");
 }
-app.on('second-instance', (_event, argv) => {
-  if (argv.some((arg) => ['--run-all', '--run-site', '--run-folder', '--list-sites', '--list-folders'].includes(arg))) return;
-  const window = BrowserWindow.getAllWindows()[0];
-  if (window) { if (window.isMinimized()) window.restore(); window.focus(); }
+app.on("second-instance", (_event, argv) => {
+  if (
+    argv.some((arg) =>
+      [
+        "--run-all",
+        "--run-site",
+        "--run-folder",
+        "--list-sites",
+        "--list-folders",
+      ].includes(arg),
+    )
+  )
+    return;
+  revealWindow?.();
 });
 if (app.isPackaged) {
-  process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.resourcesPath, 'playwright-browsers');
+  process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(
+    process.resourcesPath,
+    "playwright-browsers",
+  );
   process.env.ESBUILD_BINARY_PATH = path.join(
-    app.getAppPath().endsWith('.asar') ? `${app.getAppPath()}.unpacked` : app.getAppPath(),
-    'node_modules',
-    '@esbuild',
+    app.getAppPath().endsWith(".asar")
+      ? `${app.getAppPath()}.unpacked`
+      : app.getAppPath(),
+    "node_modules",
+    "@esbuild",
     `${process.platform}-${process.arch}`,
-    'bin',
-    process.platform === 'win32' ? 'esbuild.exe' : 'esbuild',
+    "bin",
+    process.platform === "win32" ? "esbuild.exe" : "esbuild",
   );
 }
 
-function createWindow(theme: 'system' | 'light' | 'dark' = 'system'): BrowserWindow {
+function createWindow(
+  theme: "system" | "light" | "dark" = "system",
+): BrowserWindow {
   const window = new BrowserWindow({
     width: 1320,
     height: 840,
     minWidth: 1040,
     minHeight: 680,
-    title: 'Site Runner',
-    icon: path.join(app.getAppPath(), 'assets/branding/icon.png'),
-    backgroundColor: theme === 'light' || (theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#ffffff' : '#1a1e1f',
+    title: "Site Runner",
+    icon: path.join(app.getAppPath(), "assets/branding/icon.png"),
+    backgroundColor:
+      theme === "light" ||
+      (theme === "system" && !nativeTheme.shouldUseDarkColors)
+        ? "#ffffff"
+        : "#1a1e1f",
     webPreferences: {
-      preload: path.join(currentDir, '../preload/index.cjs'),
+      preload: path.join(currentDir, "../preload/index.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -78,162 +110,343 @@ function createWindow(theme: 'system' | 'light' | 'dark' = 'system'): BrowserWin
   if (developmentUrl) {
     void window.loadURL(developmentUrl);
   } else {
-    void window.loadFile(path.join(currentDir, '../../renderer/index.html'));
+    void window.loadFile(path.join(currentDir, "../../renderer/index.html"));
   }
 
   return window;
 }
 
-app.whenReady().then(async () => {
-  const paths = getAppPaths();
-  const logging = createLogger(paths.logs);
-  const logger = logging.logger;
-  const database = new AppDatabase(paths.database);
-  const data = new DataService(database.connection);
-  const cleanup = new CleanupService(data, paths.userData);
-  const profiles = new ProfileService(data, paths.profiles);
-  const runner = new AutomationRunner(data, profiles, paths.screenshots, (entry) => {
-    logger[entry.level]({ siteId: entry.siteId }, entry.message);
-    broadcastRunLog(entry);
-  });
-  const notifications = new NotificationService(data);
-  if (cliCommand) {
-    let exitCode = 1;
-    try {
-      if (cliCommand.action.startsWith('run-')) {
-        try { cleanup.runAutomatic(); } catch (error) { logger.error({ error }, 'Automatic cleanup failed'); }
+app
+  .whenReady()
+  .then(async () => {
+    const paths = getAppPaths();
+    const logging = createLogger(paths.logs);
+    const logger = logging.logger;
+    const database = new AppDatabase(paths.database);
+    const data = new DataService(database.connection);
+    const cleanup = new CleanupService(data, paths.userData);
+    const profiles = new ProfileService(data, paths.profiles);
+    const runner = new AutomationRunner(
+      data,
+      profiles,
+      paths.screenshots,
+      (entry) => {
+        logger[entry.level]({ siteId: entry.siteId }, entry.message);
+        broadcastRunLog(entry);
+      },
+    );
+    const notifications = new NotificationService(data);
+    if (cliCommand) {
+      let exitCode = 1;
+      try {
+        if (cliCommand.action.startsWith("run-")) {
+          try {
+            cleanup.runAutomatic();
+          } catch (error) {
+            logger.error({ error }, "Automatic cleanup failed");
+          }
+        }
+        const result = await executeCliCommand(
+          cliCommand,
+          data,
+          runner,
+          notifications,
+        );
+        console.log(JSON.stringify(result.output));
+        exitCode = result.exitCode;
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+      } finally {
+        await profiles.closeAll();
+        database.close();
+        logging.close();
+        // Let macOS finish its ready event before exiting commands with no browser work.
+        setTimeout(() => app.exit(exitCode), 100);
       }
-      const result = await executeCliCommand(cliCommand, data, runner, notifications);
-      console.log(JSON.stringify(result.output));
-      exitCode = result.exitCode;
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error));
-    } finally {
+      return;
+    }
+    const batch = new BatchRunner(data, runner, (result) =>
+      notifications.notifyBatch(result).then(() => undefined),
+    );
+    const scheduledBatch = new BatchRunner(data, runner, async (result) => {
+      if (result.total && data.getSettings().notifyScheduledRuns)
+        await notifications.notifyBatch(result);
+    });
+    const runtime = new RuntimeService(runner, [batch, scheduledBatch]);
+    const scheduler = new SchedulerService(
+      data,
+      runner,
+      async (result) => {
+        if (!data.getSettings().notifyScheduledRuns) return;
+        await notifications.notifyBatch({
+          startedAt: result.startedAt,
+          finishedAt: result.finishedAt,
+          total: 1,
+          success: result.status === "success" ? 1 : 0,
+          failed: result.status === "failed" ? 1 : 0,
+          results: [result],
+        });
+      },
+      async (folderId) => {
+        const ids = data
+          .listSites()
+          .filter(
+            (site) =>
+              site.enabled &&
+              site.folderId === folderId &&
+              !site.schedule.enabled &&
+              site.schedule.mode !== "manual" &&
+              !runtime.isBusy(site.id),
+          )
+          .map((site) => site.id);
+        if (!ids.length) return;
+        await scheduledBatch.runSites(ids, undefined, "schedule");
+      },
+      (id) => !runtime.isBusy(id),
+      async (catchUp) => {
+        const ids = data
+          .listSites()
+          .filter(
+            (site) =>
+              site.enabled &&
+              !runtime.isBusy(site.id) &&
+              (!catchUp || !ranOnDay(site.lastRun)),
+          )
+          .map((site) => site.id);
+        if (ids.length)
+          await scheduledBatch.runSites(ids, undefined, "schedule");
+      },
+    );
+    const recorder = new RecorderService(
+      profiles,
+      path.join(paths.userData, "recordings"),
+      (id) =>
+        data
+          .listSites()
+          .some(
+            (site) => site.browserProfileId === id && runtime.isBusy(site.id),
+          ),
+    );
+    const updates = new UpdateService({
+      currentVersion: app.getVersion(),
+      platform: process.platform,
+      arch: process.arch,
+      executable: process.execPath,
+      userData: paths.userData,
+      packaged: app.isPackaged,
+      ...(process.env.PORTABLE_EXECUTABLE_FILE
+        ? { portablePath: process.env.PORTABLE_EXECUTABLE_FILE }
+        : {}),
+      fetch: (url, options) => net.fetch(url as string, options),
+      isBusy: async () => {
+        const snapshot = runtime.snapshot();
+        if (
+          snapshot.runs.length > 0 ||
+          snapshot.batches.length > 0 ||
+          profiles.hasOpenBrowsers() ||
+          ["recording", "ready"].includes(recorder.getStatus().state)
+        )
+          return true;
+        for (const window of BrowserWindow.getAllWindows()) {
+          if (window.isDestroyed() || window.webContents.isDestroyed())
+            continue;
+          if (
+            await window.webContents.executeJavaScript(
+              "Boolean(document.querySelector('[aria-modal=true], .modal-backdrop'))",
+            )
+          )
+            return true;
+        }
+        return false;
+      },
+      beforeInstall: async () => undefined,
+      quit: () => app.quit(),
+      logError: (stage, error) =>
+        logger.warn({ stage, err: error }, "Application update failed"),
+    });
+    await updates.initialize();
+    updates.onState((state) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed())
+          window.webContents.send("updates:state", state);
+      }
+    });
+    ipcMain.handle("updates:state", () => updates.snapshot());
+    ipcMain.handle("updates:check", () => updates.check());
+    ipcMain.handle("updates:download", () => updates.download());
+    ipcMain.handle("updates:install", () => updates.install());
+    ipcMain.handle("recorder:start", (_event, input) => {
+      if (runner.isStopping()) throw new Error("Application is closing");
+      return recorder.start(input);
+    });
+    ipcMain.handle("recorder:status", () => recorder.getStatus());
+    ipcMain.handle("recorder:finish", () => recorder.finish());
+    ipcMain.handle("recorder:cancel", () => recorder.cancel());
+    if (data.listProfiles().length === 0) profiles.create("Default");
+    registerDataIpc(data, profiles, scheduler, notifications, cleanup, runtime);
+    registerRunIpc(runner, batch, runtime, data);
+    scheduler.start();
+    cleanup.start();
+    ipcMain.handle("app:info", () => ({
+      name: "Site Runner",
+      version: app.getVersion(),
+      userDataPath: getAppPaths().userData,
+      platform: process.platform,
+      executablePath: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath,
+      cliAppPath: app.isPackaged ? undefined : app.getAppPath(),
+    }));
+
+    let closing = false;
+    let menuBar: MenuBar | undefined;
+    app.on("before-quit", (event) => {
+      event.preventDefault();
+      if (closing) return;
+      closing = true;
+      menuBar?.destroy();
+      cleanup.stop();
+      const finishing = [
+        scheduler.shutdown(),
+        batch.shutdown(),
+        scheduledBatch.shutdown(),
+        runner.shutdown(),
+        recorder.cancel(),
+        profiles.closeAll(),
+        updates.shutdown(),
+      ];
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed() && !window.webContents.isDestroyed())
+          window.webContents.send("app:closing");
+      }
+      void Promise.allSettled(finishing)
+        .then(async (results) => {
+          await notifications.shutdown();
+          const errors = results.filter(
+            (result) => result.status === "rejected",
+          );
+          if (errors.length) logger.error({ errors }, "Exit cleanup failed");
+          database.close();
+          logging.close();
+          app.exit(errors.length ? 1 : 0);
+        })
+        .catch((error: unknown) => {
+          logger.error({ error }, "Exit cleanup failed");
+          logging.close();
+          app.exit(1);
+        });
+    });
+
+    if (process.argv.includes("--automation-smoke-test")) {
+      data.updateSettings({ browserHeadless: true });
+      const profile = data.listProfiles()[0] ?? profiles.create("Default");
+      const markup = encodeURIComponent(
+        "<button onclick=\"document.body.dataset.done='yes'\">Run</button>",
+      );
+      for (const [name, script] of [
+        ["A", null],
+        [
+          "B",
+          "export default async function run({ page }) { await page.getByRole('button', { name: 'Missing' }).click(); }",
+        ],
+        [
+          "C",
+          "export default async function run({ page }) { await page.getByRole('button', { name: 'Run' }).click(); if (await page.locator('body').getAttribute('data-done') !== 'yes') throw new Error('Click failed'); }",
+        ],
+      ] as const) {
+        data.saveSite({
+          name,
+          url: `data:text/html;charset=utf-8,${markup}`,
+          enabled: true,
+          script,
+          browserProfileId: profile.id,
+          timeoutMs: 1_000,
+          schedule: { enabled: false, cron: "0 9 * * *" },
+        });
+      }
+      const result = await batch.runEnabledSites();
+      console.log(
+        `AUTOMATION_SMOKE ${JSON.stringify({ total: result.total, success: result.success, failed: result.failed })}`,
+      );
+      const exitCode =
+        result.total === 3 && result.success === 2 && result.failed === 1
+          ? 0
+          : 1;
+      scheduler.stop();
       await profiles.closeAll();
       database.close();
       logging.close();
-      // Let macOS finish its ready event before exiting commands with no browser work.
-      setTimeout(() => app.exit(exitCode), 100);
+      app.exit(exitCode);
+      return;
     }
-    return;
-  }
-  const batch = new BatchRunner(data, runner, (result) => notifications.notifyBatch(result).then(() => undefined));
-  const scheduledBatch = new BatchRunner(data, runner, async (result) => {
-    if (result.total && data.getSettings().notifyScheduledRuns) await notifications.notifyBatch(result);
-  });
-  const runtime = new RuntimeService(runner, [batch, scheduledBatch]);
-  const scheduler = new SchedulerService(data, runner, async (result) => {
-    if (!data.getSettings().notifyScheduledRuns) return;
-    await notifications.notifyBatch({ startedAt: result.startedAt, finishedAt: result.finishedAt, total: 1,
-      success: result.status === 'success' ? 1 : 0, failed: result.status === 'failed' ? 1 : 0, results: [result] });
-  }, async (folderId) => {
-    const ids = data.listSites().filter((site) => site.enabled && site.folderId === folderId && !site.schedule.enabled && site.schedule.mode !== 'manual' && !runtime.isBusy(site.id)).map((site) => site.id);
-    if (!ids.length) return;
-    await scheduledBatch.runSites(ids, undefined, 'schedule');
-  }, (id) => !runtime.isBusy(id));
-  const recorder = new RecorderService(profiles, path.join(paths.userData, 'recordings'), (id) => data.listSites().some((site) => site.browserProfileId === id && runtime.isBusy(site.id)));
-  const updates = new UpdateService({
-    currentVersion: app.getVersion(), platform: process.platform, arch: process.arch,
-    executable: process.execPath, userData: paths.userData, packaged: app.isPackaged,
-    ...(process.env.PORTABLE_EXECUTABLE_FILE ? { portablePath: process.env.PORTABLE_EXECUTABLE_FILE } : {}),
-    fetch: (url, options) => net.fetch(url as string, options),
-    isBusy: async () => {
-      const snapshot = runtime.snapshot();
-      if (snapshot.runs.length > 0 || snapshot.batches.length > 0 || profiles.hasOpenBrowsers() || ['recording', 'ready'].includes(recorder.getStatus().state)) return true;
-      for (const window of BrowserWindow.getAllWindows()) {
-        if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
-        if (await window.webContents.executeJavaScript("Boolean(document.querySelector('[aria-modal=true], .modal-backdrop'))")) return true;
-      }
-      return false;
-    },
-    beforeInstall: async () => undefined,
-    quit: () => app.quit(),
-    logError: (stage, error) => logger.warn({ stage, err: error }, 'Application update failed'),
-  });
-  await updates.initialize();
-  updates.onState((state) => { for (const window of BrowserWindow.getAllWindows()) { if (!window.isDestroyed()) window.webContents.send('updates:state', state); } });
-  ipcMain.handle('updates:state', () => updates.snapshot());
-  ipcMain.handle('updates:check', () => updates.check());
-  ipcMain.handle('updates:download', () => updates.download());
-  ipcMain.handle('updates:install', () => updates.install());
-  ipcMain.handle('recorder:start', (_event, input) => { if (runner.isStopping()) throw new Error('Application is closing'); return recorder.start(input); });
-  ipcMain.handle('recorder:status', () => recorder.getStatus());
-  ipcMain.handle('recorder:finish', () => recorder.finish());
-  ipcMain.handle('recorder:cancel', () => recorder.cancel());
-  if (data.listProfiles().length === 0) profiles.create('Default');
-  registerDataIpc(data, profiles, scheduler, notifications, cleanup, runtime);
-  registerRunIpc(runner, batch, runtime, data);
-  scheduler.start();
-  cleanup.start();
-  ipcMain.handle('app:info', () => ({
-    name: 'Site Runner',
-    version: app.getVersion(),
-    userDataPath: getAppPaths().userData,
-    platform: process.platform,
-    executablePath: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath,
-    cliAppPath: app.isPackaged ? undefined : app.getAppPath(),
-  }));
 
-  let closing = false;
-  app.on('before-quit', (event) => {
-    event.preventDefault();
-    if (closing) return;
-    closing = true;
-    cleanup.stop();
-    const finishing = [scheduler.shutdown(), batch.shutdown(), scheduledBatch.shutdown(), runner.shutdown(), recorder.cancel(), profiles.closeAll(), updates.shutdown()];
-    for (const window of BrowserWindow.getAllWindows()) {
-      if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('app:closing');
+    if (process.platform === "darwin")
+      app.dock?.setIcon(
+        path.join(app.getAppPath(), "assets/branding/icon.png"),
+      );
+    const attachWindow = (target: BrowserWindow) => {
+      target.on("close", (event) => {
+        if (process.platform === "darwin" && menuBar && !closing) {
+          event.preventDefault();
+          menuBar.hide(target);
+        }
+      });
+      return target;
+    };
+    revealWindow = () => {
+      if (closing) return;
+      scheduler.catchUp();
+      if (process.platform === "darwin") void app.dock?.show();
+      const target =
+        BrowserWindow.getAllWindows()[0] ??
+        attachWindow(createWindow(data.getSettings().theme));
+      if (target.isMinimized()) target.restore();
+      target.show();
+      target.focus();
+    };
+    if (process.platform === "darwin") {
+      menuBar = new MenuBar(
+        () => data.getSettings(),
+        revealWindow,
+        async () => {
+          const ids = data
+            .listSites()
+            .filter((site) => site.enabled && !runtime.isBusy(site.id))
+            .map((site) => site.id);
+          if (ids.length) await batch.runSites(ids);
+        },
+        () =>
+          closing ||
+          runtime.snapshot().runs.length > 0 ||
+          runtime.snapshot().batches.length > 0,
+        (error) => logger.error({ error }, "Menu-bar run failed"),
+      );
     }
-    void Promise.allSettled(finishing).then(async (results) => {
-      await notifications.shutdown();
-      const errors = results.filter((result) => result.status === 'rejected');
-      if (errors.length) logger.error({ errors }, 'Exit cleanup failed');
-      database.close(); logging.close(); app.exit(errors.length ? 1 : 0);
-    }).catch((error: unknown) => { logger.error({ error }, 'Exit cleanup failed'); logging.close(); app.exit(1); });
-  });
-
-  if (process.argv.includes('--automation-smoke-test')) {
-    data.updateSettings({ browserHeadless: true });
-    const profile = data.listProfiles()[0] ?? profiles.create('Default');
-    const markup = encodeURIComponent('<button onclick="document.body.dataset.done=\'yes\'">Run</button>');
-    for (const [name, script] of [
-      ['A', null],
-      ['B', "export default async function run({ page }) { await page.getByRole('button', { name: 'Missing' }).click(); }"],
-      ['C', "export default async function run({ page }) { await page.getByRole('button', { name: 'Run' }).click(); if (await page.locator('body').getAttribute('data-done') !== 'yes') throw new Error('Click failed'); }"],
-    ] as const) {
-      data.saveSite({ name, url: `data:text/html;charset=utf-8,${markup}`, enabled: true, script,
-        browserProfileId: profile.id, timeoutMs: 1_000, schedule: { enabled: false, cron: '0 9 * * *' } });
-    }
-    const result = await batch.runEnabledSites();
-    console.log(`AUTOMATION_SMOKE ${JSON.stringify({ total: result.total, success: result.success, failed: result.failed })}`);
-    const exitCode = result.total === 3 && result.success === 2 && result.failed === 1 ? 0 : 1;
-    scheduler.stop();
-    await profiles.closeAll();
-    database.close();
-    logging.close();
-    app.exit(exitCode);
-    return;
-  }
-
-  if (process.platform === 'darwin') app.dock?.setIcon(path.join(app.getAppPath(), 'assets/branding/icon.png'));
-  const window = createWindow(data.getSettings().theme);
-  window.webContents.once('did-finish-load', () => {
-    void (async () => {
-      for (let attempt = 0; attempt < 30; attempt++) {
-        const mounted = await window.webContents.executeJavaScript("Boolean(document.querySelector('[data-testid=nav-sites]') && document.querySelector('[data-testid=nav-settings]'))");
-        if (mounted) { await updates.confirmStartup(); return; }
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-      throw new Error('Updated renderer did not mount');
-    })().catch((error: unknown) => logger.error({ error }, 'Update startup confirmation failed'));
-  });
-  if (process.argv.includes('--smoke-test')) {
-    const rendererErrors: string[] = [];
-    window.webContents.on('console-message', (details) => {
-      if (details.level === 'error') rendererErrors.push(details.message);
+    const window = attachWindow(createWindow(data.getSettings().theme));
+    window.webContents.once("did-finish-load", () => {
+      void (async () => {
+        for (let attempt = 0; attempt < 30; attempt++) {
+          const mounted = await window.webContents.executeJavaScript(
+            "Boolean(document.querySelector('[data-testid=nav-sites]') && document.querySelector('[data-testid=nav-settings]'))",
+          );
+          if (mounted) {
+            await updates.confirmStartup();
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+        throw new Error("Updated renderer did not mount");
+      })().catch((error: unknown) =>
+        logger.error({ error }, "Update startup confirmation failed"),
+      );
     });
-    window.webContents.once('did-finish-load', () => {
-      void window.webContents.executeJavaScript(`(async () => {
+    if (process.argv.includes("--smoke-test")) {
+      const rendererErrors: string[] = [];
+      window.webContents.on("console-message", (details) => {
+        if (details.level === "error") rendererErrors.push(details.message);
+      });
+      window.webContents.once("did-finish-load", () => {
+        void window.webContents
+          .executeJavaScript(
+            `(async () => {
         const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait(250);
         document.querySelector('[data-testid="nav-sites"]')?.click();
@@ -322,38 +535,73 @@ app.whenReady().then(async () => {
           chinese: document.documentElement.lang === 'zh-CN' && document.body.innerText.includes('简体中文'),
           text: document.body.innerText.slice(0, 200)
         };
-      })()`).then((result: { shell: boolean; api: boolean; siteDialog: boolean; templatePreview: boolean; templateCreated: boolean; overwriteGuard: boolean; templateCleared: boolean; profileDialog: boolean; chinese: boolean; text: string }) => {
-        const report = { ...result, rendererErrors };
-        console.log(`RENDERER_SMOKE ${JSON.stringify(report)}`);
-        app.exit(result.shell && result.api && result.siteDialog && result.templatePreview && result.templateCreated && result.overwriteGuard && result.templateCleared && result.profileDialog && result.chinese && rendererErrors.length === 0 ? 0 : 1);
-      }).catch((error: unknown) => {
-        console.error('RENDERER_SMOKE failed', error);
+      })()`,
+          )
+          .then(
+            (result: {
+              shell: boolean;
+              api: boolean;
+              siteDialog: boolean;
+              templatePreview: boolean;
+              templateCreated: boolean;
+              overwriteGuard: boolean;
+              templateCleared: boolean;
+              profileDialog: boolean;
+              chinese: boolean;
+              text: string;
+            }) => {
+              const report = { ...result, rendererErrors };
+              console.log(`RENDERER_SMOKE ${JSON.stringify(report)}`);
+              app.exit(
+                result.shell &&
+                  result.api &&
+                  result.siteDialog &&
+                  result.templatePreview &&
+                  result.templateCreated &&
+                  result.overwriteGuard &&
+                  result.templateCleared &&
+                  result.profileDialog &&
+                  result.chinese &&
+                  rendererErrors.length === 0
+                  ? 0
+                  : 1,
+              );
+            },
+          )
+          .catch((error: unknown) => {
+            console.error("RENDERER_SMOKE failed", error);
+            app.exit(1);
+          });
+      });
+      window.webContents.once("did-fail-load", (_event, code, description) => {
+        console.error(`RENDERER_SMOKE load failed: ${code} ${description}`);
         app.exit(1);
       });
-    });
-    window.webContents.once('did-fail-load', (_event, code, description) => {
-      console.error(`RENDERER_SMOKE load failed: ${code} ${description}`);
-      app.exit(1);
-    });
-    setTimeout(() => {
-      console.error('RENDERER_SMOKE timed out', rendererErrors);
-      void window.webContents.executeJavaScript('document.body.innerText').then((body: string) => {
-        console.error(body.slice(0, 2_000));
-        app.exit(1);
-      }).catch(() => app.exit(1));
-    }, 20_000).unref();
-  }
+      setTimeout(() => {
+        console.error("RENDERER_SMOKE timed out", rendererErrors);
+        void window.webContents
+          .executeJavaScript("document.body.innerText")
+          .then((body: string) => {
+            console.error(body.slice(0, 2_000));
+            app.exit(1);
+          })
+          .catch(() => app.exit(1));
+      }, 20_000).unref();
+    }
 
-  app.on('activate', () => {
-    if (closing) return;
-    if (BrowserWindow.getAllWindows().length === 0) createWindow(data.getSettings().theme);
+    app.on("activate", () => {
+      revealWindow?.();
+    });
+    logger.info({ userData: paths.userData }, "Site Runner started");
+  })
+  .catch((error: unknown) => {
+    console.error(
+      "Site Runner startup failed",
+      error instanceof Error ? error.message : String(error),
+    );
+    app.exit(1);
   });
-  logger.info({ userData: paths.userData }, 'Site Runner started');
-}).catch((error: unknown) => {
-  console.error('Site Runner startup failed', error instanceof Error ? error.message : String(error));
-  app.exit(1);
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
 });

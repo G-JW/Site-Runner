@@ -8,15 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@monaco-editor/react':
-        specifier: latest
-        version: 4.7.0(monaco-editor@0.57.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       esbuild:
         specifier: latest
         version: 0.28.2
-      monaco-editor:
-        specifier: latest
-        version: 0.57.0
       node-cron:
         specifier: latest
         version: 4.6.0
@@ -26,13 +20,19 @@ importers:
       playwright:
         specifier: latest
         version: 1.63.0
+    devDependencies:
+      '@monaco-editor/react':
+        specifier: latest
+        version: 4.7.0(monaco-editor@0.57.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      monaco-editor:
+        specifier: latest
+        version: 0.57.0
       react:
         specifier: latest
         version: 19.3.0
       react-dom:
         specifier: latest
         version: 19.3.0(react@19.3.0)
-    devDependencies:
       '@eslint/js':
         specifier: latest
         version: 10.0.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))

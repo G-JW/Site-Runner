@@ -9,6 +9,15 @@ import {
 import type { AppLanguage } from "../shared/types";
 
 const en = {
+  "daily.title": "Daily schedule",
+  "daily.catchUp": "Catch up when opening the app",
+  "daily.catchUpNote":
+    "After today’s run time, opening or restoring the app runs enabled tasks not yet attempted today. At most one automatic batch per day; previous days are not replayed.",
+  "daily.everyDay": "Daily {time}",
+  "daily.enabled": "Run all enabled tasks daily",
+  "daily.time": "Run time",
+  "daily.note":
+    "Runs while the app is open, including in the Mac menu bar. Sleep or quit pauses execution. Overrides individual and group schedules while enabled.",
   "settings.concurrency": "Concurrent tasks",
   "settings.concurrencyDescription":
     "Run up to 10 tasks at once. Default: 3. Shared login environments use separate pages. Changes apply as running tasks finish; 1 runs tasks sequentially.",
@@ -666,6 +675,16 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const zh: Record<TranslationKey, string> = {
+  "daily.title": "定时执行",
+  "daily.catchUp": "打开应用时补跑今日任务",
+  "daily.catchUpNote":
+    "过了今日执行时间后，启动或恢复窗口时补跑今日尚未执行的启用任务。每天最多触发一次自动批次，不补以前日期。",
+  "daily.everyDay": "每天 {time}",
+  "daily.enabled": "每天运行全部已启用任务",
+  "daily.time": "执行时间",
+  "daily.note":
+    "应用开启或在 Mac 菜单栏驻留时执行；睡眠、退出期间不执行。开启后统一使用此计划，单站与分组计划暂不触发。",
+
   "settings.concurrency": "并行任务数",
   "settings.concurrencyDescription":
     "最多同时运行 10 个任务，默认 3 个。共用登录环境时使用独立页面。调整后在任务完成、释放空位时生效；设为 1 则串行执行。",

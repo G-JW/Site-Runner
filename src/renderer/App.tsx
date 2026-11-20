@@ -375,19 +375,6 @@ export function App() {
               <Icon name="settings" size={17} />
               <span className="nav-label">{t("nav.settings")}</span>
             </button>
-            <div
-              className="sidebar-foot"
-              title={`${t("app.local")} · v${info?.version ?? "—"}`}
-            >
-              <span
-                className={`status-dot ${hasActiveRuns ? "working" : ""}`}
-              />
-              <span className="nav-label">
-                {t(hasActiveRuns ? "workspace.busy" : "v2.local", {
-                  count: runtime.runs.length,
-                })}
-              </span>
-            </div>
           </div>
         </aside>
         <div className="workspace-main" inert={inactive}>
@@ -403,8 +390,6 @@ export function App() {
               <Icon name="panel" size={17} />
             </button>
             <div className="breadcrumb">
-              <span>{t("v2.workspace")}</span>
-              <Icon name="chevron" size={12} />
               <strong>
                 {t(
                   ["sites", "history"].includes(page)
@@ -413,25 +398,6 @@ export function App() {
                 )}
               </strong>
             </div>
-            <button
-              className="command-center"
-              data-testid="open-command-palette"
-              onClick={() => setCommandOpen(true)}
-            >
-              <Icon name="search" size={15} />
-              <span>{t("v2.quickSearch")}</span>
-              <kbd>{info?.platform === "darwin" ? "⌘ K" : "Ctrl K"}</kbd>
-            </button>
-            <button
-              className="icon-button"
-              data-testid="toggle-output"
-              aria-label={t("workbench.showOutput")}
-              title={t("workbench.showOutput")}
-              aria-pressed={outputOpen}
-              onClick={toggleOutput}
-            >
-              <Icon name="terminal" size={17} />
-            </button>
           </div>
           <main id="main-content">
             <section
